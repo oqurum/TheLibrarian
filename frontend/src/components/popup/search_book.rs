@@ -1,4 +1,4 @@
-use librarian_common::{api::{MetadataSearchResponse, PostMetadataBody, SearchItem}, SearchType};
+use librarian_common::{api::{MetadataSearchResponse, SearchItem}, SearchType};
 use gloo_utils::document;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlInputElement;
@@ -16,7 +16,6 @@ pub struct Property {
 
 	pub on_close: Callback<()>,
 
-	pub meta_id: usize,
 	pub input_value: String,
 }
 
@@ -131,8 +130,6 @@ impl Component for PopupSearchBook {
 
 impl PopupSearchBook {
 	fn render_poster_container(site: String, item: &SearchItem, ctx: &Context<Self>) -> Html {
-		let meta_id = ctx.props().meta_id;
-
 		let item = item.as_book();
 
 		let source = item.source.clone();
@@ -147,11 +144,7 @@ impl PopupSearchBook {
 						let source = source.clone();
 
 						async move {
-							request::update_metadata(
-								meta_id,
-								&PostMetadataBody::UpdateMetaBySource(source)
-							).await;
-
+							request::new_book(source).await;
 							Msg::Ignore
 						}
 					})

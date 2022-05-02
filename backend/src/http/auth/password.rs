@@ -51,7 +51,7 @@ pub async fn post_password_oauth(
 	} else {
 		let hash = bcrypt::hash(&password, bcrypt::DEFAULT_COST).map_err(Error::from)?;
 
-		let new_member = table::NewMember {
+		let new_member = table::NewMemberModel {
 			// TODO: Strip email
 			name: email.clone(),
 			email: Some(email),

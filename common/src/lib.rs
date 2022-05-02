@@ -1,3 +1,6 @@
+#![warn(unused)]
+
+
 use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};

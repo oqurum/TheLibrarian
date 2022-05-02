@@ -69,7 +69,7 @@ pub async fn post_passwordless_oauth(
 		PASSWORDLESS_PATH_CB,
 	);
 
-	db.add_verify(&table::NewAuth {
+	db.add_verify(&table::NewAuthModel {
 		oauth_token,
 		// TODO:
 		oauth_token_secret: String::new(),
@@ -108,7 +108,7 @@ pub async fn get_passwordless_oauth_callback(
 		let member = if let Some(value) = db.get_member_by_email(&email)? {
 			value
 		} else {
-			let new_member = table::NewMember {
+			let new_member = table::NewMemberModel {
 				// TODO: Strip email
 				name: email.clone(),
 				email: Some(email),

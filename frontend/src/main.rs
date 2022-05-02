@@ -88,9 +88,6 @@ pub enum Route {
 	#[at("/login")]
 	Login,
 
-	#[at("/library/:library_id")]
-	ViewLibrary { library_id: usize },
-
 	#[at("/view/:meta_id")]
 	ViewMeta { meta_id: usize },
 
@@ -102,7 +99,7 @@ pub enum Route {
 
 	#[at("/")]
 	#[not_found]
-	Dashboard
+	Home
 }
 
 
@@ -118,10 +115,6 @@ fn switch(route: &Route) -> Html {
 			html! { <pages::LoginPage /> }
 		}
 
-		Route::ViewLibrary { library_id } => {
-			html! { <pages::LibraryPage library_id={library_id}  /> }
-		}
-
 		Route::ViewMeta { meta_id } => {
 			html! { <pages::MediaView id={meta_id}  /> }
 		}
@@ -134,7 +127,7 @@ fn switch(route: &Route) -> Html {
 			html! { <pages::OptionsPage /> }
 		}
 
-		Route::Dashboard => {
+		Route::Home => {
 			html! { <pages::HomePage /> }
 		}
 	}

@@ -5,7 +5,6 @@ use async_trait::async_trait;
 use librarian_common::{MetadataItemCached, SearchForBooksBy};
 use serde::{Serialize, Deserialize};
 
-use crate::database::table::File;
 use self::book::BookSearchType;
 
 use super::{Metadata, SearchItem, MetadataReturned, SearchFor, AuthorInfo, FoundItem, FoundImageLocation};
@@ -21,24 +20,6 @@ pub struct OpenLibraryMetadata;
 impl Metadata for OpenLibraryMetadata {
 	fn get_prefix(&self) -> &'static str {
 		"openlibrary"
-	}
-
-	async fn get_metadata_from_files(&mut self, files: &[File]) -> Result<Option<MetadataReturned>> {
-		for file in files {
-			if let Some(isbn) = file.identifier.clone() {
-				let id = match BookId::make_assumptions(isbn) {
-					Some(v) => v,
-					None => continue
-				};
-
-				match self.request(id).await {
-					Ok(Some(v)) => return Ok(Some(v)),
-					a => eprintln!("GoogleBooksMetadata::get_metadata_from_files {:?}", a)
-				}
-			}
-		}
-
-		Ok(None)
 	}
 
 	async fn get_metadata_by_source_id(&mut self, value: &str) -> Result<Option<MetadataReturned>> {

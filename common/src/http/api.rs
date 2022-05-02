@@ -21,7 +21,7 @@ pub struct ChangePosterBody {
 
 // Members
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct GetMemberSelfResponse {
 	pub member: Option<Member>,
 }
@@ -37,6 +37,13 @@ pub struct GetLibrariesResponse {
 
 
 // Book
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct NewBookBody {
+	pub source: Source,
+}
+
+
 
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct LoadResourceQuery {
@@ -58,7 +65,6 @@ pub struct GetBookListResponse {
 
 #[derive(Serialize, Deserialize)]
 pub struct BookListQuery {
-	pub library: Option<usize>,
 	pub offset: Option<usize>,
 	pub limit: Option<usize>,
 	/// `SearchQuery`
@@ -66,12 +72,11 @@ pub struct BookListQuery {
 }
 
 impl BookListQuery {
-	pub fn new(library: Option<usize>, offset: Option<usize>, limit: Option<usize>, search: Option<SearchQuery>) -> Result<Self> {
+	pub fn new(offset: Option<usize>, limit: Option<usize>, search: Option<SearchQuery>) -> Result<Self> {
 		let search = search.map(serde_urlencoded::to_string)
 			.transpose()?;
 
 		Ok(Self {
-			library,
 			offset,
 			limit,
 			search,

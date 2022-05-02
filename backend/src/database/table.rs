@@ -1,4 +1,4 @@
-use librarian_common::{Progression, MetadataItemCached, DisplayMetaItem, MediaItem, Person, Source, ThumbnailStore};
+use librarian_common::{MetadataItemCached, DisplayMetaItem, Person, Source, ThumbnailStore};
 use chrono::{DateTime, TimeZone, Utc};
 use rusqlite::Row;
 use serde::{Serialize, Serializer};
@@ -8,7 +8,7 @@ use serde::{Serialize, Serializer};
 
 // TODO: Place into common
 #[derive(Debug, Clone, Serialize)]
-pub struct MetadataItem {
+pub struct BookModel {
 	pub id: usize,
 
 	pub library_id: usize,
@@ -41,32 +41,8 @@ pub struct MetadataItem {
 	pub hash: String
 }
 
-// impl Default for MetadataItem {
-// 	fn default() -> Self {
-// 		Self {
-// 			id: Default::default(),
-// 			library_id: Default::default(),
-// 			source: Default::default(),
-// 			file_item_count: Default::default(),
-// 			title: Default::default(),
-// 			original_title: Default::default(),
-// 			description: Default::default(),
-// 			rating: Default::default(),
-// 			thumb_path: Default::default(),
-// 			all_thumb_urls: Default::default(),
-// 			cached: Default::default(),
-// 			refreshed_at: Utc::now(),
-// 			created_at: Utc::now(),
-// 			updated_at: Utc::now(),
-// 			deleted_at: Default::default(),
-// 			available_at: Default::default(),
-// 			year: Default::default(),
-// 			hash: Default::default()
-// 		}
-// 	}
-// }
 
-impl<'a> TryFrom<&Row<'a>> for MetadataItem {
+impl<'a> TryFrom<&Row<'a>> for BookModel {
 	type Error = rusqlite::Error;
 
 	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
@@ -95,8 +71,8 @@ impl<'a> TryFrom<&Row<'a>> for MetadataItem {
 	}
 }
 
-impl From<MetadataItem> for DisplayMetaItem {
-	fn from(val: MetadataItem) -> Self {
+impl From<BookModel> for DisplayMetaItem {
+	fn from(val: BookModel) -> Self {
 		DisplayMetaItem {
 			id: val.id,
 			library_id: val.library_id,
@@ -123,12 +99,12 @@ impl From<MetadataItem> for DisplayMetaItem {
 // Tag Person Alt
 
 #[derive(Debug, Serialize)]
-pub struct MetadataPerson {
+pub struct BookPersonModel {
 	pub metadata_id: usize,
 	pub person_id: usize,
 }
 
-impl<'a> TryFrom<&Row<'a>> for MetadataPerson {
+impl<'a> TryFrom<&Row<'a>> for BookPersonModel {
 	type Error = rusqlite::Error;
 
 	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
@@ -140,347 +116,10 @@ impl<'a> TryFrom<&Row<'a>> for MetadataPerson {
 }
 
 
-// Notes
-
-#[derive(Debug, Serialize)]
-pub struct FileNote {
-	pub file_id: usize,
-	pub user_id: usize,
-
-	pub data: String,
-	pub data_size: i64,
-
-	#[serde(serialize_with = "serialize_datetime")]
-	pub updated_at: DateTime<Utc>,
-	#[serde(serialize_with = "serialize_datetime")]
-	pub created_at: DateTime<Utc>,
-}
-
-impl FileNote {
-	pub fn new(file_id: usize, user_id: usize, data: String) -> Self {
-		Self {
-			file_id,
-			user_id,
-			data_size: data.len() as i64,
-			data,
-			updated_at: Utc::now(),
-			created_at: Utc::now(),
-		}
-	}
-}
-
-
-impl<'a> TryFrom<&Row<'a>> for FileNote {
-	type Error = rusqlite::Error;
-
-	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
-		Ok(Self {
-			file_id: value.get(0)?,
-			user_id: value.get(1)?,
-
-			data: value.get(2)?,
-
-			data_size: value.get(3)?,
-
-			updated_at: Utc.timestamp_millis(value.get(4)?),
-			created_at: Utc.timestamp_millis(value.get(5)?),
-		})
-	}
-}
-
-
-// File Progression
-
-#[derive(Debug, Serialize)]
-pub struct FileProgression {
-	pub file_id: usize,
-	pub user_id: usize,
-
-	pub type_of: u8,
-
-	// Ebook/Audiobook
-	pub chapter: Option<i64>,
-
-	// Ebook
-	pub page: Option<i64>, // TODO: Remove page. Change to byte pos. Most accurate since screen sizes can change.
-	pub char_pos: Option<i64>,
-
-	// Audiobook
-	pub seek_pos: Option<i64>,
-
-	#[serde(serialize_with = "serialize_datetime")]
-	pub updated_at: DateTime<Utc>,
-	#[serde(serialize_with = "serialize_datetime")]
-	pub created_at: DateTime<Utc>,
-}
-
-impl FileProgression {
-	pub fn new(progress: Progression, user_id: usize, file_id: usize) -> Self {
-		match progress {
-			Progression::Complete => Self {
-				file_id,
-				user_id,
-				type_of: 0,
-				chapter: None,
-				page: None,
-				char_pos: None,
-				seek_pos: None,
-				updated_at: Utc::now(),
-				created_at: Utc::now(),
-			},
-
-			Progression::Ebook { chapter, page, char_pos } => Self {
-				file_id,
-				user_id,
-				type_of: 1,
-				char_pos: Some(char_pos),
-				chapter: Some(chapter),
-				page: Some(page),
-				seek_pos: None,
-				updated_at: Utc::now(),
-				created_at: Utc::now(),
-			},
-
-			Progression::AudioBook { chapter, seek_pos } => Self {
-				file_id,
-				user_id,
-				type_of: 2,
-				chapter: Some(chapter),
-				page: None,
-				char_pos: None,
-				seek_pos: Some(seek_pos),
-				updated_at: Utc::now(),
-				created_at: Utc::now(),
-			}
-		}
-	}
-}
-
-impl<'a> TryFrom<&Row<'a>> for FileProgression {
-	type Error = rusqlite::Error;
-
-	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
-		Ok(Self {
-			file_id: value.get(0)?,
-			user_id: value.get(1)?,
-
-			type_of: value.get(2)?,
-
-			chapter: value.get(3)?,
-
-			page: value.get(4)?,
-			char_pos: value.get(5)?,
-
-			seek_pos: value.get(6)?,
-
-			updated_at: Utc.timestamp_millis(value.get(7)?),
-			created_at: Utc.timestamp_millis(value.get(8)?),
-		})
-	}
-}
-
-impl From<FileProgression> for Progression {
-    fn from(val: FileProgression) -> Self {
-        match val.type_of {
-			0 => Progression::Complete,
-
-			1 => Progression::Ebook {
-				char_pos: val.char_pos.unwrap(),
-				chapter: val.chapter.unwrap(),
-				page: val.page.unwrap(),
-			},
-
-			2 => Progression::AudioBook {
-				chapter: val.chapter.unwrap(),
-				seek_pos: val.seek_pos.unwrap(),
-			},
-
-			_ => unreachable!()
-		}
-    }
-}
-
-
-// Library
-
-pub struct NewLibrary {
-	pub name: String,
-	pub type_of: String,
-
-	pub scanned_at: DateTime<Utc>,
-	pub created_at: DateTime<Utc>,
-	pub updated_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct Library {
-	pub id: usize,
-
-	pub name: String,
-	pub type_of: String,
-
-	#[serde(serialize_with = "serialize_datetime")]
-	pub scanned_at: DateTime<Utc>,
-	#[serde(serialize_with = "serialize_datetime")]
-	pub created_at: DateTime<Utc>,
-	#[serde(serialize_with = "serialize_datetime")]
-	pub updated_at: DateTime<Utc>,
-}
-
-impl<'a> TryFrom<&Row<'a>> for Library {
-	type Error = rusqlite::Error;
-
-	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
-		Ok(Self {
-			id: value.get(0)?,
-			name: value.get(1)?,
-			type_of: value.get(2)?,
-			scanned_at: Utc.timestamp_millis(value.get(3)?),
-			created_at: Utc.timestamp_millis(value.get(4)?),
-			updated_at: Utc.timestamp_millis(value.get(5)?),
-		})
-	}
-}
-
-
-// Directory
-
-pub struct Directory {
-	pub library_id: usize,
-	pub path: String,
-}
-
-impl<'a> TryFrom<&Row<'a>> for Directory {
-	type Error = rusqlite::Error;
-
-	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
-		Ok(Self {
-			library_id: value.get(0)?,
-			path: value.get(1)?,
-		})
-	}
-}
-
-
-// File
-
-pub struct NewFile {
-	pub path: String,
-
-	pub file_name: String,
-	pub file_type: String,
-	pub file_size: i64,
-
-	pub library_id: usize,
-	pub metadata_id: Option<usize>,
-	pub chapter_count: i64,
-
-	pub identifier: Option<String>,
-
-	pub modified_at: DateTime<Utc>,
-	pub accessed_at: DateTime<Utc>,
-	pub created_at: DateTime<Utc>,
-}
-
-impl NewFile {
-	pub fn into_file(self, id: usize) -> File {
-		File {
-			id,
-			path: self.path,
-			file_name: self.file_name,
-			file_type: self.file_type,
-			file_size: self.file_size,
-			library_id: self.library_id,
-			metadata_id: self.metadata_id,
-			chapter_count: self.chapter_count,
-			identifier: self.identifier,
-			modified_at: self.modified_at,
-			accessed_at: self.accessed_at,
-			created_at: self.created_at,
-		}
-	}
-}
-
-
-#[derive(Debug, Serialize)]
-pub struct File {
-	pub id: usize,
-
-	pub path: String,
-
-	pub file_name: String,
-	pub file_type: String,
-	pub file_size: i64,
-
-	pub library_id: usize,
-	pub metadata_id: Option<usize>,
-	pub chapter_count: i64,
-
-	pub identifier: Option<String>,
-
-	#[serde(serialize_with = "serialize_datetime")]
-	pub modified_at: DateTime<Utc>,
-	#[serde(serialize_with = "serialize_datetime")]
-	pub accessed_at: DateTime<Utc>,
-	#[serde(serialize_with = "serialize_datetime")]
-	pub created_at: DateTime<Utc>,
-}
-
-impl<'a> TryFrom<&Row<'a>> for File {
-	type Error = rusqlite::Error;
-
-	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
-		Ok(Self {
-			id: value.get(0)?,
-
-			path: value.get(1)?,
-
-			file_name: value.get(2)?,
-			file_type: value.get(3)?,
-			file_size: value.get(4)?,
-
-			library_id: value.get(5)?,
-			metadata_id: value.get(6)?,
-			chapter_count: value.get(7)?,
-
-			identifier: value.get(8)?,
-
-			modified_at: Utc.timestamp_millis(value.get(9)?),
-			accessed_at: Utc.timestamp_millis(value.get(10)?),
-			created_at: Utc.timestamp_millis(value.get(11)?),
-		})
-	}
-}
-
-impl From<File> for MediaItem {
-    fn from(file: File) -> Self {
-        Self {
-            id: file.id,
-
-			path: file.path,
-
-            file_name: file.file_name,
-            file_type: file.file_type,
-            file_size: file.file_size,
-
-			library_id: file.library_id,
-			metadata_id: file.metadata_id,
-			chapter_count: file.chapter_count as usize,
-
-			identifier: file.identifier,
-
-            modified_at: file.modified_at.timestamp_millis(),
-            accessed_at: file.accessed_at.timestamp_millis(),
-            created_at: file.created_at.timestamp_millis(),
-        }
-    }
-}
-
-
 // Tags People
 
 #[derive(Debug)]
-pub struct NewTagPerson {
+pub struct NewTagPersonModel {
 	pub source: Source,
 
 	pub name: String,
@@ -494,7 +133,7 @@ pub struct NewTagPerson {
 }
 
 #[derive(Debug, Serialize)]
-pub struct TagPerson {
+pub struct TagPersonModel {
 	pub id: usize,
 
 	pub source: Source,
@@ -511,7 +150,7 @@ pub struct TagPerson {
 	pub created_at: DateTime<Utc>,
 }
 
-impl<'a> TryFrom<&Row<'a>> for TagPerson {
+impl<'a> TryFrom<&Row<'a>> for TagPersonModel {
 	type Error = rusqlite::Error;
 
 	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
@@ -532,8 +171,8 @@ impl<'a> TryFrom<&Row<'a>> for TagPerson {
 	}
 }
 
-impl From<TagPerson> for Person {
-	fn from(val: TagPerson) -> Self {
+impl From<TagPersonModel> for Person {
+	fn from(val: TagPersonModel) -> Self {
 		Person {
 			id: val.id,
 			source: val.source,
@@ -551,12 +190,12 @@ impl From<TagPerson> for Person {
 // Tag Person Alt
 
 #[derive(Debug, Serialize)]
-pub struct TagPersonAlt {
+pub struct TagPersonAltModel {
 	pub person_id: usize,
 	pub name: String,
 }
 
-impl<'a> TryFrom<&Row<'a>> for TagPersonAlt {
+impl<'a> TryFrom<&Row<'a>> for TagPersonAltModel {
 	type Error = rusqlite::Error;
 
 	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
@@ -571,7 +210,7 @@ impl<'a> TryFrom<&Row<'a>> for TagPersonAlt {
 // Cached Images
 
 #[derive(Debug, Serialize)]
-pub struct CachedImage {
+pub struct CachedImageModel {
 	pub item_id: usize,
 
 	pub type_of: CacheType, // TODO: Enum
@@ -582,7 +221,7 @@ pub struct CachedImage {
 	pub created_at: DateTime<Utc>,
 }
 
-impl<'a> TryFrom<&Row<'a>> for CachedImage {
+impl<'a> TryFrom<&Row<'a>> for CachedImageModel {
 	type Error = rusqlite::Error;
 
 	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
@@ -627,7 +266,7 @@ impl From<u8> for CacheType {
 
 // TODO: type_of 0 = web page, 1 = local passwordless 2 = local password
 // TODO: Enum.
-pub struct NewMember {
+pub struct NewMemberModel {
 	pub name: String,
 	pub email: Option<String>,
 	pub password: Option<String>,
@@ -641,9 +280,9 @@ pub struct NewMember {
 	pub updated_at: DateTime<Utc>,
 }
 
-impl NewMember {
-	pub fn into_member(self, id: usize) -> Member {
-		Member {
+impl NewMemberModel {
+	pub fn into_member(self, id: usize) -> MemberModel {
+		MemberModel {
 			id,
 			name: self.name,
 			email: self.email,
@@ -657,7 +296,7 @@ impl NewMember {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct Member {
+pub struct MemberModel {
 	pub id: usize,
 
 	pub name: String,
@@ -676,7 +315,7 @@ pub struct Member {
 	pub updated_at: DateTime<Utc>,
 }
 
-impl<'a> TryFrom<&Row<'a>> for Member {
+impl<'a> TryFrom<&Row<'a>> for MemberModel {
 	type Error = rusqlite::Error;
 
 	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
@@ -693,8 +332,8 @@ impl<'a> TryFrom<&Row<'a>> for Member {
 	}
 }
 
-impl From<Member> for librarian_common::Member {
-	fn from(value: Member) -> librarian_common::Member {
+impl From<MemberModel> for librarian_common::Member {
+	fn from(value: MemberModel) -> librarian_common::Member {
 		librarian_common::Member {
 			id: value.id,
 			name: value.name,
@@ -709,7 +348,7 @@ impl From<Member> for librarian_common::Member {
 
 // Auth
 
-pub struct NewAuth {
+pub struct NewAuthModel {
 	pub oauth_token: String,
 	pub oauth_token_secret: String,
 	pub created_at: DateTime<Utc>,
@@ -719,7 +358,7 @@ pub struct NewAuth {
 // Poster
 
 #[derive(Serialize)]
-pub struct NewPoster {
+pub struct NewPosterModel {
 	pub link_id: usize,
 
 	pub path: ThumbnailStore,
@@ -730,7 +369,7 @@ pub struct NewPoster {
 
 
 #[derive(Debug, Serialize)]
-pub struct Poster {
+pub struct PosterModel {
 	pub id: usize,
 
 	pub link_id: usize,
@@ -741,7 +380,7 @@ pub struct Poster {
 	pub created_at: DateTime<Utc>,
 }
 
-impl<'a> TryFrom<&Row<'a>> for Poster {
+impl<'a> TryFrom<&Row<'a>> for PosterModel {
 	type Error = rusqlite::Error;
 
 	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
@@ -766,68 +405,5 @@ fn serialize_datetime_opt<S>(value: &Option<DateTime<Utc>>, s: S) -> std::result
 	match value {
 		Some(v) => s.serialize_i64(v.timestamp_millis()),
 		None => s.serialize_none()
-	}
-}
-
-
-
-// Non Table Items
-
-pub struct FileWithMetadata {
-	pub file: File,
-	pub meta: Option<MetadataItem>
-}
-
-impl<'a> TryFrom<&Row<'a>> for FileWithMetadata {
-	type Error = rusqlite::Error;
-
-	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
-		Ok(Self {
-			file: File {
-				id: value.get(0)?,
-
-				path: value.get(1)?,
-
-				file_name: value.get(2)?,
-				file_type: value.get(3)?,
-				file_size: value.get(4)?,
-
-				library_id: value.get(5)?,
-				metadata_id: value.get(6)?,
-				chapter_count: value.get(7)?,
-
-				identifier: value.get(8)?,
-
-				modified_at: Utc.timestamp_millis(value.get(9)?),
-				accessed_at: Utc.timestamp_millis(value.get(10)?),
-				created_at: Utc.timestamp_millis(value.get(11)?),
-			},
-
-			meta: value.get(11)
-				.ok()
-				.map(|_: i64| std::result::Result::<_, Self::Error>::Ok(MetadataItem {
-					id: value.get(11)?,
-					library_id: value.get(12)?,
-					source: Source::try_from(value.get::<_, String>(13)?).unwrap(),
-					file_item_count: value.get(14)?,
-					title: value.get(15)?,
-					original_title: value.get(16)?,
-					description: value.get(17)?,
-					rating: value.get(18)?,
-					thumb_path: ThumbnailStore::from(value.get::<_, Option<String>>(19)?),
-					all_thumb_urls: Vec::new(),
-					cached: value.get::<_, Option<String>>(20)?
-						.map(|v| MetadataItemCached::from_string(&v))
-						.unwrap_or_default(),
-					available_at: value.get(21)?,
-					year: value.get(22)?,
-					refreshed_at: Utc.timestamp_millis(value.get(23)?),
-					created_at: Utc.timestamp_millis(value.get(24)?),
-					updated_at: Utc.timestamp_millis(value.get(25)?),
-					deleted_at: value.get::<_, Option<_>>(26)?.map(|v| Utc.timestamp_millis(v)),
-					hash: value.get(27)?
-				}))
-				.transpose()?
-		})
 	}
 }

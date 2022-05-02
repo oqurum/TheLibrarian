@@ -31,7 +31,7 @@ impl Component for NavbarModule {
 	fn create(_ctx: &Context<Self>) -> Self {
 		Self {
 			left_items: vec![
-				(Route::Dashboard, DisplayType::Icon("home", "Home")),
+				(Route::Home, DisplayType::Icon("home", "Home")),
 			],
 			right_items: vec![
 				(Route::Options, DisplayType::Icon("settings", "Settings")),
@@ -53,7 +53,6 @@ impl Component for NavbarModule {
 
 				ctx.link().send_future(async move {
 					Msg::SearchResults(request::get_books(
-						None,
 						Some(0),
 						Some(20),
 						Some(api::SearchQuery {

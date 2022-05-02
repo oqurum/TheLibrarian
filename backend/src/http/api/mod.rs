@@ -20,7 +20,7 @@ pub fn api_route() -> Scope<
 		.wrap(LoginRequired)
 
 		// Book
-		.service(book::load_book)
+		.service(book::add_new_book)
 		.service(book::load_book_list)
 
 		// Member

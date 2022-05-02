@@ -11,7 +11,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Serialize, Deserialize};
 
-use crate::{database::table::File, metadata::{FoundItem, FoundImageLocation}};
+use crate::{metadata::{FoundItem, FoundImageLocation}};
 use super::{Metadata, SearchItem, MetadataReturned, SearchFor};
 
 lazy_static! {
@@ -24,19 +24,6 @@ pub struct GoogleBooksMetadata;
 impl Metadata for GoogleBooksMetadata {
 	fn get_prefix(&self) -> &'static str {
 		"googlebooks"
-	}
-
-	async fn get_metadata_from_files(&mut self, files: &[File]) -> Result<Option<MetadataReturned>> {
-		for file in files {
-			if let Some(isbn) = file.identifier.clone() {
-				match self.request_query(isbn).await {
-					Ok(Some(v)) => return Ok(Some(v)),
-					a => eprintln!("GoogleBooksMetadata::get_metadata_from_files {:?}", a)
-				}
-			}
-		}
-
-		Ok(None)
 	}
 
 	async fn get_metadata_by_source_id(&mut self, value: &str) -> Result<Option<MetadataReturned>> {

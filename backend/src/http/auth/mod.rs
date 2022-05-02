@@ -24,7 +24,7 @@ pub fn get_auth_value(identity: &Identity) -> Option<CookieAuth> {
 	serde_json::from_str(&ident).ok()
 }
 
-pub fn get_auth_member(identity: &Identity, db: &Database) -> Option<table::Member> {
+pub fn get_auth_member(identity: &Identity, db: &Database) -> Option<table::MemberModel> {
 	let store = get_auth_value(identity)?;
 	db.get_member_by_id(store.member_id).ok().flatten()
 }

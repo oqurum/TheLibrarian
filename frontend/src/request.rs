@@ -1,14 +1,11 @@
-use std::path::Path;
-
 use serde::{Serialize, Deserialize};
 use wasm_bindgen::{JsValue, JsCast};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, Request, RequestMode, Response, Headers, FormData};
 
-use librarian_common::{api::*, Progression, SearchType, Either};
+use librarian_common::{api::*, SearchType, Either, Source};
 
 // TODO: Manage Errors.
-// TODO: Correct different integer types.
 
 
 // Image
@@ -16,7 +13,7 @@ use librarian_common::{api::*, Progression, SearchType, Either};
 pub async fn get_posters_for_meta(metadata_id: usize) -> GetPostersResponse {
 	fetch(
 		"GET",
-		&format!("/api/posters/{}", metadata_id),
+		&format!("/api/v1/posters/{}", metadata_id),
 		Option::<&()>::None
 	).await.unwrap()
 }
@@ -24,7 +21,7 @@ pub async fn get_posters_for_meta(metadata_id: usize) -> GetPostersResponse {
 pub async fn change_poster_for_meta(metadata_id: usize, url_or_id: Either<String, usize>) {
 	let _: Option<String> = fetch(
 		"POST",
-		&format!("/api/posters/{}", metadata_id),
+		&format!("/api/v1/posters/{}", metadata_id),
 		Some(&ChangePosterBody {
 			url_or_id
 		})
@@ -35,14 +32,7 @@ pub async fn change_poster_for_meta(metadata_id: usize, url_or_id: Either<String
 // Member
 
 pub async fn get_member_self() -> GetMemberSelfResponse {
-	fetch("GET", "/api/member", Option::<&()>::None).await.unwrap()
-}
-
-
-// Libraries
-
-pub async fn get_libraries() -> GetLibrariesResponse {
-	fetch("GET", "/api/libraries", Option::<&()>::None).await.unwrap()
+	fetch("GET", "/api/v1/member", Option::<&()>::None).await.unwrap_or_default()
 }
 
 
@@ -51,7 +41,7 @@ pub async fn get_libraries() -> GetLibrariesResponse {
 pub async fn update_metadata(id: usize, value: &PostMetadataBody) {
 	let _: Option<String> = fetch(
 		"POST",
-		&format!("/api/metadata/{}", id),
+		&format!("/api/v1/metadata/{}", id),
 		Some(value)
 	).await.ok();
 }
@@ -59,7 +49,7 @@ pub async fn update_metadata(id: usize, value: &PostMetadataBody) {
 pub async fn get_media_view(metadata_id: usize) -> MediaViewResponse {
 	fetch(
 		"GET",
-		&format!("/api/metadata/{}", metadata_id),
+		&format!("/api/v1/metadata/{}", metadata_id),
 		Option::<&()>::None
 	).await.unwrap()
 }
@@ -69,7 +59,7 @@ pub async fn search_for(search: &str, search_for: SearchType) -> MetadataSearchR
 	fetch(
 		"GET",
 		&format!(
-			"/api/metadata/search?query={}&search_type={}",
+			"/api/v1/metadata/search?query={}&search_type={}",
 			urlencoding::encode(search),
 			serde_json::to_string(&search_for).unwrap().replace('"', "")
 		),
@@ -84,13 +74,13 @@ pub async fn search_for(search: &str, search_for: SearchType) -> MetadataSearchR
 pub async fn update_person(id: usize, value: &PostPersonBody) {
 	let _: Option<String> = fetch(
 		"POST",
-		&format!("/api/person/{}", id),
+		&format!("/api/v1/person/{}", id),
 		Some(value)
 	).await.ok();
 }
 
 pub async fn get_people(query: Option<&str>, offset: Option<usize>, limit: Option<usize>) -> GetPeopleResponse {
-	let mut url = String::from("/api/people?");
+	let mut url = String::from("/api/v1/people?");
 
 	if let Some(value) = offset {
 		url += "offset=";
@@ -119,90 +109,45 @@ pub async fn get_people(query: Option<&str>, offset: Option<usize>, limit: Optio
 
 // Books
 
+pub async fn new_book(value: Source) {
+	let _: Option<String> = fetch(
+		"POST",
+		"/api/v1/book/",
+		Some(&NewBookBody {
+			source: value
+		})
+	).await.ok();
+}
+
+
 pub async fn get_books(
-	library: Option<usize>,
 	offset: Option<usize>,
 	limit: Option<usize>,
 	search: Option<SearchQuery>,
 ) -> GetBookListResponse {
 	let url = format!(
-		"/api/books?{}",
-		serde_urlencoded::to_string(BookListQuery::new(library, offset, limit, search).unwrap()).unwrap()
+		"/api/v1/books?{}",
+		serde_urlencoded::to_string(BookListQuery::new(offset, limit, search).unwrap()).unwrap()
 	);
 
 	fetch("GET", &url, Option::<&()>::None).await.unwrap()
 }
 
 pub async fn get_book_info(id: usize) -> GetBookIdResponse {
-	fetch("GET", &format!("/api/book/{}", id), Option::<&()>::None).await.unwrap()
-}
-
-pub async fn get_book_pages(book_id: usize, start: usize, end: usize) -> GetChaptersResponse {
-	fetch("GET", &format!("/api/book/{}/pages/{}-{}", book_id, start, end), Option::<&()>::None).await.unwrap()
-}
-
-pub fn compile_book_resource_path(book_id: usize, location: &Path, query: LoadResourceQuery) -> String {
-	format!(
-		"/api/book/{}/res/{}?{}",
-		book_id,
-		location.to_str().unwrap(),
-		serde_urlencoded::to_string(&query).unwrap_or_default()
-	)
-}
-
-
-// Progress
-
-pub async fn update_book_progress(book_id: usize, progression: &Progression) {
-	let _: Option<String> = fetch(
-		"POST",
-		&format!("/api/book/{}/progress", book_id),
-		Some(progression)
-	).await.ok();
-}
-
-pub async fn remove_book_progress(book_id: usize) {
-	let _: Option<String> = fetch(
-		"DELETE",
-		&format!("/api/book/{}/progress", book_id),
-		Option::<&()>::None
-	).await.ok();
-}
-
-
-// Notes
-
-pub async fn get_book_notes(book_id: usize) -> Option<String> {
-	fetch("GET", &format!("/api/book/{}/notes", book_id), Option::<&()>::None).await.ok()
-}
-
-pub async fn update_book_notes(book_id: usize, data: String) {
-	let _: Option<String> = fetch(
-		"POST",
-		&format!("/api/book/{}/notes", book_id),
-		Some(&data)
-	).await.ok();
-}
-
-pub async fn remove_book_notes(book_id: usize) {
-	let _: Option<String> = fetch(
-		"DELETE",
-		&format!("/api/book/{}/notes", book_id),
-		Option::<&()>::None
-	).await.ok();
+	fetch("GET", &format!("/api/v1/book/{}", id), Option::<&()>::None).await.unwrap()
 }
 
 
 // Options
 
 pub async fn get_options() -> GetOptionsResponse {
-	fetch("GET", "/api/options", Option::<&()>::None).await.unwrap()
+	fetch("GET", "/api/v1/options", Option::<&()>::None).await.unwrap()
 }
 
 pub async fn update_options_add(options: ModifyOptionsBody) {
 	let _: Option<String> = fetch(
 		"POST",
-		"/api/options/add",
+		"/api/v1/options/add",
 		Some(&options)
 	).await.ok();
 }
@@ -210,7 +155,7 @@ pub async fn update_options_add(options: ModifyOptionsBody) {
 pub async fn update_options_remove(options: ModifyOptionsBody) {
 	let _: Option<String> = fetch(
 		"POST",
-		"/api/options/remove",
+		"/api/v1/options/remove",
 		Some(&options)
 	).await.ok();
 }
@@ -218,7 +163,7 @@ pub async fn update_options_remove(options: ModifyOptionsBody) {
 pub async fn run_task() { // TODO: Use common::api::RunTaskBody
 	let _: Option<String> = fetch(
 		"POST",
-		"/api/task",
+		"/api/v1/task",
 		Some(&serde_json::json!({
 			"run_search": true,
 			"run_metadata": true

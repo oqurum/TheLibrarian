@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use librarian_common::{SearchFor, Source, MetadataItemCached, ThumbnailStore, ThumbnailStoreType};
 use chrono::Utc;
 
-use crate::database::{table::{File, self, MetadataItem}, Database};
+use crate::database::{table::{self, BookModel}, Database};
 
 use self::{
 	google_books::GoogleBooksMetadata,
@@ -19,19 +19,6 @@ pub mod goodreads;
 pub mod openlibrary;
 pub mod ratedreads;
 
-// "source" column: [prefix]:[id]
-
-/// Simple return if found, println if error.
-macro_rules! return_if_found {
-	($v: expr) => {
-		match $v {
-			Ok(Some(v)) => return Ok(Some(v)),
-			Ok(None) => (),
-			Err(e) => eprintln!("metadata::get_metadata: {}", e)
-		}
-	};
-}
-
 
 #[async_trait]
 pub trait Metadata {
@@ -42,8 +29,6 @@ pub trait Metadata {
 	fn get_prefix(&self) -> &'static str;
 
 	// Metadata
-	async fn get_metadata_from_files(&mut self, files: &[File]) -> Result<Option<MetadataReturned>>;
-
 	async fn get_metadata_by_source_id(&mut self, _value: &str) -> Result<Option<MetadataReturned>> {
 		Ok(None)
 	}
@@ -60,18 +45,6 @@ pub trait Metadata {
 	async fn search(&mut self, _search: &str, _search_for: SearchFor) -> Result<Vec<SearchItem>> {
 		Ok(Vec::new())
 	}
-}
-
-// TODO: Utilize current metadata in get_metadata_from_files.
-// TODO: Order which metadata should be tried.
-/// Attempts to return the first valid Metadata from Files.
-///
-/// Also checks local agent.
-pub async fn get_metadata_from_files(files: &[File]) -> Result<Option<MetadataReturned>> {
-	return_if_found!(GoogleBooksMetadata.get_metadata_from_files(files).await);
-	return_if_found!(OpenLibraryMetadata.get_metadata_from_files(files).await);
-
-	Ok(None)
 }
 
 /// Doesn't check local
@@ -262,7 +235,7 @@ impl MetadataReturned {
 					}
 				}
 
-				let author = table::NewTagPerson {
+				let author = table::NewTagPersonModel {
 					source: author_info.source,
 					name: author_info.name,
 					description: author_info.description,
@@ -278,7 +251,7 @@ impl MetadataReturned {
 				if let Some(alts) = author_info.other_names {
 					for name in alts {
 						// Ignore errors. Errors should just be UNIQUE constraint failed
-						if let Err(e) = db.add_person_alt(&table::TagPersonAlt {
+						if let Err(e) = db.add_person_alt(&table::TagPersonAltModel {
 							person_id,
 							name,
 						}) {
@@ -316,9 +289,9 @@ pub struct FoundItem {
 	pub year: Option<i64>
 }
 
-impl From<FoundItem> for MetadataItem {
+impl From<FoundItem> for BookModel {
 	fn from(val: FoundItem) -> Self {
-		MetadataItem {
+		BookModel {
 			id: 0,
 			library_id: 0,
 			source: val.source,

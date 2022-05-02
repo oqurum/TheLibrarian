@@ -1,4 +1,4 @@
-use actix_web::{get, web};
+use actix_web::{get, web, HttpResponse, post};
 
 use librarian_common::{api, DisplayItem};
 
@@ -7,20 +7,16 @@ use crate::database::Database;
 
 
 
+#[post("/book")]
+pub async fn add_new_book(
+	body: web::Json<api::NewBookBody>,
+	db: web::Data<Database>,
+) -> HttpResponse {
+	//
 
-// TODO: Add body requests for specifics
-#[get("/book/{id}")]
-pub async fn load_book(file_id: web::Path<usize>, db: web::Data<Database>) -> WebResult<web::Json<Option<api::GetBookIdResponse>>> {
-	Ok(web::Json(if let Some(file) = db.find_file_by_id(*file_id)? {
-		Some(api::GetBookIdResponse {
-			progress: db.get_progress(0, *file_id)?.map(|v| v.into()),
-
-			media: file.into()
-		})
-	} else {
-		None
-	}))
+	HttpResponse::Ok().finish()
 }
+
 
 
 #[get("/books")]
@@ -31,14 +27,13 @@ pub async fn load_book_list(
 	let (items, count) = if let Some(search) = query.search_query() {
 		let search = search?;
 
-		let count = db.count_search_metadata(&search, query.library)?;
+		let count = db.count_search_metadata(&search)?;
 
 		let items = if count == 0 {
 			Vec::new()
 		} else {
 			db.search_metadata_list(
 				&search,
-				query.library,
 				query.offset.unwrap_or(0),
 				query.limit.unwrap_or(50),
 			)?
@@ -56,10 +51,9 @@ pub async fn load_book_list(
 
 		(items, count)
 	} else {
-		let count = db.get_file_count()?;
+		let count = db.get_metadata_count()?;
 
 		let items = db.get_metadata_by(
-			query.library,
 			query.offset.unwrap_or(0),
 			query.limit.unwrap_or(50),
 		)?

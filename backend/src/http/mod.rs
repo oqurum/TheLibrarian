@@ -5,10 +5,8 @@ use crate::database::Database;
 
 mod api;
 mod auth;
-mod ws;
 pub use self::api::api_route;
 pub use self::auth::*;
-pub use ws::send_message_to_clients;
 
 
 // TODO: Convert to async closure (https://github.com/rust-lang/rust/issues/62290)
@@ -23,7 +21,7 @@ pub async fn register_http_service(db_data: web::Data<Database>) -> std::io::Res
 			.app_data(db_data.clone())
 			.wrap(IdentityService::new(
 				CookieIdentityPolicy::new(&[0; 32])
-					.name("bookie-auth")
+					.name("librarian-auth")
 					.secure(false)
 					.max_age_secs(60 * 60 * 24 * 365)
 					.same_site(SameSite::Strict)
@@ -31,9 +29,6 @@ pub async fn register_http_service(db_data: web::Data<Database>) -> std::io::Res
 
 			// API
 			.service(api_route())
-
-			// WS
-			.service(ws::ws_index)
 
 			// Password
 			.route(
@@ -52,10 +47,10 @@ pub async fn register_http_service(db_data: web::Data<Database>) -> std::io::Res
 			)
 
 			// Other
-			.service(actix_files::Files::new("/js", "../../app/public/js"))
-			.service(actix_files::Files::new("/css", "../../app/public/css"))
-			.service(actix_files::Files::new("/fonts", "../../app/public/fonts"))
-			.service(actix_files::Files::new("/images", "../../app/public/images"))
+			.service(actix_files::Files::new("/js", "../app/public/js"))
+			.service(actix_files::Files::new("/css", "../app/public/css"))
+			.service(actix_files::Files::new("/fonts", "../app/public/fonts"))
+			.service(actix_files::Files::new("/images", "../app/public/images"))
 			.service(actix_files::Files::new("/", "../frontend/dist").index_file("index.html"))
 			.default_service(web::route().to(default_handler))
 	})

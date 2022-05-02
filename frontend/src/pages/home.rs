@@ -1,16 +1,47 @@
-use librarian_common::{api, LibraryColl};
+use std::{rc::Rc, sync::Mutex};
+
+use librarian_common::{api, DisplayItem};
+use wasm_bindgen::{prelude::Closure, JsCast};
+use web_sys::{HtmlElement, UrlSearchParams, HtmlInputElement};
 use yew::{prelude::*, html::Scope};
 use yew_router::prelude::Link;
 
-use crate::{Route, request};
+use crate::{Route, request, components::{PopupSearchBook, MassSelectBar}};
 
+
+#[derive(Clone)]
 pub enum Msg {
+	// Requests
+	RequestMediaItems,
+
 	// Results
-	LibraryListResults(api::GetLibrariesResponse)
+	MediaListResults(api::GetBookListResponse),
+
+	// Events
+	OnScroll(i32),
+	ClosePopup,
+
+	InitEventListenerAfterMediaItems,
+
+	AddOrRemoveItemFromEditing(usize, bool),
+	DeselectAllEditing,
+
+	Ignore
 }
 
 pub struct HomePage {
-	library_items: Option<Vec<LibraryColl>>
+	on_scroll_fn: Option<Closure<dyn FnMut()>>,
+
+	media_items: Option<Vec<DisplayItem>>,
+	total_media_count: usize,
+
+	is_fetching_media_items: bool,
+
+	media_popup: Option<DisplayOverlay>,
+
+	library_list_ref: NodeRef,
+
+	editing_items: Rc<Mutex<Vec<usize>>>,
 }
 
 impl Component for HomePage {
@@ -19,30 +50,145 @@ impl Component for HomePage {
 
 	fn create(_ctx: &Context<Self>) -> Self {
 		Self {
-			library_items: None
+			on_scroll_fn: None,
+
+			media_items: None,
+			total_media_count: 0,
+
+			is_fetching_media_items: false,
+
+			media_popup: None,
+
+			library_list_ref: NodeRef::default(),
+
+			editing_items: Rc::new(Mutex::new(Vec::new())),
 		}
 	}
 
-	fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+	fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
 		match msg {
-			Msg::LibraryListResults(resp) => {
-				self.library_items = Some(resp.items);
+			Msg::ClosePopup => {
+				self.media_popup = None;
 			}
+
+			Msg::DeselectAllEditing => {
+				self.editing_items.lock().unwrap().clear();
+			}
+
+			Msg::AddOrRemoveItemFromEditing(id, value) => {
+				let mut items = self.editing_items.lock().unwrap();
+
+				if value {
+					if !items.iter().any(|v| *v == id) {
+						items.push(id);
+					}
+				} else if let Some(index) = items.iter().position(|v| *v == id) {
+					items.swap_remove(index);
+				}
+			}
+
+			Msg::InitEventListenerAfterMediaItems => {
+				let lib_list_ref = self.library_list_ref.clone();
+				let link = ctx.link().clone();
+
+				let func = Closure::wrap(Box::new(move || {
+					let lib_list = lib_list_ref.cast::<HtmlElement>().unwrap();
+
+					link.send_message(Msg::OnScroll(lib_list.client_height() + lib_list.scroll_top()));
+				}) as Box<dyn FnMut()>);
+
+				let _ = self.library_list_ref.cast::<HtmlElement>().unwrap().add_event_listener_with_callback("scroll", func.as_ref().unchecked_ref());
+
+				self.on_scroll_fn = Some(func);
+			}
+
+			Msg::RequestMediaItems => {
+				if self.is_fetching_media_items {
+					return false;
+				}
+
+				self.is_fetching_media_items = true;
+
+				let offset = Some(self.media_items.as_ref().map(|v| v.len()).unwrap_or_default()).filter(|v| *v != 0);
+
+				ctx.link()
+				.send_future(async move {
+					Msg::MediaListResults(request::get_books(
+						offset,
+						None,
+						get_search_query()
+					).await)
+				});
+			}
+
+			Msg::MediaListResults(mut resp) => {
+				self.is_fetching_media_items = false;
+				self.total_media_count = resp.count;
+
+				if let Some(items) = self.media_items.as_mut() {
+					items.append(&mut resp.items);
+				} else {
+					self.media_items = Some(resp.items);
+				}
+			}
+
+			Msg::OnScroll(scroll_y) => {
+				let scroll_height = self.library_list_ref.cast::<HtmlElement>().unwrap().scroll_height();
+
+				if scroll_height - scroll_y < 600 && self.can_req_more() {
+					ctx.link().send_message(Msg::RequestMediaItems);
+				}
+			}
+
+			Msg::Ignore => return false,
 		}
 
 		true
 	}
 
 	fn view(&self, ctx: &Context<Self>) -> Html {
-		if let Some(items) = self.library_items.as_deref() {
+		if let Some(items) = self.media_items.as_deref() {
 			html! {
-				<div class="home-view-container">
-					<div class="sidebar">
-						{ for items.iter().map(|item| Self::render_sidebar_library_item(item, ctx.link())) }
+				<div class="main-content-view">
+					<div class="library-list normal" ref={ self.library_list_ref.clone() }>
+						{
+							for items.iter().map(|item| {
+								let is_editing = self.editing_items.lock().unwrap().contains(&item.id);
+
+								html! {
+									<MediaItem
+										{is_editing}
+
+										item={item.clone()}
+										callback={ctx.link().callback(|v| v)}
+										library_list_ref={self.library_list_ref.clone()}
+									/>
+								}
+							})
+						}
+
+						{
+							if let Some(DisplayOverlay::SearchForBook { input_value }) = self.media_popup.as_ref() {
+								let input_value = if let Some(v) = input_value {
+									v.trim().to_string()
+								} else {
+									String::new()
+								};
+
+								html! {
+									<PopupSearchBook {input_value} on_close={ ctx.link().callback(|_| Msg::ClosePopup) } />
+								}
+							} else {
+								html! {}
+							}
+						}
 					</div>
-					<div class="main-content-view">
-						//
-					</div>
+
+					<MassSelectBar
+						on_deselect_all={ctx.link().callback(|_| Msg::DeselectAllEditing)}
+						editing_container={self.library_list_ref.clone()}
+						editing_items={self.editing_items.clone()}
+					/>
 				</div>
 			}
 		} else {
@@ -53,21 +199,198 @@ impl Component for HomePage {
 	}
 
 	fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
-		if first_render {
-			ctx.link()
-			.send_future(async move {
-				Msg::LibraryListResults(request::get_libraries().await)
-			});
+		if self.on_scroll_fn.is_none() && self.library_list_ref.get().is_some() {
+			ctx.link().send_message(Msg::InitEventListenerAfterMediaItems);
+		} else if first_render {
+			ctx.link().send_message(Msg::RequestMediaItems);
+		}
+	}
+
+	fn destroy(&mut self, _ctx: &Context<Self>) {
+		// TODO: Determine if still needed.
+		if let Some(f) = self.on_scroll_fn.take() {
+			let _ = self.library_list_ref.cast::<HtmlElement>().unwrap().remove_event_listener_with_callback("scroll", f.as_ref().unchecked_ref());
 		}
 	}
 }
 
 impl HomePage {
-	fn render_sidebar_library_item(item: &LibraryColl, _scope: &Scope<Self>) -> Html {
+	/// A Callback which calls "prevent_default" and "stop_propagation"
+	///
+	/// Also will prevent any more same events downstream from activating
+	fn on_click_prevdef_stopprop(scope: &Scope<Self>, msg: Msg) -> Callback<MouseEvent> {
+		scope.callback(move |e: MouseEvent| {
+			e.prevent_default();
+			e.stop_propagation();
+			msg.clone()
+		})
+	}
+
+	/// A Callback which calls "prevent_default"
+	fn on_click_prevdef(scope: &Scope<Self>, msg: Msg) -> Callback<MouseEvent> {
+		scope.callback(move |e: MouseEvent| {
+			e.prevent_default();
+			msg.clone()
+		})
+	}
+
+	// fn render_placeholder_item() -> Html {
+	// 	html! {
+	// 		<div class="library-item placeholder">
+	// 			<div class="poster"></div>
+	// 			<div class="info">
+	// 				<a class="author"></a>
+	// 				<a class="title"></a>
+	// 			</div>
+	// 		</div>
+	// 	}
+	// }
+
+	pub fn can_req_more(&self) -> bool {
+		let count = self.media_items.as_ref().map(|v| v.len()).unwrap_or_default();
+
+		count != 0 && count != self.total_media_count as usize
+	}
+}
+
+
+
+// Media Item
+
+#[derive(Properties)]
+pub struct MediaItemProps {
+	pub item: DisplayItem,
+	pub callback: Callback<Msg>,
+	pub library_list_ref: NodeRef,
+	pub is_editing: bool,
+}
+
+impl PartialEq for MediaItemProps {
+	fn eq(&self, other: &Self) -> bool {
+		self.item == other.item &&
+		self.library_list_ref == other.library_list_ref &&
+		self.is_editing == other.is_editing
+	}
+}
+
+
+pub struct MediaItem;
+
+impl Component for MediaItem {
+	type Message = Msg;
+	type Properties = MediaItemProps;
+
+	fn create(_ctx: &Context<Self>) -> Self {
+		Self
+	}
+
+	fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+		ctx.props().callback.emit(msg);
+		true
+	}
+
+	fn view(&self, ctx: &Context<Self>) -> Html {
+		let &MediaItemProps {
+			is_editing,
+			ref item,
+			ref library_list_ref,
+			..
+		} = ctx.props();
+
+		let library_list_ref = library_list_ref.clone();
+
+		let meta_id = item.id;
+
 		html! {
-			<Link<Route> to={Route::ViewLibrary { library_id: item.id }} classes={ classes!("sidebar-item", "library") }>
-				{ item.name.clone() }
+			<Link<Route> to={Route::ViewMeta { meta_id: item.id }} classes={ classes!("library-item") }>
+				<div class="poster">
+					<div class="top-left">
+						<input
+							checked={is_editing}
+							type="checkbox"
+							onclick={ctx.link().callback(move |e: MouseEvent| {
+								e.prevent_default();
+								e.stop_propagation();
+
+								Msg::Ignore
+							})}
+							onmouseup={ctx.link().callback(move |e: MouseEvent| {
+								let input = e.target_unchecked_into::<HtmlInputElement>();
+
+								let value = !input.checked();
+
+								input.set_checked(value);
+
+								Msg::AddOrRemoveItemFromEditing(meta_id, value)
+							})}
+						/>
+					</div>
+					<img src={ item.get_thumb_url() } />
+				</div>
+				<div class="info">
+					<div class="title" title={ item.title.clone() }>{ item.title.clone() }</div>
+					{
+						if let Some(author) = item.cached.author.as_ref() {
+							html! {
+								<div class="author" title={ author.clone() }>{ author.clone() }</div>
+							}
+						} else {
+							html! {}
+						}
+					}
+				</div>
 			</Link<Route>>
 		}
+	}
+}
+
+
+
+
+#[derive(Clone)]
+pub enum PosterItem {
+	// Poster Specific Buttons
+	ShowPopup(DisplayOverlay),
+
+	// Popup Events
+	UpdateMetaBySource(usize),
+
+	// Popup Events
+	UpdateMetaByFiles(usize),
+}
+
+#[derive(Clone)]
+pub enum DisplayOverlay {
+	SearchForBook {
+		input_value: Option<String>,
+	},
+}
+
+impl PartialEq for DisplayOverlay {
+	fn eq(&self, other: &Self) -> bool {
+		match (self, other) {
+			(
+				Self::SearchForBook { input_value: l_val, .. },
+				Self::SearchForBook { input_value: r_val, .. }
+			) => l_val == r_val
+		}
+	}
+}
+
+fn get_search_query() -> Option<api::SearchQuery> {
+	let search_params = UrlSearchParams::new_with_str(
+		&gloo_utils::window().location().search().ok()?
+	).ok()?;
+
+	let query = search_params.get("query");
+	let source = search_params.get("source");
+
+	if query.is_none() && source.is_none() {
+		None
+	} else {
+		Some(api::SearchQuery {
+			query,
+			source,
+		})
 	}
 }

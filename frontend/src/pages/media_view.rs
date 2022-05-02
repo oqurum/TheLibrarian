@@ -1,7 +1,7 @@
 use librarian_common::api::{MediaViewResponse, self};
 use yew::{prelude::*, html::Scope};
 
-use crate::{request, components::{Popup, PopupType, PopupSearchBook, PopupEditMetadata}};
+use crate::{request, components::{Popup, PopupType, PopupEditMetadata}};
 
 #[derive(Clone)]
 pub enum Msg {
@@ -164,9 +164,6 @@ impl Component for MediaView {
 												<div class="menu-item" yew-close-popup="" onclick={
 													Self::on_click_prevdef(ctx.link(), Msg::UpdateMeta(meta_id))
 												}>{ "Refresh Metadata" }</div>
-												<div class="menu-item" yew-close-popup="" onclick={
-													Self::on_click_prevdef_stopprop(ctx.link(), Msg::ShowPopup(DisplayOverlay::SearchForBook { meta_id, input_value: None }))
-												}>{ "Search For Book" }</div>
 												<div class="menu-item" yew-close-popup="">{ "Delete" }</div>
 												<div class="menu-item" yew-close-popup="" onclick={
 													Self::on_click_prevdef_stopprop(ctx.link(), Msg::ShowPopup(DisplayOverlay::Info { meta_id }))
@@ -183,24 +180,6 @@ impl Component for MediaView {
 											classes={ classes!("popup-book-edit") }
 											media_resp={ (&**resp).clone() }
 										/>
-									}
-								}
-
-								&DisplayOverlay::SearchForBook { meta_id, ref input_value } => {
-									let input_value = if let Some(v) = input_value {
-										v.to_string()
-									} else {
-										format!(
-											"{} {}",
-											metadata.title.as_deref().unwrap_or_default(),
-											metadata.cached.author.as_deref().unwrap_or_default()
-										)
-									};
-
-									let input_value = input_value.trim().to_string();
-
-									html! {
-										<PopupSearchBook {meta_id} {input_value} on_close={ ctx.link().callback(|_| Msg::ClosePopup) } />
 									}
 								}
 							}
@@ -260,11 +239,6 @@ pub enum DisplayOverlay {
 		meta_id: usize,
 		mouse_pos: (i32, i32)
 	},
-
-	SearchForBook {
-		meta_id: usize,
-		input_value: Option<String>,
-	},
 }
 
 impl PartialEq for DisplayOverlay {
@@ -272,10 +246,6 @@ impl PartialEq for DisplayOverlay {
 		match (self, other) {
 			(Self::Info { meta_id: l_id }, Self::Info { meta_id: r_id }) => l_id == r_id,
 			(Self::More { meta_id: l_id, .. }, Self::More { meta_id: r_id, .. }) => l_id == r_id,
-			(
-				Self::SearchForBook { meta_id: l_id, input_value: l_val, .. },
-				Self::SearchForBook { meta_id: r_id, input_value: r_val, .. }
-			) => l_id == r_id && l_val == r_val,
 
 			_ => false
 		}
