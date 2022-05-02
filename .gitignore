@@ -1,1 +1,6 @@
 /target
+
+database.db
+dist
+
+/ignore
