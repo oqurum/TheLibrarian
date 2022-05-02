@@ -18,7 +18,7 @@ pub enum Msg {
 
 	// Results
 	PeopleListResults(api::GetPeopleResponse),
-	PersonUpdateSearchResults(String, api::MetadataSearchResponse),
+	PersonUpdateSearchResults(String, api::ExternalSearchResponse),
 	PersonCombineSearchResults(String, Vec<Person>),
 
 	// Events
@@ -228,7 +228,7 @@ impl Component for AuthorListPage {
 
 															let input = document().get_element_by_id(input_id).unwrap().unchecked_into::<HtmlInputElement>();
 
-															Msg::PersonUpdateSearchResults(input.value(), request::search_for(&input.value(), SearchType::Person).await)
+															Msg::PersonUpdateSearchResults(input.value(), request::external_search_for(&input.value(), SearchType::Person).await)
 														})
 													}>{ "Search" }</button>
 												</form>
@@ -493,7 +493,7 @@ pub enum DisplayOverlay {
 	SearchForPerson {
 		person_id: usize,
 		input_value: Option<String>,
-		response: Option<api::MetadataSearchResponse>
+		response: Option<api::ExternalSearchResponse>
 	},
 
 	CombinePersonWith {

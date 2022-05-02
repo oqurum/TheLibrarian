@@ -20,6 +20,7 @@ pub enum Msg {
 	// Events
 	OnScroll(i32),
 	ClosePopup,
+	OpenPopup(DisplayOverlay),
 
 	InitEventListenerAfterMediaItems,
 
@@ -67,6 +68,10 @@ impl Component for HomePage {
 
 	fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
 		match msg {
+			Msg::OpenPopup(disp) => {
+				self.media_popup = Some(disp);
+			}
+
 			Msg::ClosePopup => {
 				self.media_popup = None;
 			}
@@ -147,7 +152,7 @@ impl Component for HomePage {
 	}
 
 	fn view(&self, ctx: &Context<Self>) -> Html {
-		if let Some(items) = self.media_items.as_deref() {
+		let content = if let Some(items) = self.media_items.as_deref() {
 			html! {
 				<div class="main-content-view">
 					<div class="library-list normal" ref={ self.library_list_ref.clone() }>
@@ -195,6 +200,17 @@ impl Component for HomePage {
 			html! {
 				<h1>{ "Loading..." }</h1>
 			}
+		};
+
+		html! {
+			<div class="home-view-container">
+				<div class="sidebar">
+					<div class="sidebar-item">
+						<button class="button" onclick={ctx.link().callback(|_| Msg::OpenPopup(DisplayOverlay::SearchForBook { input_value: None }))}>{"Add New Book"}</button>
+					</div>
+				</div>
+				{ content }
+			</div>
 		}
 	}
 

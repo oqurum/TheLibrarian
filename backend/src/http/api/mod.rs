@@ -3,6 +3,7 @@ use actix_web::{web, Scope, dev::{ServiceFactory, ServiceRequest, ServiceRespons
 use super::LoginRequired;
 
 pub mod book;
+pub mod external;
 pub mod member;
 pub mod person;
 pub mod publisher;
@@ -29,4 +30,7 @@ pub fn api_route() -> Scope<
 		// Person
 		.service(person::load_author_list)
 		.service(person::load_person_thumbnail)
+
+		// External
+		.service(external::get_external_search)
 }

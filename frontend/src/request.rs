@@ -55,11 +55,13 @@ pub async fn get_media_view(metadata_id: usize) -> MediaViewResponse {
 }
 
 
-pub async fn search_for(search: &str, search_for: SearchType) -> MetadataSearchResponse {
+// External
+
+pub async fn external_search_for(search: &str, search_for: SearchType) -> ExternalSearchResponse {
 	fetch(
 		"GET",
 		&format!(
-			"/api/v1/metadata/search?query={}&search_type={}",
+			"/api/v1/external/search?query={}&search_type={}",
 			urlencoding::encode(search),
 			serde_json::to_string(&search_for).unwrap().replace('"', "")
 		),

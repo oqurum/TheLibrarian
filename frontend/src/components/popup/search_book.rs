@@ -1,4 +1,4 @@
-use librarian_common::{api::{MetadataSearchResponse, SearchItem}, SearchType};
+use librarian_common::{api::{ExternalSearchResponse, SearchItem}, SearchType};
 use gloo_utils::document;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlInputElement;
@@ -21,7 +21,7 @@ pub struct Property {
 
 
 pub enum Msg {
-	BookSearchResponse(String, MetadataSearchResponse),
+	BookSearchResponse(String, ExternalSearchResponse),
 
 	SearchFor(String),
 
@@ -30,7 +30,7 @@ pub enum Msg {
 
 
 pub struct PopupSearchBook {
-	cached_posters: Option<LoadingItem<MetadataSearchResponse>>,
+	cached_posters: Option<LoadingItem<ExternalSearchResponse>>,
 	input_value: String,
 }
 
@@ -39,8 +39,6 @@ impl Component for PopupSearchBook {
 	type Properties = Property;
 
 	fn create(ctx: &Context<Self>) -> Self {
-		ctx.link().send_message(Msg::SearchFor(ctx.props().input_value.clone()));
-
 		Self {
 			cached_posters: None,
 			input_value: ctx.props().input_value.clone(),
@@ -58,7 +56,7 @@ impl Component for PopupSearchBook {
 
 				ctx.link()
 				.send_future(async move {
-					let resp = request::search_for(&search, SearchType::Book).await;
+					let resp = request::external_search_for(&search, SearchType::Book).await;
 
 					Msg::BookSearchResponse(search, resp)
 				});

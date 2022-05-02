@@ -164,7 +164,7 @@ pub struct GetMetadataSearch {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct MetadataSearchResponse {
+pub struct ExternalSearchResponse {
 	pub items: HashMap<String, Vec<SearchItem>>
 }
 

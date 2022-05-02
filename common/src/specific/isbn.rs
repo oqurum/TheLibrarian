@@ -57,7 +57,7 @@ impl IdType {
 	}
 
 
-	/// Attempts to return an ISBN type of 13 or 12 in that order.
+	/// Attempts to return an ISBN type of 13 or 10 in that order.
 	pub fn as_isbn_13_or_10(&self) -> Option<String> {
 		self.as_isbn_13().or_else(|| self.as_isbn_10())
 	}
@@ -80,8 +80,6 @@ impl IdType {
 		}
 	}
 }
-
-// TODO: Convert all ISBN-10's to ISBN-13
 
 // TODO: Tests
 pub fn parse_isbn_10(value: &str) -> Option<String> {
@@ -131,4 +129,31 @@ pub fn parse_isbn_13(value: &str) -> Option<String> {
 	}
 
 	Some(compiled).filter(|v| s != 0 && v.len() == 13 && (s % 10) == 0)
+}
+
+pub fn isbn_10_to_13(value: &str) -> Option<String> {
+	let mut s = 0;
+
+	let current = value.split("").filter(|v| !v.is_empty()).take(9);
+	let iter = "978".split("").filter(|v| !v.is_empty()).chain(current);
+
+	let mut compiled = String::new();
+
+	for (i, dig_str) in iter.enumerate() {
+	    println!("[{}]: {}", i, dig_str);
+
+		let dig = match dig_str.parse::<usize>() {
+			Ok(v) => v,
+			Err(_) => return None
+		};
+
+		compiled.push_str(dig_str);
+
+		let weight = if i % 2 == 0 { 1 } else { 3 };
+		s += dig * weight;
+	}
+
+	compiled.push_str(&(10 - (s % 10)).to_string());
+
+	Some(compiled)
 }
