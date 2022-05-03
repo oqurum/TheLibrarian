@@ -38,7 +38,7 @@ pub async fn get_member_self() -> GetMemberSelfResponse {
 
 // Metadata
 
-pub async fn update_metadata(id: usize, value: &PostMetadataBody) {
+pub async fn update_book(id: usize, value: &UpdateBookBody) {
 	let _: Option<String> = fetch(
 		"POST",
 		&format!("/api/v1/book/{}", id),

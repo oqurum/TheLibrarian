@@ -1,5 +1,6 @@
+use js_sys::Date;
 use librarian_common::{api::{MediaViewResponse, self, GetPostersResponse}, Either};
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::{prelude::*, html::Scope};
 
@@ -20,9 +21,6 @@ pub enum Msg {
 
 	ShowPopup(DisplayOverlay),
 	ClosePopup,
-
-	// Popup Events
-	UpdateMeta(usize),
 
 	Ignore
 }
@@ -73,6 +71,15 @@ impl Component for MediaView {
 			Msg::ToggleEdit => {
 				if self.editing_item.is_none() {
 					self.editing_item = self.media.clone();
+
+					if self.cached_posters.is_none() {
+						let metadata_id = self.media.as_ref().unwrap().metadata.id;
+
+						ctx.link()
+						.send_future(async move {
+							Msg::RetrievePosters(request::get_posters_for_meta(metadata_id).await)
+						});
+					}
 				} else {
 					self.editing_item = None;
 				}
@@ -80,21 +87,36 @@ impl Component for MediaView {
 
 			Msg::SaveEdits => {
 				self.media = self.editing_item.clone();
+
+				let metadata = self.media.as_ref().unwrap().metadata.clone();
+				let meta_id = metadata.id;
+
+				ctx.link()
+				.send_future(async move {
+					request::update_book(meta_id, &api::UpdateBookBody {
+						metadata: Some(metadata),
+						people: None,
+					}).await;
+
+					Msg::Ignore
+				});
 			}
 
 			Msg::UpdateEditing(type_of, value) => {
 				let mut updating = self.editing_item.as_mut().unwrap();
 
+				let value = Some(value).filter(|v| !v.is_empty());
+
 				match type_of {
-					ChangingType::Title => updating.metadata.title = Some(value).filter(|v| !v.is_empty()),
-					ChangingType::OriginalTitle => updating.metadata.clean_title = Some(value).filter(|v| !v.is_empty()),
-					ChangingType::Description => updating.metadata.description = Some(value).filter(|v| !v.is_empty()),
-					ChangingType::Rating => updating.metadata.rating = Some(value).and_then(|v| v.parse().ok()).unwrap_or_default(),
+					ChangingType::Title => updating.metadata.title = value,
+					ChangingType::OriginalTitle => updating.metadata.clean_title = value,
+					ChangingType::Description => updating.metadata.description = value,
+					ChangingType::Rating => updating.metadata.rating = value.and_then(|v| v.parse().ok()).unwrap_or_default(),
 					ChangingType::ThumbPath => todo!(),
-					ChangingType::AvailableAt => updating.metadata.available_at = Some(value).and_then(|v| v.parse().ok()),
-					ChangingType::Year => updating.metadata.year = Some(value).and_then(|v| v.parse().ok()),
-					ChangingType::Isbn10 => updating.metadata.isbn_10 = Some(value).filter(|v| !v.is_empty()),
-					ChangingType::Isbn13 => updating.metadata.isbn_13 = Some(value).filter(|v| !v.is_empty()),
+					ChangingType::AvailableAt => updating.metadata.available_at = value.map(|v| Date::new(&JsValue::from_str(&v)).get_time() as i64),
+					ChangingType::Year => updating.metadata.year = value.map(|v| Date::new(&JsValue::from_str(&v)).get_time() as i64),
+					ChangingType::Isbn10 => updating.metadata.isbn_10 = value,
+					ChangingType::Isbn13 => updating.metadata.isbn_13 = value,
 				}
 			}
 
@@ -121,23 +143,7 @@ impl Component for MediaView {
 			}
 
 			Msg::RetrieveMediaView(value) => {
-				let metadata_id = value.metadata.id;
-
 				self.media = Some(*value);
-
-				ctx.link()
-				.send_future(async move {
-					Msg::RetrievePosters(request::get_posters_for_meta(metadata_id).await)
-				});
-			}
-
-			Msg::UpdateMeta(meta_id) => {
-				ctx.link()
-				.send_future(async move {
-					request::update_metadata(meta_id, &api::PostMetadataBody::AutoMatchMetaIdBySource).await;
-
-					Msg::Ignore
-				});
 			}
 		}
 
@@ -187,15 +193,19 @@ impl Component for MediaView {
 									if self.is_editing() {
 										html! {
 											<>
+												<h5>{ "Book Display Info" }</h5>
+
 												<span class="sub-title">{"Title"}</span>
 												<input class="title" type="text"
 													onchange={Self::on_change_input(ctx.link(), ChangingType::Title)}
-													value={ metadata.title.clone().unwrap_or_default() } />
+													value={ metadata.title.clone().unwrap_or_default() }
+												/>
 
 												<span class="sub-title">{"Original Title"}</span>
 												<input class="title" type="text"
 													onchange={Self::on_change_input(ctx.link(), ChangingType::OriginalTitle)}
-													value={ metadata.clean_title.clone().unwrap_or_default() } />
+													value={ metadata.clean_title.clone().unwrap_or_default() }
+												/>
 
 												<span class="sub-title">{"Description"}</span>
 												<textarea
@@ -221,25 +231,33 @@ impl Component for MediaView {
 								if self.is_editing() {
 									html! {
 										<div class="metadata">
+											<h5>{ "Book Info" }</h5>
+
 											<span class="sub-title">{"Year"}</span>
 											<input class="title" type="text"
+												placeholder="YYYY-MM-DD"
 												onchange={Self::on_change_input(ctx.link(), ChangingType::Year)}
-												value={ metadata.year.unwrap_or_default().to_string() } />
+												value={ metadata.year.unwrap_or_default().to_string() }
+											/>
 
 											<span class="sub-title">{"Available At"}</span>
 											<input class="title" type="text"
+												placeholder="YYYY-MM-DD"
 												onchange={Self::on_change_input(ctx.link(), ChangingType::AvailableAt)}
-												value={ metadata.available_at.unwrap_or_default().to_string() } />
+												value={ metadata.available_at.unwrap_or_default().to_string() }
+											/>
 
 											<span class="sub-title">{"ISBN 10"}</span>
 											<input class="title" type="text"
 												onchange={Self::on_change_input(ctx.link(), ChangingType::Isbn10)}
-												value={ metadata.isbn_10.clone().unwrap_or_default() } />
+												value={ metadata.isbn_10.clone().unwrap_or_default() }
+											/>
 
 											<span class="sub-title">{"ISBN 13"}</span>
 											<input class="title" type="text"
 												onchange={Self::on_change_input(ctx.link(), ChangingType::Isbn13)}
-												value={ metadata.isbn_13.clone().unwrap_or_default() } />
+												value={ metadata.isbn_13.clone().unwrap_or_default() }
+											/>
 										</div>
 									}
 								} else {
@@ -250,6 +268,8 @@ impl Component for MediaView {
 								if self.is_editing() {
 									html! {
 										<div class="metadata">
+											<h5>{ "Sources" }</h5>
+
 											<span class="sub-title">{ "Good Reads URL" }</span>
 											<input class="title" type="text" />
 

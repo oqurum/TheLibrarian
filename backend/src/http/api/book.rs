@@ -138,7 +138,9 @@ pub async fn update_book_id(
 ) -> WebResult<HttpResponse> {
 	let body = body.into_inner();
 
-	if let Some(book) = body.metadata {
+	if let Some(mut book) = body.metadata {
+		book.updated_at = Utc::now();
+
 		db.update_metadata(&book.into())?;
 	}
 

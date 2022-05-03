@@ -65,14 +65,14 @@ impl Component for MassSelectBar {
 					items.clone()
 				};
 
-				ctx.link()
-				.send_future(async move {
-					for meta_id in meta_ids {
-						request::update_metadata(meta_id, &api::PostMetadataBody::AutoMatchMetaIdByFiles).await;
-					}
+				// ctx.link()
+				// .send_future(async move {
+				// 	for meta_id in meta_ids {
+				// 		request::update_metadata(meta_id, &api::PostMetadataBody::AutoMatchMetaIdByFiles).await;
+				// 	}
 
-					Msg::Ignore
-				});
+				// 	Msg::Ignore
+				// });
 			}
 
 			Msg::Ignore => return false,
