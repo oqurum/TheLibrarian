@@ -88,7 +88,7 @@ pub enum Route {
 	#[at("/login")]
 	Login,
 
-	#[at("/view/:meta_id")]
+	#[at("/book/:meta_id")]
 	ViewMeta { meta_id: usize },
 
 	#[at("/people")]

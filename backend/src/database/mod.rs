@@ -1,7 +1,7 @@
 use std::sync::{Mutex, MutexGuard};
 
 use crate::Result;
-use librarian_common::{Source, api};
+use librarian_common::api;
 use rusqlite::{Connection, params, OptionalExtension};
 // TODO: use tokio::task::spawn_blocking;
 
@@ -57,6 +57,8 @@ pub async fn init() -> Result<Database> {
 	conn.execute(
 		r#"CREATE TABLE IF NOT EXISTS "person" (
 			"id"			INTEGER NOT NULL,
+
+			"source" 		TEXT NOT NULL,
 
 			"name"			TEXT NOT NULL COLLATE NOCASE,
 			"description"	TEXT,
@@ -155,130 +157,70 @@ impl Database {
 		Ok(self.lock()?.query_row(r#"SELECT COUNT(*) FROM book"#, [], |v| v.get(0))?)
 	}
 
-	pub fn add_or_increment_metadata(&self, meta: &BookModel) -> Result<BookModel> {
+	pub fn add_or_update_metadata(&self, meta: &BookModel) -> Result<BookModel> {
 		let table_meta = if meta.id != 0 {
 			self.get_metadata_by_id(meta.id)?
 		} else {
-			self.get_metadata_by_source(&meta.source)?
+			None
 		};
 
-		if table_meta.is_none() {
-			self.lock()?
-			.execute(r#"
+		if let Some(og_meta) = table_meta {
+			self.update_metadata(meta)?;
+			self.get_metadata_by_id(og_meta.id).map(|v| v.unwrap())
+		} else {
+			let lock = self.lock()?;
+
+			lock.execute(r#"
 				INSERT INTO book (
-					library_id, source, file_item_count,
-					title, original_title, description, rating, thumb_url,
+					title, clean_title, description, rating, thumb_url,
 					cached,
+					tags_genre, tags_collection, tags_author, tags_country,
 					available_at, year,
-					refreshed_at, created_at, updated_at, deleted_at,
-					hash
+					created_at, updated_at, deleted_at
 				)
-				VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)"#,
+				VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)"#,
 				params![
-					meta.library_id, meta.source.to_string(), &meta.file_item_count,
-					&meta.title, &meta.original_title, &meta.description, &meta.rating, meta.thumb_path.to_optional_string(),
+					&meta.title, &meta.clean_title, &meta.description, &meta.rating, meta.thumb_path.to_optional_string(),
 					&meta.cached.as_string_optional(),
+					&meta.tags_genre, &meta.tags_collection, &meta.tags_author, &meta.tags_country,
 					&meta.available_at, &meta.year,
-					&meta.refreshed_at.timestamp_millis(), &meta.created_at.timestamp_millis(), &meta.updated_at.timestamp_millis(),
+					&meta.created_at.timestamp_millis(), &meta.updated_at.timestamp_millis(),
 					meta.deleted_at.as_ref().map(|v| v.timestamp_millis()),
-					&meta.hash
 				]
 			)?;
 
-			return Ok(self.get_metadata_by_source(&meta.source)?.unwrap());
-		} else if meta.id != 0 {
-			self.lock()?
-			.execute(r#"UPDATE book SET file_item_count = file_item_count + 1 WHERE id = ?1"#,
-				params![meta.id]
-			)?;
-		} else {
-			self.lock()?
-			.execute(r#"UPDATE book SET file_item_count = file_item_count + 1 WHERE source = ?1"#,
-				params![meta.source.to_string()]
-			)?;
-		}
+			let id = lock.last_insert_rowid() as usize;
 
-		Ok(table_meta.unwrap())
+			drop(lock);
+
+			Ok(self.get_metadata_by_id(id)?.unwrap())
+		}
 	}
 
 	pub fn update_metadata(&self, meta: &BookModel) -> Result<()> {
 		self.lock()?
 		.execute(r#"
 			UPDATE book SET
-				library_id = ?2, source = ?3, file_item_count = ?4,
-				title = ?5, original_title = ?6, description = ?7, rating = ?8, thumb_url = ?9,
-				cached = ?10,
-				available_at = ?11, year = ?12,
-				refreshed_at = ?13, created_at = ?14, updated_at = ?15, deleted_at = ?16,
-				hash = ?17
+				title = ?2, clean_title = ?3, description = ?4, rating = ?5, thumb_url = ?6,
+				cached = ?7,
+				tags_genre = ?8, tags_collection = ?9, tags_author = ?10, tags_country = ?11,
+				available_at = ?12, year = ?13,
+				created_at = ?14, updated_at = ?15, deleted_at = ?16
 			WHERE id = ?1"#,
 			params![
 				meta.id,
-				meta.library_id, meta.source.to_string(), &meta.file_item_count,
-				&meta.title, &meta.original_title, &meta.description, &meta.rating, meta.thumb_path.to_optional_string(),
+				&meta.title, &meta.clean_title, &meta.description, &meta.rating, meta.thumb_path.to_optional_string(),
 				&meta.cached.as_string_optional(),
+				&meta.tags_genre, &meta.tags_collection, &meta.tags_author, &meta.tags_country,
 				&meta.available_at, &meta.year,
-				&meta.refreshed_at.timestamp_millis(), &meta.created_at.timestamp_millis(), &meta.updated_at.timestamp_millis(),
+				&meta.created_at.timestamp_millis(), &meta.updated_at.timestamp_millis(),
 				meta.deleted_at.as_ref().map(|v| v.timestamp_millis()),
-				&meta.hash
 			]
 		)?;
 
 		Ok(())
 	}
 
-	pub fn decrement_or_remove_metadata(&self, id: usize) -> Result<()> {
-		if let Some(meta) = self.get_metadata_by_id(id)? {
-			if meta.file_item_count < 1 {
-				self.lock()?
-				.execute(
-					r#"UPDATE book SET file_item_count = file_item_count - 1 WHERE id = ?1"#,
-					params![id]
-				)?;
-			} else {
-				self.lock()?
-				.execute(
-					r#"DELETE FROM book WHERE id = ?1"#,
-					params![id]
-				)?;
-			}
-		}
-
-		Ok(())
-	}
-
-	pub fn decrement_metadata(&self, id: usize) -> Result<()> {
-		if let Some(meta) = self.get_metadata_by_id(id)? {
-			if meta.file_item_count > 0 {
-				self.lock()?
-				.execute(
-					r#"UPDATE book SET file_item_count = file_item_count - 1 WHERE id = ?1"#,
-					params![id]
-				)?;
-			}
-		}
-
-		Ok(())
-	}
-
-	pub fn set_metadata_file_count(&self, id: usize, file_count: usize) -> Result<()> {
-		self.lock()?
-		.execute(
-			r#"UPDATE book SET file_item_count = ?2 WHERE id = ?1"#,
-			params![id, file_count]
-		)?;
-
-		Ok(())
-	}
-
-	// TODO: Change to get_metadata_by_hash. We shouldn't get metadata by source. Local metadata could be different with the same source id.
-	pub fn get_metadata_by_source(&self, source: &Source) -> Result<Option<BookModel>> {
-		Ok(self.lock()?.query_row(
-			r#"SELECT * FROM book WHERE source = ?1 LIMIT 1"#,
-			params![source.to_string()],
-			|v| BookModel::try_from(v)
-		).optional()?)
-	}
 
 	pub fn get_metadata_by_id(&self, id: usize) -> Result<Option<BookModel>> {
 		Ok(self.lock()?.query_row(
@@ -324,7 +266,7 @@ impl Database {
 				}
 			}
 
-			// TODO: Utilize title > original_title > description, and sort
+			// TODO: Utilize title > clean_title > description, and sort
 			sql += &format!(
 				"title LIKE '%{}%' ESCAPE '{}' ",
 				query.replace('%', &format!("{}%", escape_char)).replace('_', &format!("{}_", escape_char)),
@@ -380,9 +322,9 @@ impl Database {
 	// Book Person
 
 	pub fn add_meta_person(&self, person: &BookPersonModel) -> Result<()> {
-		self.lock()?.execute(r#"INSERT OR IGNORE INTO book_person (metadata_id, person_id) VALUES (?1, ?2)"#,
+		self.lock()?.execute(r#"INSERT OR IGNORE INTO book_person (book_id, person_id) VALUES (?1, ?2)"#,
 		params![
-			&person.metadata_id,
+			&person.book_id,
 			&person.person_id
 		])?;
 
@@ -390,9 +332,9 @@ impl Database {
 	}
 
 	pub fn remove_meta_person(&self, person: &BookPersonModel) -> Result<()> {
-		self.lock()?.execute(r#"DELETE FROM book_person WHERE metadata_id = ?1 AND person_id = ?2"#,
+		self.lock()?.execute(r#"DELETE FROM book_person WHERE book_id = ?1 AND person_id = ?2"#,
 		params![
-			&person.metadata_id,
+			&person.book_id,
 			&person.person_id
 		])?;
 
@@ -400,7 +342,7 @@ impl Database {
 	}
 
 	pub fn remove_persons_by_meta_id(&self, id: usize) -> Result<()> {
-		self.lock()?.execute(r#"DELETE FROM book_person WHERE metadata_id = ?1"#,
+		self.lock()?.execute(r#"DELETE FROM book_person WHERE book_id = ?1"#,
 		params![
 			id
 		])?;
@@ -428,7 +370,7 @@ impl Database {
 	pub fn get_meta_person_list(&self, id: usize) -> Result<Vec<BookPersonModel>> {
 		let this = self.lock()?;
 
-		let mut conn = this.prepare(r#"SELECT * FROM book_person WHERE metadata_id = ?1"#)?;
+		let mut conn = this.prepare(r#"SELECT * FROM book_person WHERE book_id = ?1"#)?;
 
 		let map = conn.query_map([id], |v| BookPersonModel::try_from(v))?;
 
@@ -470,7 +412,7 @@ impl Database {
 			SELECT person.* FROM book_person
 			LEFT JOIN
 				person ON person.id = book_person.person_id
-			WHERE metadata_id = ?1
+			WHERE book_id = ?1
 		"#)?;
 
 		let map = conn.query_map([id], |v| TagPersonModel::try_from(v))?;

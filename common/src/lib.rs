@@ -62,7 +62,7 @@ pub struct Person {
 impl Person {
 	pub fn get_thumb_url(&self) -> String {
 		if self.thumb_url != ThumbnailStore::None {
-			format!("/api/person/{}/thumbnail", self.id)
+			format!("/api/v1/person/{}/thumbnail", self.id)
 		} else {
 			String::from("/images/missingperson.jpg")
 		}
@@ -90,7 +90,7 @@ pub struct DisplayItem {
 impl DisplayItem {
 	pub fn get_thumb_url(&self) -> String {
 		if self.has_thumbnail {
-			format!("/api/metadata/{}/thumbnail", self.id)
+			format!("/api/v1/book/{}/thumbnail", self.id)
 		} else {
 			String::from("/images/missingthumbnail.jpg")
 		}
@@ -121,10 +121,6 @@ impl From<DisplayMetaItem> for DisplayItem {
 pub struct DisplayMetaItem {
 	pub id: usize,
 
-	pub library_id: usize,
-
-	pub source: Source,
-	pub file_item_count: i64,
 	pub title: Option<String>,
 	pub original_title: Option<String>,
 	pub description: Option<String>,
@@ -135,8 +131,6 @@ pub struct DisplayMetaItem {
 	pub cached: MetadataItemCached,
 
 	#[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]
-	pub refreshed_at: DateTime<Utc>,
-	#[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]
 	pub created_at: DateTime<Utc>,
 	#[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]
 	pub updated_at: DateTime<Utc>,
@@ -145,14 +139,12 @@ pub struct DisplayMetaItem {
 
 	pub available_at: Option<i64>,
 	pub year: Option<i64>,
-
-	pub hash: String
 }
 
 impl DisplayMetaItem {
 	pub fn get_thumb_url(&self) -> String {
 		if self.thumb_path != ThumbnailStore::None {
-			format!("/api/metadata/{}/thumbnail", self.id)
+			format!("/api/v1/book/{}/thumbnail", self.id)
 		} else {
 			String::from("/images/missingthumbnail.jpg")
 		}
@@ -167,22 +159,17 @@ impl Default for DisplayMetaItem {
 	fn default() -> Self {
 		Self {
 			id: Default::default(),
-			library_id: Default::default(),
-			source: Default::default(),
-			file_item_count: Default::default(),
 			title: Default::default(),
 			original_title: Default::default(),
 			description: Default::default(),
 			rating: Default::default(),
 			thumb_path: ThumbnailStore::None,
 			cached: Default::default(),
-			refreshed_at: Utc::now(),
 			created_at: Utc::now(),
 			updated_at: Utc::now(),
 			deleted_at: Default::default(),
 			available_at: Default::default(),
 			year: Default::default(),
-			hash: Default::default()
 		}
 	}
 }

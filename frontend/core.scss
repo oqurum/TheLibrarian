@@ -111,6 +111,12 @@ body {
 		position: relative;
 		inset-block-start: 2px;
 	}
+
+	// .proceed {}
+
+	// .info {}
+
+	// .danger {}
 }
 
 form,
@@ -761,8 +767,8 @@ form > .form-container {
 }
 
 
-/* Home View Page */
-.home-view-container {
+.home-view-container,
+.media-view-container {
 	display: flex;
 	flex-direction: row;
 	flex-grow: 1;
@@ -782,19 +788,14 @@ form > .form-container {
 			}
 		}
 	}
-
-	> .content {
-		//
-	}
 }
+
+/* Home View Page */
+// .home-view-container {}
 
 
 /* Media View Page */
-.media-view-container {
-	display: flex;
-	flex-direction: column;
-	padding: 1em;
-
+.media-view-container > .main-content-view {
 	// Info
 	> .info-container {
 		display: flex;
@@ -803,6 +804,8 @@ form > .form-container {
 		> .metadata {
 			flex-grow: 1;
 			margin-left: 1em;
+			display: flex;
+			flex-direction: column;
 
 			> .title {
 				max-inline-size: var(--size-header-3);
@@ -810,6 +813,12 @@ form > .form-container {
 
 			> .description {
 				max-inline-size: var(--text-size-content-4);
+				white-space: pre-wrap;
+			}
+
+			// Editing
+			> input.title {
+				margin-bottom: 10px;
 			}
 		}
 	}
@@ -847,6 +856,23 @@ form > .form-container {
 	.characters-container {
 		display: flex;
 		flex-direction: row;
+
+		> .add-person {
+			display: flex;
+			align-items: center;
+			transition: border 0.25s;
+			padding: 0.5em;
+			width: 10em;
+			cursor: pointer;
+
+			border-radius: var(--radius-2);
+			border: var(--border-size-1) solid var(--brand);
+
+			> span {
+				text-align: center;
+				width: 100%;
+			}
+		}
 
 		// TODO: Replace with .person-container
 		> .person-item {

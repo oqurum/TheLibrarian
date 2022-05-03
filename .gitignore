@@ -2,5 +2,6 @@
 
 database.db
 dist
+/app/thumbnails
 
 /ignore

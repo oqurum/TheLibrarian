@@ -23,6 +23,8 @@ pub fn api_route() -> Scope<
 		// Book
 		.service(book::add_new_book)
 		.service(book::load_book_list)
+		.service(book::get_book_info)
+		.service(book::load_book_thumbnail)
 
 		// Member
 		.service(member::load_member_self)

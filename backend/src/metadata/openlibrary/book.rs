@@ -249,6 +249,8 @@ pub struct BookInfo {
 	pub dewey_decimal_class: Option<Vec<String>>,
 	pub local_id: Option<Vec<String>>,
 	pub physical_format: Option<String>,
+	pub links: Option<serde_json::Value>, // TODO: title, url, type: key
+	pub excerpts: Option<serde_json::Value>, // TODO: comment, excerpt, author: key
 	pub key: String,
 	pub authors: Option<Vec<Author>>,
 	pub publish_places: Option<Vec<String>>,

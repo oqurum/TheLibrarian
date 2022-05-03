@@ -41,7 +41,7 @@ pub async fn get_member_self() -> GetMemberSelfResponse {
 pub async fn update_metadata(id: usize, value: &PostMetadataBody) {
 	let _: Option<String> = fetch(
 		"POST",
-		&format!("/api/v1/metadata/{}", id),
+		&format!("/api/v1/book/{}", id),
 		Some(value)
 	).await.ok();
 }
@@ -49,7 +49,7 @@ pub async fn update_metadata(id: usize, value: &PostMetadataBody) {
 pub async fn get_media_view(metadata_id: usize) -> MediaViewResponse {
 	fetch(
 		"GET",
-		&format!("/api/v1/metadata/{}", metadata_id),
+		&format!("/api/v1/book/{}", metadata_id),
 		Option::<&()>::None
 	).await.unwrap()
 }
@@ -114,7 +114,7 @@ pub async fn get_people(query: Option<&str>, offset: Option<usize>, limit: Optio
 pub async fn new_book(value: Source) {
 	let _: Option<String> = fetch(
 		"POST",
-		"/api/v1/book/",
+		"/api/v1/book",
 		Some(&NewBookBody {
 			source: value
 		})

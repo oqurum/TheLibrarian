@@ -22,13 +22,13 @@ impl Metadata for OpenLibraryMetadata {
 		"openlibrary"
 	}
 
-	async fn get_metadata_by_source_id(&mut self, value: &str) -> Result<Option<MetadataReturned>> {
+	async fn get_metadata_by_source_id(&mut self, value: &str, upgrade_editions: bool) -> Result<Option<MetadataReturned>> {
 		let id = match BookId::make_assumptions(value.to_string()) {
 			Some(v) => v,
 			None => return Ok(None)
 		};
 
-		match self.request(id).await {
+		match self.request(id, upgrade_editions).await {
 			Ok(Some(v)) => Ok(Some(v)),
 			a => {
 				eprintln!("OpenLibraryMetadata::get_metadata_by_source_id {:?}", a);
@@ -119,12 +119,28 @@ impl Metadata for OpenLibraryMetadata {
 }
 
 impl OpenLibraryMetadata {
-	pub async fn request(&self, id: BookId) -> Result<Option<MetadataReturned>> {
+	pub async fn request(&self, id: BookId, upgrade_editions: bool) -> Result<Option<MetadataReturned>> {
 		let mut book_info = if let Some(v) = book::get_book_by_id(&id).await? {
 			v
 		} else {
 			return Ok(None);
 		};
+
+		// We're upgrading from editions to the original work.
+		if upgrade_editions {
+			if let Some(work) = book_info.works.as_ref().and_then(|v| v.first()) {
+				let id = match BookId::make_assumptions(work.key.replace("/works/", "")) {
+					Some(v) => v,
+					None => return Ok(None)
+				};
+
+				book_info = if let Some(v) = book::get_book_by_id(&id).await? {
+					v
+				} else {
+					return Ok(None);
+				};
+			}
+		}
 
 
 		// Find Authors.
@@ -180,8 +196,8 @@ impl OpenLibraryMetadata {
 
 		let source_id = match book_info.isbn_13.as_ref()
 			.and_then(|v| v.first().or_else(|| book_info.isbn_10.as_ref().and_then(|v| v.first()))) {
-			Some(v) => v,
-			None => return Ok(None)
+			Some(v) => v.as_str(),
+			None => &book_info.key[7..]
 		};
 
 		Ok(Some(MetadataReturned {
@@ -189,7 +205,7 @@ impl OpenLibraryMetadata {
 			publisher: book_info.publishers.and_then(|v| v.first().cloned()),
 
 			meta: FoundItem {
-				source: format!("{}:{}", self.get_prefix(), source_id).try_into()?,
+				source: self.prefix_text(source_id).try_into()?,
 				title: Some(book_info.title.clone()),
 				description: book_info.description.as_ref().map(|v| v.content().to_owned()),
 				rating: 0.0,

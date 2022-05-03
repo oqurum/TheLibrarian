@@ -22,7 +22,7 @@ pub async fn store_image(type_of: ThumbnailStoreType, image: Vec<u8>) -> Result<
 
 	let mut path = PathBuf::new();
 
-	path.push("../../app/thumbnails");
+	path.push("../app/thumbnails");
 	path.push(type_of.path_name());
 	path.push(get_directories(&hash));
 
@@ -40,7 +40,7 @@ pub async fn store_image(type_of: ThumbnailStoreType, image: Vec<u8>) -> Result<
 pub fn prefixhash_to_path(type_of: ThumbnailStoreType, hash: &str) -> String {
 	let mut path = PathBuf::new();
 
-	path.push("../../app/thumbnails");
+	path.push("../app/thumbnails");
 	path.push(type_of.path_name());
 	path.push(get_directories(hash));
 	path.push(format!("{}.jpg", &hash));

@@ -142,8 +142,6 @@ pub struct ModifyOptionsBody {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct MediaViewResponse {
 	pub metadata: DisplayMetaItem,
-	pub media: Vec<MediaItem>,
-	pub progress: Vec<Option<Progression>>,
 	pub people: Vec<Person>,
 }
 

@@ -29,9 +29,7 @@ pub trait Metadata {
 	fn get_prefix(&self) -> &'static str;
 
 	// Metadata
-	async fn get_metadata_by_source_id(&mut self, _value: &str) -> Result<Option<MetadataReturned>> {
-		Ok(None)
-	}
+	async fn get_metadata_by_source_id(&mut self, value: &str, upgrade_editions: bool) -> Result<Option<MetadataReturned>>;
 
 	// Person
 
@@ -48,10 +46,10 @@ pub trait Metadata {
 }
 
 /// Doesn't check local
-pub async fn get_metadata_by_source(source: &Source) -> Result<Option<MetadataReturned>> {
+pub async fn get_metadata_by_source(source: &Source, upgrade_editions: bool) -> Result<Option<MetadataReturned>> {
 	match source.agent.as_str() {
-		v if v == OpenLibraryMetadata.get_prefix() => OpenLibraryMetadata.get_metadata_by_source_id(&source.value).await,
-		v if v == GoogleBooksMetadata.get_prefix() => GoogleBooksMetadata.get_metadata_by_source_id(&source.value).await,
+		v if v == OpenLibraryMetadata.get_prefix() => OpenLibraryMetadata.get_metadata_by_source_id(&source.value, upgrade_editions).await,
+		v if v == GoogleBooksMetadata.get_prefix() => GoogleBooksMetadata.get_metadata_by_source_id(&source.value, upgrade_editions).await,
 
 		_ => Ok(None)
 	}
@@ -66,7 +64,7 @@ pub async fn search_all_agents(search: &str, search_for: SearchFor) -> Result<Se
 	// Checks to see if we can use get_metadata_by_source (source:id)
 	if let Ok(source) = Source::try_from(search) {
 		// Check if it's a Metadata Source.
-		if let Some(val) = get_metadata_by_source(&source).await? {
+		if let Some(val) = get_metadata_by_source(&source, false).await? {
 			map.insert(
 				source.agent,
 				vec![SearchItem::Book(val.meta)],
@@ -293,11 +291,8 @@ impl From<FoundItem> for BookModel {
 	fn from(val: FoundItem) -> Self {
 		BookModel {
 			id: 0,
-			library_id: 0,
-			source: val.source,
-			file_item_count: 1,
 			title: val.title.clone(),
-			original_title: val.title,
+			clean_title: val.title,
 			description: val.description,
 			rating: val.rating,
 			thumb_path: val.thumb_locations.iter()
@@ -305,13 +300,15 @@ impl From<FoundItem> for BookModel {
 				.unwrap_or(ThumbnailStore::None),
 			all_thumb_urls: val.thumb_locations.into_iter().filter_map(|v| v.into_url_value()).collect(),
 			cached: val.cached,
-			refreshed_at: Utc::now(),
+			tags_genre: None,
+			tags_collection: None,
+			tags_author: None,
+			tags_country: None,
 			created_at: Utc::now(),
 			updated_at: Utc::now(),
 			deleted_at: None,
 			available_at: val.available_at,
 			year: val.year,
-			hash: String::new(),
 		}
 	}
 }

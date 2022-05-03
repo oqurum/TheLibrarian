@@ -11,34 +11,32 @@ use serde::{Serialize, Serializer};
 pub struct BookModel {
 	pub id: usize,
 
-	pub library_id: usize,
-
-	pub source: Source,
-	pub file_item_count: i64,
 	pub title: Option<String>,
-	pub original_title: Option<String>,
+	pub clean_title: Option<String>,
 	pub description: Option<String>,
 	pub rating: f64,
 
 	pub thumb_path: ThumbnailStore,
+	/// Not in Database
 	pub all_thumb_urls: Vec<String>,
 
 	// TODO: Make table for all tags. Include publisher in it. Remove country.
 	pub cached: MetadataItemCached,
 
-	#[serde(serialize_with = "serialize_datetime")]
-	pub refreshed_at: DateTime<Utc>,
+	pub tags_genre: Option<String>,
+	pub tags_collection: Option<String>,
+	pub tags_author: Option<String>,
+	pub tags_country: Option<String>,
+
+	pub available_at: Option<i64>,
+	pub year: Option<i64>,
+
 	#[serde(serialize_with = "serialize_datetime")]
 	pub created_at: DateTime<Utc>,
 	#[serde(serialize_with = "serialize_datetime")]
 	pub updated_at: DateTime<Utc>,
 	#[serde(serialize_with = "serialize_datetime_opt")]
 	pub deleted_at: Option<DateTime<Utc>>,
-
-	pub available_at: Option<i64>,
-	pub year: Option<i64>,
-
-	pub hash: String
 }
 
 
@@ -48,25 +46,24 @@ impl<'a> TryFrom<&Row<'a>> for BookModel {
 	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
 		Ok(Self {
 			id: value.get(0)?,
-			library_id: value.get(1)?,
-			source: Source::try_from(value.get::<_, String>(2)?).unwrap(),
-			file_item_count: value.get(3)?,
-			title: value.get(4)?,
-			original_title: value.get(5)?,
-			description: value.get(6)?,
-			rating: value.get(7)?,
-			thumb_path: ThumbnailStore::from(value.get::<_, Option<String>>(8)?),
+			title: value.get(1)?,
+			clean_title: value.get(2)?,
+			description: value.get(3)?,
+			rating: value.get(4)?,
+			thumb_path: ThumbnailStore::from(value.get::<_, Option<String>>(5)?),
 			all_thumb_urls: Vec::new(),
-			cached: value.get::<_, Option<String>>(9)?
+			cached: value.get::<_, Option<String>>(6)?
 				.map(|v| MetadataItemCached::from_string(&v))
 				.unwrap_or_default(),
-			available_at: value.get(10)?,
-			year: value.get(11)?,
-			refreshed_at: Utc.timestamp_millis(value.get(12)?),
+			tags_genre: value.get(7)?,
+			tags_collection: value.get(8)?,
+			tags_author: value.get(9)?,
+			tags_country: value.get(10)?,
+			available_at: value.get(11)?,
+			year: value.get(12)?,
 			created_at: Utc.timestamp_millis(value.get(13)?),
 			updated_at: Utc.timestamp_millis(value.get(14)?),
 			deleted_at: value.get::<_, Option<_>>(15)?.map(|v| Utc.timestamp_millis(v)),
-			hash: value.get(16)?
 		})
 	}
 }
@@ -75,22 +72,17 @@ impl From<BookModel> for DisplayMetaItem {
 	fn from(val: BookModel) -> Self {
 		DisplayMetaItem {
 			id: val.id,
-			library_id: val.library_id,
-			source: val.source,
-			file_item_count: val.file_item_count,
 			title: val.title,
-			original_title: val.original_title,
+			original_title: val.clean_title,
 			description: val.description,
 			rating: val.rating,
 			thumb_path: val.thumb_path,
 			cached: val.cached,
-			refreshed_at: val.refreshed_at,
 			created_at: val.created_at,
 			updated_at: val.updated_at,
 			deleted_at: val.deleted_at,
 			available_at: val.available_at,
 			year: val.year,
-			hash: val.hash,
 		}
 	}
 }
@@ -100,7 +92,7 @@ impl From<BookModel> for DisplayMetaItem {
 
 #[derive(Debug, Serialize)]
 pub struct BookPersonModel {
-	pub metadata_id: usize,
+	pub book_id: usize,
 	pub person_id: usize,
 }
 
@@ -109,7 +101,7 @@ impl<'a> TryFrom<&Row<'a>> for BookPersonModel {
 
 	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
 		Ok(Self {
-			metadata_id: value.get(0)?,
+			book_id: value.get(0)?,
 			person_id: value.get(1)?,
 		})
 	}
