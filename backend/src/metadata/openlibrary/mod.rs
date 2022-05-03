@@ -104,6 +104,8 @@ impl Metadata for OpenLibraryMetadata {
 								vec![FoundImageLocation::Url(CoverId::Olid(v).get_book_cover_url())]
 							).unwrap_or_default(),
 							cached: MetadataItemCached::default(),
+							isbn_10: None,
+							isbn_13: None,
 							available_at: None,
 							year: item.first_publish_year,
 						}));
@@ -215,6 +217,8 @@ impl OpenLibraryMetadata {
 					.map(|id| FoundImageLocation::Url(CoverId::Id(id.to_string()).get_book_cover_url()))
 					.collect(),
 				cached: MetadataItemCached::default(),
+				isbn_10: book_info.isbn_10.as_ref().and_then(|v| v.first().cloned()),
+				isbn_13: book_info.isbn_13.as_ref().and_then(|v| v.first().cloned()),
 				available_at: None,
 				year: None,
 			}

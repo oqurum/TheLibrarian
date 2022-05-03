@@ -1,4 +1,4 @@
-use librarian_common::api::{MediaViewResponse, self};
+use librarian_common::{api::{MediaViewResponse, self, GetPostersResponse}, Either};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::{prelude::*, html::Scope};
@@ -9,6 +9,9 @@ use crate::request;
 pub enum Msg {
 	// Retrive
 	RetrieveMediaView(Box<MediaViewResponse>),
+	RetrievePosters(GetPostersResponse),
+
+	UpdatedPoster,
 
 	// Events
 	ToggleEdit,
@@ -31,6 +34,7 @@ pub struct Property {
 
 pub struct MediaView {
 	media: Option<MediaViewResponse>,
+	cached_posters: Option<GetPostersResponse>,
 
 	media_popup: Option<DisplayOverlay>,
 
@@ -44,6 +48,7 @@ impl Component for MediaView {
 	fn create(_ctx: &Context<Self>) -> Self {
 		Self {
 			media: None,
+			cached_posters: None,
 			media_popup: None,
 			editing_item: None,
 		}
@@ -52,6 +57,17 @@ impl Component for MediaView {
 	fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
 		match msg {
 			Msg::Ignore => return false,
+
+			Msg::UpdatedPoster => {
+				let meta_id = self.media.as_ref().unwrap().metadata.id;
+
+				ctx.link()
+				.send_future(async move {
+					Msg::RetrievePosters(request::get_posters_for_meta(meta_id).await)
+				});
+
+				return false;
+			}
 
 			// Edits
 			Msg::ToggleEdit => {
@@ -71,12 +87,14 @@ impl Component for MediaView {
 
 				match type_of {
 					ChangingType::Title => updating.metadata.title = Some(value).filter(|v| !v.is_empty()),
-					ChangingType::OriginalTitle => updating.metadata.original_title = Some(value).filter(|v| !v.is_empty()),
+					ChangingType::OriginalTitle => updating.metadata.clean_title = Some(value).filter(|v| !v.is_empty()),
 					ChangingType::Description => updating.metadata.description = Some(value).filter(|v| !v.is_empty()),
 					ChangingType::Rating => updating.metadata.rating = Some(value).and_then(|v| v.parse().ok()).unwrap_or_default(),
 					ChangingType::ThumbPath => todo!(),
 					ChangingType::AvailableAt => updating.metadata.available_at = Some(value).and_then(|v| v.parse().ok()),
 					ChangingType::Year => updating.metadata.year = Some(value).and_then(|v| v.parse().ok()),
+					ChangingType::Isbn10 => updating.metadata.isbn_10 = Some(value).filter(|v| !v.is_empty()),
+					ChangingType::Isbn13 => updating.metadata.isbn_13 = Some(value).filter(|v| !v.is_empty()),
 				}
 			}
 
@@ -98,8 +116,19 @@ impl Component for MediaView {
 			}
 
 
+			Msg::RetrievePosters(value) => {
+				self.cached_posters = Some(value);
+			}
+
 			Msg::RetrieveMediaView(value) => {
+				let metadata_id = value.metadata.id;
+
 				self.media = Some(*value);
+
+				ctx.link()
+				.send_future(async move {
+					Msg::RetrievePosters(request::get_posters_for_meta(metadata_id).await)
+				});
 			}
 
 			Msg::UpdateMeta(meta_id) => {
@@ -119,6 +148,8 @@ impl Component for MediaView {
 		let resp = self.editing_item.as_ref().or(self.media.as_ref());
 
 		if let Some(MediaViewResponse { people, metadata }) = resp {
+			let meta_id = metadata.id;
+
 			html! {
 				<div class="media-view-container">
 					<div class="sidebar">
@@ -164,12 +195,12 @@ impl Component for MediaView {
 												<span class="sub-title">{"Original Title"}</span>
 												<input class="title" type="text"
 													onchange={Self::on_change_input(ctx.link(), ChangingType::OriginalTitle)}
-													value={ metadata.original_title.clone().unwrap_or_default() } />
+													value={ metadata.clean_title.clone().unwrap_or_default() } />
 
 												<span class="sub-title">{"Description"}</span>
 												<textarea
-													rows="10"
-													cols="33"
+													rows="9"
+													cols="30"
 													class="description"
 													onchange={Self::on_change_textarea(ctx.link(), ChangingType::Description)}
 													value={ metadata.description.clone().unwrap_or_default() }
@@ -199,6 +230,31 @@ impl Component for MediaView {
 											<input class="title" type="text"
 												onchange={Self::on_change_input(ctx.link(), ChangingType::AvailableAt)}
 												value={ metadata.available_at.unwrap_or_default().to_string() } />
+
+											<span class="sub-title">{"ISBN 10"}</span>
+											<input class="title" type="text"
+												onchange={Self::on_change_input(ctx.link(), ChangingType::Isbn10)}
+												value={ metadata.isbn_10.clone().unwrap_or_default() } />
+
+											<span class="sub-title">{"ISBN 13"}</span>
+											<input class="title" type="text"
+												onchange={Self::on_change_input(ctx.link(), ChangingType::Isbn13)}
+												value={ metadata.isbn_13.clone().unwrap_or_default() } />
+										</div>
+									}
+								} else {
+									html! {}
+								}
+							}
+							{
+								if self.is_editing() {
+									html! {
+										<div class="metadata">
+											<span class="sub-title">{ "Good Reads URL" }</span>
+											<input class="title" type="text" />
+
+											<span class="sub-title">{ "Open Library URL" }</span>
+											<input class="title" type="text" />
 										</div>
 									}
 								} else {
@@ -207,14 +263,62 @@ impl Component for MediaView {
 							}
 						</div>
 
+						{
+							if self.is_editing() {
+								if let Some(resp) = self.cached_posters.as_ref() {
+									html! {
+										<section>
+											<h2>{ "Posters" }</h2>
+											<div class="posters-container">
+												<div class="add-poster" title="Add Poster">
+													<span class="material-icons">{ "add" }</span>
+												</div>
+												{
+													for resp.items.iter().map(move |poster| {
+														let url_or_id = poster.id.map(Either::Right).unwrap_or_else(|| Either::Left(poster.path.clone()));
+														let is_selected = poster.selected;
+
+														html_nested! {
+															<div
+																class={ classes!("poster", { if is_selected { "selected" } else { "" } }) }
+																onclick={ctx.link().callback_future(move |_| {
+																	let url_or_id = url_or_id.clone();
+
+																	async move {
+																		if is_selected {
+																			Msg::Ignore
+																		} else {
+																			request::change_poster_for_meta(meta_id, url_or_id).await;
+
+																			Msg::UpdatedPoster
+																		}
+																	}
+																})}
+															>
+																<img src={poster.path.clone()} />
+															</div>
+														}
+													})
+												}
+											</div>
+										</section>
+									}
+								} else {
+									html! {}
+								}
+							} else {
+								html! {}
+							}
+						}
+
 						<section>
 							<h2>{ "Characters" }</h2>
 							<div class="characters-container">
 								{
 									if self.is_editing() {
 										html! {
-											<div class="add-person">
-												<span class="material-icons" title="Add Person">{ "add" }</span>
+											<div class="add-person" title="Add Book Character">
+												<span class="material-icons">{ "add" }</span>
 											</div>
 										}
 									} else {
@@ -230,8 +334,8 @@ impl Component for MediaView {
 								{
 									if self.is_editing() {
 										html! {
-											<div class="add-person">
-												<span class="material-icons" title="Add Person">{ "add" }</span>
+											<div class="add-person" title="Add Person">
+												<span class="material-icons">{ "add" }</span>
 											</div>
 										}
 									} else {
@@ -316,6 +420,8 @@ pub enum ChangingType {
 	ThumbPath,
 	AvailableAt,
 	Year,
+	Isbn10,
+	Isbn13,
 }
 
 

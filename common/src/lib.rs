@@ -107,7 +107,7 @@ impl From<DisplayMetaItem> for DisplayItem {
 	fn from(val: DisplayMetaItem) -> Self {
 		DisplayItem {
 			id: val.id,
-			title: val.title.or(val.original_title).unwrap_or_default(),
+			title: val.title.or(val.clean_title).unwrap_or_default(),
 			cached: val.cached,
 			has_thumbnail: val.thumb_path.is_some()
 		}
@@ -117,18 +117,29 @@ impl From<DisplayMetaItem> for DisplayItem {
 
 // Used for Media View
 
+/// Clone of Model.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct DisplayMetaItem {
 	pub id: usize,
 
 	pub title: Option<String>,
-	pub original_title: Option<String>,
+	pub clean_title: Option<String>,
 	pub description: Option<String>,
 	pub rating: f64,
+
 	pub thumb_path: ThumbnailStore,
 
 	// TODO: Make table for all tags. Include publisher in it. Remove country.
 	pub cached: MetadataItemCached,
+
+	pub isbn_10: Option<String>,
+	pub isbn_13: Option<String>,
+
+	pub tags_author: Option<String>,
+	pub tags_country: Option<String>,
+
+	pub available_at: Option<i64>,
+	pub year: Option<i64>,
 
 	#[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]
 	pub created_at: DateTime<Utc>,
@@ -136,9 +147,6 @@ pub struct DisplayMetaItem {
 	pub updated_at: DateTime<Utc>,
 	#[serde(serialize_with = "serialize_datetime_opt", deserialize_with = "deserialize_datetime_opt")]
 	pub deleted_at: Option<DateTime<Utc>>,
-
-	pub available_at: Option<i64>,
-	pub year: Option<i64>,
 }
 
 impl DisplayMetaItem {
@@ -151,7 +159,7 @@ impl DisplayMetaItem {
 	}
 
 	pub fn get_title(&self) -> String {
-		self.title.as_ref().or(self.original_title.as_ref()).cloned().unwrap_or_else(|| String::from("No Title"))
+		self.title.as_ref().or(self.clean_title.as_ref()).cloned().unwrap_or_else(|| String::from("No Title"))
 	}
 }
 
@@ -160,16 +168,20 @@ impl Default for DisplayMetaItem {
 		Self {
 			id: Default::default(),
 			title: Default::default(),
-			original_title: Default::default(),
+			clean_title: Default::default(),
 			description: Default::default(),
 			rating: Default::default(),
 			thumb_path: ThumbnailStore::None,
 			cached: Default::default(),
+			isbn_10: Default::default(),
+			isbn_13: Default::default(),
 			created_at: Utc::now(),
 			updated_at: Utc::now(),
 			deleted_at: Default::default(),
 			available_at: Default::default(),
 			year: Default::default(),
+			tags_author: Default::default(),
+			tags_country: Default::default(),
 		}
 	}
 }

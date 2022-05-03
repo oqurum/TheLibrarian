@@ -23,8 +23,9 @@ pub struct BookModel {
 	// TODO: Make table for all tags. Include publisher in it. Remove country.
 	pub cached: MetadataItemCached,
 
-	pub tags_genre: Option<String>,
-	pub tags_collection: Option<String>,
+	pub isbn_10: Option<String>,
+	pub isbn_13: Option<String>,
+
 	pub tags_author: Option<String>,
 	pub tags_country: Option<String>,
 
@@ -55,8 +56,8 @@ impl<'a> TryFrom<&Row<'a>> for BookModel {
 			cached: value.get::<_, Option<String>>(6)?
 				.map(|v| MetadataItemCached::from_string(&v))
 				.unwrap_or_default(),
-			tags_genre: value.get(7)?,
-			tags_collection: value.get(8)?,
+			isbn_10: value.get(7)?,
+			isbn_13: value.get(8)?,
 			tags_author: value.get(9)?,
 			tags_country: value.get(10)?,
 			available_at: value.get(11)?,
@@ -73,18 +74,46 @@ impl From<BookModel> for DisplayMetaItem {
 		DisplayMetaItem {
 			id: val.id,
 			title: val.title,
-			original_title: val.clean_title,
+			clean_title: val.clean_title,
 			description: val.description,
 			rating: val.rating,
 			thumb_path: val.thumb_path,
 			cached: val.cached,
+			isbn_10: val.isbn_10,
+			isbn_13: val.isbn_13,
+			tags_author: val.tags_author,
+			tags_country: val.tags_country,
+			available_at: val.available_at,
+			year: val.year,
 			created_at: val.created_at,
 			updated_at: val.updated_at,
 			deleted_at: val.deleted_at,
-			available_at: val.available_at,
-			year: val.year,
 		}
 	}
+}
+
+impl Into<BookModel> for DisplayMetaItem {
+    fn into(self) -> BookModel {
+        BookModel {
+            id: self.id,
+            title: self.title,
+            clean_title: self.clean_title,
+            description: self.description,
+            rating: self.rating,
+            thumb_path: self.thumb_path,
+            all_thumb_urls: Vec::new(),
+            cached: self.cached,
+            isbn_10: self.isbn_10,
+            isbn_13: self.isbn_13,
+            tags_author: self.tags_author,
+            tags_country: self.tags_country,
+            available_at: self.available_at,
+            year: self.year,
+            created_at: self.created_at,
+            updated_at: self.updated_at,
+            deleted_at: self.deleted_at,
+        }
+    }
 }
 
 

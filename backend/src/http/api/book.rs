@@ -130,6 +130,22 @@ pub async fn get_book_info(meta_id: web::Path<usize>, db: web::Data<Database>) -
 }
 
 
+#[post("/book/{id}")]
+pub async fn update_book_id(
+	_meta_id: web::Path<usize>,
+	body: web::Json<api::UpdateBookBody>,
+	db: web::Data<Database>,
+) -> WebResult<HttpResponse> {
+	let body = body.into_inner();
+
+	if let Some(book) = body.metadata {
+		db.update_metadata(&book.into())?;
+	}
+
+	Ok(HttpResponse::Ok().finish())
+}
+
+
 
 
 #[get("/book/{id}/thumbnail")]

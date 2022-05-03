@@ -64,7 +64,7 @@ impl ThumbnailStore {
 	pub fn as_url(&self) -> String {
 		match self {
 			Self::None => String::from(MISSING_THUMB_PATH),
-			_ => format!("/api/image/{}/{}", self.as_type().path_name(), self.as_value()),
+			_ => format!("/api/v1/image/{}/{}", self.as_type().path_name(), self.as_value()),
 		}
 	}
 

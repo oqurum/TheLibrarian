@@ -851,6 +851,40 @@ form > .form-container {
 		}
 	}
 
+	.posters-container {
+		display: flex;
+		overflow-x: auto;
+		flex-wrap: nowrap;
+		padding: 10px 0px;
+
+		.add-poster {
+			width: 165px;
+			height: 247px;
+			border-radius: var(--radius-2);
+			border: var(--border-size-1) solid var(--violet-4);
+			transition: border 0.25s;
+			flex-shrink: 0;
+			display: flex;
+			align-items: center;
+			cursor: pointer;
+
+			> span {
+				text-align: center;
+				width: 100%;
+			}
+		}
+
+		.poster {
+			flex-shrink: 0;
+			margin: 0 3px;
+			cursor: pointer;
+
+			&.selected {
+				cursor: default;
+			}
+		}
+	}
+
 	// Authors
 	.authors-container,
 	.characters-container {

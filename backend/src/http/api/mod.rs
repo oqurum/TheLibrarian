@@ -7,6 +7,7 @@ pub mod external;
 pub mod member;
 pub mod person;
 pub mod publisher;
+pub mod poster;
 
 pub fn api_route() -> Scope<
 	impl ServiceFactory<
@@ -24,6 +25,7 @@ pub fn api_route() -> Scope<
 		.service(book::add_new_book)
 		.service(book::load_book_list)
 		.service(book::get_book_info)
+		.service(book::update_book_id)
 		.service(book::load_book_thumbnail)
 
 		// Member
@@ -32,6 +34,12 @@ pub fn api_route() -> Scope<
 		// Person
 		.service(person::load_author_list)
 		.service(person::load_person_thumbnail)
+
+		// Poster
+		.service(poster::get_local_image)
+		.service(poster::get_poster_list)
+		.service(poster::post_change_poster)
+		.service(poster::put_upload_poster)
 
 		// External
 		.service(external::get_external_search)

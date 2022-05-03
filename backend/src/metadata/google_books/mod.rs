@@ -72,6 +72,12 @@ impl Metadata for GoogleBooksMetadata {
 							rating: item.volume_info.average_rating.unwrap_or_default(),
 							thumb_locations: vec![thumb_dl_url],
 							cached: MetadataItemCached::default(),
+							isbn_10: item.volume_info.industry_identifiers.as_ref()
+								.and_then(|v|
+									v.iter().find_map(|v| if v.type_of == "ISBN_10" { Some(v.identifier.clone()) } else { None })),
+							isbn_13: item.volume_info.industry_identifiers.as_ref()
+								.and_then(|v|
+								v.iter().find_map(|v| if v.type_of == "ISBN_13" { Some(v.identifier.clone()) } else { None })),
 							available_at: None,
 							year: None,
 						}));
@@ -134,6 +140,12 @@ impl GoogleBooksMetadata {
 				cached: MetadataItemCached::default()
 					.publisher_optional(value.volume_info.publisher)
 					.author_optional(value.volume_info.authors.and_then(|v| v.first().cloned())),
+				isbn_10: value.volume_info.industry_identifiers.as_ref()
+					.and_then(|v|
+						v.iter().find_map(|v| if v.type_of == "ISBN_10" { Some(v.identifier.clone()) } else { None })),
+				isbn_13: value.volume_info.industry_identifiers.as_ref()
+					.and_then(|v|
+					v.iter().find_map(|v| if v.type_of == "ISBN_13" { Some(v.identifier.clone()) } else { None })),
 				available_at: None,
 				year: None,
 			}

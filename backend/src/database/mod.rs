@@ -174,7 +174,7 @@ impl Database {
 				INSERT INTO book (
 					title, clean_title, description, rating, thumb_url,
 					cached,
-					tags_genre, tags_collection, tags_author, tags_country,
+					isbn_10, isbn_13, tags_author, tags_country,
 					available_at, year,
 					created_at, updated_at, deleted_at
 				)
@@ -182,7 +182,7 @@ impl Database {
 				params![
 					&meta.title, &meta.clean_title, &meta.description, &meta.rating, meta.thumb_path.to_optional_string(),
 					&meta.cached.as_string_optional(),
-					&meta.tags_genre, &meta.tags_collection, &meta.tags_author, &meta.tags_country,
+					&meta.isbn_10, &meta.isbn_13, &meta.tags_author, &meta.tags_country,
 					&meta.available_at, &meta.year,
 					&meta.created_at.timestamp_millis(), &meta.updated_at.timestamp_millis(),
 					meta.deleted_at.as_ref().map(|v| v.timestamp_millis()),
@@ -203,7 +203,7 @@ impl Database {
 			UPDATE book SET
 				title = ?2, clean_title = ?3, description = ?4, rating = ?5, thumb_url = ?6,
 				cached = ?7,
-				tags_genre = ?8, tags_collection = ?9, tags_author = ?10, tags_country = ?11,
+				isbn_10 = ?8, isbn_13 = ?9, tags_author = ?10, tags_country = ?11,
 				available_at = ?12, year = ?13,
 				created_at = ?14, updated_at = ?15, deleted_at = ?16
 			WHERE id = ?1"#,
@@ -211,7 +211,7 @@ impl Database {
 				meta.id,
 				&meta.title, &meta.clean_title, &meta.description, &meta.rating, meta.thumb_path.to_optional_string(),
 				&meta.cached.as_string_optional(),
-				&meta.tags_genre, &meta.tags_collection, &meta.tags_author, &meta.tags_country,
+				&meta.isbn_10, &meta.isbn_13, &meta.tags_author, &meta.tags_country,
 				&meta.available_at, &meta.year,
 				&meta.created_at.timestamp_millis(), &meta.updated_at.timestamp_millis(),
 				meta.deleted_at.as_ref().map(|v| v.timestamp_millis()),

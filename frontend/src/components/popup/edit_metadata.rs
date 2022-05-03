@@ -142,7 +142,7 @@ impl PopupEditMetadata {
 				<input type="text" id="input-title" value={ resp.metadata.title.clone().unwrap_or_default() } />
 
 				<label for="input-orig-title">{ "Original Title" }</label>
-				<input type="text" id="input-orig-title" value={ resp.metadata.original_title.clone().unwrap_or_default() } />
+				<input type="text" id="input-orig-title" value={ resp.metadata.clean_title.clone().unwrap_or_default() } />
 
 				<label for="input-descr">{ "Description" }</label>
 				<textarea type="text" id="input-descr" rows="5" value={ resp.metadata.description.clone().unwrap_or_default() } />

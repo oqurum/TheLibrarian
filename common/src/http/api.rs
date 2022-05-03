@@ -45,6 +45,14 @@ pub struct NewBookBody {
 
 
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct UpdateBookBody {
+	pub metadata: Option<DisplayMetaItem>,
+	pub people: Option<Vec<Person>>,
+}
+
+
+
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct LoadResourceQuery {
 	#[serde(default)]

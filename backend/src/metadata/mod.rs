@@ -283,6 +283,9 @@ pub struct FoundItem {
 	// TODO: Make table for all tags. Include publisher in it. Remove country.
 	pub cached: MetadataItemCached,
 
+	pub isbn_10: Option<String>,
+	pub isbn_13: Option<String>,
+
 	pub available_at: Option<i64>,
 	pub year: Option<i64>
 }
@@ -300,8 +303,8 @@ impl From<FoundItem> for BookModel {
 				.unwrap_or(ThumbnailStore::None),
 			all_thumb_urls: val.thumb_locations.into_iter().filter_map(|v| v.into_url_value()).collect(),
 			cached: val.cached,
-			tags_genre: None,
-			tags_collection: None,
+			isbn_10: val.isbn_10,
+			isbn_13: val.isbn_13,
 			tags_author: None,
 			tags_country: None,
 			created_at: Utc::now(),
