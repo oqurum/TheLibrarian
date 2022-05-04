@@ -29,7 +29,7 @@ pub struct BookModel {
 	pub tags_author: Option<String>,
 	pub tags_country: Option<String>,
 
-	pub available_at: Option<i64>,
+	pub available_at: Option<String>,
 	pub year: Option<i64>,
 
 	#[serde(serialize_with = "serialize_datetime")]
@@ -92,26 +92,26 @@ impl From<BookModel> for DisplayMetaItem {
 	}
 }
 
-impl Into<BookModel> for DisplayMetaItem {
-    fn into(self) -> BookModel {
+impl From<DisplayMetaItem> for BookModel {
+    fn from(val: DisplayMetaItem) -> Self {
         BookModel {
-            id: self.id,
-            title: self.title,
-            clean_title: self.clean_title,
-            description: self.description,
-            rating: self.rating,
-            thumb_path: self.thumb_path,
+            id: val.id,
+            title: val.title,
+            clean_title: val.clean_title,
+            description: val.description,
+            rating: val.rating,
+            thumb_path: val.thumb_path,
             all_thumb_urls: Vec::new(),
-            cached: self.cached,
-            isbn_10: self.isbn_10,
-            isbn_13: self.isbn_13,
-            tags_author: self.tags_author,
-            tags_country: self.tags_country,
-            available_at: self.available_at,
-            year: self.year,
-            created_at: self.created_at,
-            updated_at: self.updated_at,
-            deleted_at: self.deleted_at,
+            cached: val.cached,
+            isbn_10: val.isbn_10,
+            isbn_13: val.isbn_13,
+            tags_author: val.tags_author,
+            tags_country: val.tags_country,
+            available_at: val.available_at,
+            year: val.year,
+            created_at: val.created_at,
+            updated_at: val.updated_at,
+            deleted_at: val.deleted_at,
         }
     }
 }

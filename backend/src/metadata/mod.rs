@@ -286,7 +286,7 @@ pub struct FoundItem {
 	pub isbn_10: Option<String>,
 	pub isbn_13: Option<String>,
 
-	pub available_at: Option<i64>,
+	pub available_at: Option<String>,
 	pub year: Option<i64>
 }
 

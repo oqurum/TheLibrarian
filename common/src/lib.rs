@@ -138,7 +138,7 @@ pub struct DisplayMetaItem {
 	pub tags_author: Option<String>,
 	pub tags_country: Option<String>,
 
-	pub available_at: Option<i64>,
+	pub available_at: Option<String>,
 	pub year: Option<i64>,
 
 	#[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]

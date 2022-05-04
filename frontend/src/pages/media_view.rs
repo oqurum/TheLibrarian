@@ -113,8 +113,11 @@ impl Component for MediaView {
 					ChangingType::Description => updating.metadata.description = value,
 					ChangingType::Rating => updating.metadata.rating = value.and_then(|v| v.parse().ok()).unwrap_or_default(),
 					ChangingType::ThumbPath => todo!(),
-					ChangingType::AvailableAt => updating.metadata.available_at = value.map(|v| Date::new(&JsValue::from_str(&v)).get_time() as i64),
-					ChangingType::Year => updating.metadata.year = value.map(|v| Date::new(&JsValue::from_str(&v)).get_time() as i64),
+					ChangingType::AvailableAt => updating.metadata.available_at = value.map(|v| {
+						let date = Date::new(&JsValue::from_str(&v));
+						format!("{}-{}-{}", date.get_full_year(), date.get_month() + 1, date.get_date())
+					}),
+					ChangingType::Year => updating.metadata.year = value.and_then(|v| v.parse().ok()),
 					ChangingType::Isbn10 => updating.metadata.isbn_10 = value,
 					ChangingType::Isbn13 => updating.metadata.isbn_13 = value,
 				}
@@ -188,8 +191,9 @@ impl Component for MediaView {
 							<div class="poster large">
 								<img src={ metadata.get_thumb_url() } />
 							</div>
+
 							<div class="metadata">
-								{
+								{ // Book Display Info
 									if self.is_editing() {
 										html! {
 											<>
@@ -227,7 +231,8 @@ impl Component for MediaView {
 									}
 								}
 							</div>
-							{
+
+							{ // Book Info
 								if self.is_editing() {
 									html! {
 										<div class="metadata">
@@ -235,7 +240,7 @@ impl Component for MediaView {
 
 											<span class="sub-title">{"Year"}</span>
 											<input class="title" type="text"
-												placeholder="YYYY-MM-DD"
+												placeholder="YYYY"
 												onchange={Self::on_change_input(ctx.link(), ChangingType::Year)}
 												value={ metadata.year.unwrap_or_default().to_string() }
 											/>
@@ -244,7 +249,7 @@ impl Component for MediaView {
 											<input class="title" type="text"
 												placeholder="YYYY-MM-DD"
 												onchange={Self::on_change_input(ctx.link(), ChangingType::AvailableAt)}
-												value={ metadata.available_at.unwrap_or_default().to_string() }
+												value={ metadata.available_at.clone().unwrap_or_default() }
 											/>
 
 											<span class="sub-title">{"ISBN 10"}</span>
@@ -258,13 +263,23 @@ impl Component for MediaView {
 												onchange={Self::on_change_input(ctx.link(), ChangingType::Isbn13)}
 												value={ metadata.isbn_13.clone().unwrap_or_default() }
 											/>
+
+											<span class="sub-title">{"Publisher"}</span>
+											<input class="title" type="text" />
+
+											<span class="sub-title">{"Language"}</span>
+											<input class="title" type="text" />
+
+											<span class="sub-title">{"Format"}</span>
+											<input class="title" type="text" />
 										</div>
 									}
 								} else {
 									html! {}
 								}
 							}
-							{
+
+							{ // Sources
 								if self.is_editing() {
 									html! {
 										<div class="metadata">
@@ -275,6 +290,9 @@ impl Component for MediaView {
 
 											<span class="sub-title">{ "Open Library URL" }</span>
 											<input class="title" type="text" />
+
+											<span class="sub-title">{ "Google Books URL" }</span>
+											<input class="title" type="text" />
 										</div>
 									}
 								} else {
@@ -283,7 +301,7 @@ impl Component for MediaView {
 							}
 						</div>
 
-						{
+						{ // Posters
 							if self.is_editing() {
 								if let Some(resp) = self.cached_posters.as_ref() {
 									html! {
@@ -298,7 +316,7 @@ impl Component for MediaView {
 														let url_or_id = poster.id.map(Either::Right).unwrap_or_else(|| Either::Left(poster.path.clone()));
 														let is_selected = poster.selected;
 
-														html_nested! {
+														html! {
 															<div
 																class={ classes!("poster", { if is_selected { "selected" } else { "" } }) }
 																onclick={ctx.link().callback_future(move |_| {
