@@ -26,7 +26,7 @@ async fn get_poster_list(
 	path: web::Path<usize>,
 	db: web::Data<Database>
 ) -> WebResult<web::Json<api::GetPostersResponse>> {
-	let meta = db.get_metadata_by_id(*path)?.unwrap();
+	let meta = db.get_book_by_id(*path)?.unwrap();
 
 	let items: Vec<Poster> = db.get_posters_by_linked_id(*path)?
 		.into_iter()
@@ -53,7 +53,7 @@ async fn post_change_poster(
 	body: web::Json<api::ChangePosterBody>,
 	db: web::Data<Database>
 ) -> WebResult<HttpResponse> {
-	let mut meta = db.get_metadata_by_id(*metadata_id)?.unwrap();
+	let mut meta = db.get_book_by_id(*metadata_id)?.unwrap();
 
 	match body.into_inner().url_or_id {
 		Either::Left(url) => {
@@ -85,7 +85,7 @@ async fn post_change_poster(
 		}
 	}
 
-	db.update_metadata(&meta)?;
+	db.update_book(&meta)?;
 
 	Ok(HttpResponse::Ok().finish())
 }

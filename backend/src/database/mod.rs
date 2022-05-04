@@ -12,7 +12,7 @@ use table::*;
 pub async fn init() -> Result<Database> {
 	let conn = rusqlite::Connection::open("database.db")?;
 
-	// Book Item
+	// Book
 	conn.execute(
 		r#"CREATE TABLE IF NOT EXISTS "book" (
 			"id"					INTEGER NOT NULL,
@@ -153,20 +153,20 @@ impl Database {
 
 	// Book
 
-	pub fn get_metadata_count(&self) -> Result<usize> {
+	pub fn get_book_count(&self) -> Result<usize> {
 		Ok(self.lock()?.query_row(r#"SELECT COUNT(*) FROM book"#, [], |v| v.get(0))?)
 	}
 
-	pub fn add_or_update_metadata(&self, meta: &BookModel) -> Result<BookModel> {
+	pub fn add_or_update_book(&self, meta: &BookModel) -> Result<BookModel> {
 		let table_meta = if meta.id != 0 {
-			self.get_metadata_by_id(meta.id)?
+			self.get_book_by_id(meta.id)?
 		} else {
 			None
 		};
 
 		if let Some(og_meta) = table_meta {
-			self.update_metadata(meta)?;
-			self.get_metadata_by_id(og_meta.id).map(|v| v.unwrap())
+			self.update_book(meta)?;
+			self.get_book_by_id(og_meta.id).map(|v| v.unwrap())
 		} else {
 			let lock = self.lock()?;
 
@@ -193,11 +193,11 @@ impl Database {
 
 			drop(lock);
 
-			Ok(self.get_metadata_by_id(id)?.unwrap())
+			Ok(self.get_book_by_id(id)?.unwrap())
 		}
 	}
 
-	pub fn update_metadata(&self, meta: &BookModel) -> Result<()> {
+	pub fn update_book(&self, meta: &BookModel) -> Result<()> {
 		self.lock()?
 		.execute(r#"
 			UPDATE book SET
@@ -221,8 +221,7 @@ impl Database {
 		Ok(())
 	}
 
-
-	pub fn get_metadata_by_id(&self, id: usize) -> Result<Option<BookModel>> {
+	pub fn get_book_by_id(&self, id: usize) -> Result<Option<BookModel>> {
 		Ok(self.lock()?.query_row(
 			r#"SELECT * FROM book WHERE id = ?1 LIMIT 1"#,
 			params![id],
@@ -230,14 +229,14 @@ impl Database {
 		).optional()?)
 	}
 
-	pub fn remove_metadata_by_id(&self, id: usize) -> Result<usize> {
+	pub fn remove_book_by_id(&self, id: usize) -> Result<usize> {
 		Ok(self.lock()?.execute(
 			r#"DELETE FROM book WHERE id = ?1"#,
 			params![id]
 		)?)
 	}
 
-	pub fn get_metadata_by(&self, offset: usize, limit: usize) -> Result<Vec<BookModel>> {
+	pub fn get_book_by(&self, offset: usize, limit: usize) -> Result<Vec<BookModel>> {
 		let this = self.lock()?;
 
 		let mut conn = this.prepare("SELECT * FROM book LIMIT ?1 OFFSET ?2")?;
@@ -247,7 +246,9 @@ impl Database {
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
 
+
 	// Search
+
 	fn gen_search_query(search: &api::SearchQuery) -> Option<String> {
 		let mut sql = String::from("SELECT * FROM book WHERE ");
 		let orig_len = sql.len();
@@ -293,7 +294,7 @@ impl Database {
 		}
 	}
 
-	pub fn search_metadata_list(&self, search: &api::SearchQuery, offset: usize, limit: usize) -> Result<Vec<BookModel>> {
+	pub fn search_book_list(&self, search: &api::SearchQuery, offset: usize, limit: usize) -> Result<Vec<BookModel>> {
 		let mut sql = match Self::gen_search_query(search) {
 			Some(v) => v,
 			None => return Ok(Vec::new())
@@ -310,7 +311,7 @@ impl Database {
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
 
-	pub fn count_search_metadata(&self, search: &api::SearchQuery) -> Result<usize> {
+	pub fn count_search_book(&self, search: &api::SearchQuery) -> Result<usize> {
 		let sql = match Self::gen_search_query(search) {
 			Some(v) => v.replace("SELECT *", "SELECT COUNT(*)"),
 			None => return Ok(0)
@@ -319,9 +320,10 @@ impl Database {
 		Ok(self.lock()?.query_row(&sql, [], |v| v.get(0))?)
 	}
 
+
 	// Book Person
 
-	pub fn add_meta_person(&self, person: &BookPersonModel) -> Result<()> {
+	pub fn add_book_person(&self, person: &BookPersonModel) -> Result<()> {
 		self.lock()?.execute(r#"INSERT OR IGNORE INTO book_person (book_id, person_id) VALUES (?1, ?2)"#,
 		params![
 			&person.book_id,
@@ -331,7 +333,7 @@ impl Database {
 		Ok(())
 	}
 
-	pub fn remove_meta_person(&self, person: &BookPersonModel) -> Result<()> {
+	pub fn remove_book_person(&self, person: &BookPersonModel) -> Result<()> {
 		self.lock()?.execute(r#"DELETE FROM book_person WHERE book_id = ?1 AND person_id = ?2"#,
 		params![
 			&person.book_id,
@@ -341,7 +343,7 @@ impl Database {
 		Ok(())
 	}
 
-	pub fn remove_persons_by_meta_id(&self, id: usize) -> Result<()> {
+	pub fn remove_persons_by_book_id(&self, id: usize) -> Result<()> {
 		self.lock()?.execute(r#"DELETE FROM book_person WHERE book_id = ?1"#,
 		params![
 			id
@@ -350,7 +352,7 @@ impl Database {
 		Ok(())
 	}
 
-	pub fn remove_meta_person_by_person_id(&self, id: usize) -> Result<()> {
+	pub fn remove_book_person_by_person_id(&self, id: usize) -> Result<()> {
 		self.lock()?.execute(r#"DELETE FROM book_person WHERE person_id = ?1"#,
 		params![
 			id
@@ -359,7 +361,7 @@ impl Database {
 		Ok(())
 	}
 
-	pub fn transfer_meta_person(&self, from_id: usize, to_id: usize) -> Result<usize> {
+	pub fn transfer_book_person(&self, from_id: usize, to_id: usize) -> Result<usize> {
 		Ok(self.lock()?.execute(r#"UPDATE book_person SET person_id = ?2 WHERE person_id = ?1"#,
 		params![
 			from_id,
@@ -367,7 +369,7 @@ impl Database {
 		])?)
 	}
 
-	pub fn get_meta_person_list(&self, id: usize) -> Result<Vec<BookPersonModel>> {
+	pub fn get_book_person_list(&self, id: usize) -> Result<Vec<BookPersonModel>> {
 		let this = self.lock()?;
 
 		let mut conn = this.prepare(r#"SELECT * FROM book_person WHERE book_id = ?1"#)?;

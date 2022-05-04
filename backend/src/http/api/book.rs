@@ -33,7 +33,7 @@ pub async fn add_new_book(
 
 		meta.cached = meta.cached.publisher_optional(publisher).author_optional(main_author);
 
-		let db_book = db.add_or_update_metadata(&meta)?;
+		let db_book = db.add_or_update_book(&meta)?;
 
 		for path in posters_to_add {
 			db.add_poster(&table::NewPosterModel {
@@ -44,7 +44,7 @@ pub async fn add_new_book(
 		}
 
 		for person_id in author_ids {
-			db.add_meta_person(&table::BookPersonModel {
+			db.add_book_person(&table::BookPersonModel {
 				book_id: db_book.id,
 				person_id,
 			})?;
@@ -64,12 +64,12 @@ pub async fn load_book_list(
 	let (items, count) = if let Some(search) = query.search_query() {
 		let search = search?;
 
-		let count = db.count_search_metadata(&search)?;
+		let count = db.count_search_book(&search)?;
 
 		let items = if count == 0 {
 			Vec::new()
 		} else {
-			db.search_metadata_list(
+			db.search_book_list(
 				&search,
 				query.offset.unwrap_or(0),
 				query.limit.unwrap_or(50),
@@ -88,9 +88,9 @@ pub async fn load_book_list(
 
 		(items, count)
 	} else {
-		let count = db.get_metadata_count()?;
+		let count = db.get_book_count()?;
 
-		let items = db.get_metadata_by(
+		let items = db.get_book_by(
 			query.offset.unwrap_or(0),
 			query.limit.unwrap_or(50),
 		)?
@@ -118,7 +118,7 @@ pub async fn load_book_list(
 
 #[get("/book/{id}")]
 pub async fn get_book_info(meta_id: web::Path<usize>, db: web::Data<Database>) -> WebResult<web::Json<api::MediaViewResponse>> {
-	let meta = db.get_metadata_by_id(*meta_id)?.unwrap();
+	let meta = db.get_book_by_id(*meta_id)?.unwrap();
 	let people = db.get_person_list_by_meta_id(meta.id)?;
 
 	Ok(web::Json(api::MediaViewResponse {
@@ -141,7 +141,7 @@ pub async fn update_book_id(
 	if let Some(mut book) = body.metadata {
 		book.updated_at = Utc::now();
 
-		db.update_metadata(&book.into())?;
+		db.update_book(&book.into())?;
 	}
 
 	Ok(HttpResponse::Ok().finish())
@@ -154,7 +154,7 @@ pub async fn update_book_id(
 async fn load_book_thumbnail(path: web::Path<usize>, db: web::Data<Database>) -> WebResult<HttpResponse> {
 	let book_id = path.into_inner();
 
-	let meta = db.get_metadata_by_id(book_id)?;
+	let meta = db.get_book_by_id(book_id)?;
 
 	if let Some(loc) = meta.map(|v| v.thumb_path) {
 		let path = crate::image::prefixhash_to_path(loc.as_type(), loc.as_value());
