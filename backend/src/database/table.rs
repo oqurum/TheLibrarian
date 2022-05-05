@@ -137,10 +137,10 @@ impl<'a> TryFrom<&Row<'a>> for BookPersonModel {
 }
 
 
-// Tags People
+// People
 
 #[derive(Debug)]
-pub struct NewTagPersonModel {
+pub struct NewPersonModel {
 	pub source: Source,
 
 	pub name: String,

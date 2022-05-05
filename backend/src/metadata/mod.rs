@@ -233,7 +233,7 @@ impl MetadataReturned {
 					}
 				}
 
-				let author = table::NewTagPersonModel {
+				let author = table::NewPersonModel {
 					source: author_info.source,
 					name: author_info.name,
 					description: author_info.description,

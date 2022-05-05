@@ -382,7 +382,7 @@ impl Database {
 
 	// Person
 
-	pub fn add_person(&self, person: &NewTagPersonModel) -> Result<usize> {
+	pub fn add_person(&self, person: &NewPersonModel) -> Result<usize> {
 		let conn = self.lock()?;
 
 		conn.execute(r#"
