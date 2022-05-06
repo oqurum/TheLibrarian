@@ -367,6 +367,7 @@ impl From<MemberModel> for librarian_common::Member {
 	}
 }
 
+
 // Auth
 
 pub struct NewAuthModel {
@@ -414,6 +415,104 @@ impl<'a> TryFrom<&Row<'a>> for PosterModel {
 	}
 }
 
+
+// Tags
+pub enum TagType {
+	/// Will have data
+	Collection,
+	/// No Data
+	Genre,
+	/// No Data
+	Language,
+	// LocationFiction,
+	// LocationNonFiction,
+	// Timeframe,
+	// PersonFiction,
+	// PersonNonFiction,
+	// Pace,
+	// Difficulty,
+	// Mood,
+	// Length,
+	// Purpose,
+	// Awards,
+}
+
+impl TagType {
+	pub fn into_u8(&self) -> u8 {
+		match self {
+			Self::Collection => 0,
+			Self::Genre => 1,
+			Self::Language => 2,
+		}
+	}
+
+	pub fn from_u8(value: u8, _data: Option<String>) -> Self {
+		match value {
+			0 => Self::Collection,
+			1 => Self::Genre,
+			2 => Self::Language,
+
+			_ => unreachable!(),
+		}
+	}
+}
+
+
+pub struct TagModel {
+	pub id: usize,
+
+	pub name: String,
+	pub type_of: TagType,
+
+	pub created_at: DateTime<Utc>,
+	pub updated_at: DateTime<Utc>,
+}
+
+
+impl<'a> TryFrom<&Row<'a>> for TagModel {
+	type Error = rusqlite::Error;
+
+	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
+		Ok(Self {
+			id: value.get(0)?,
+			name: value.get(1)?,
+			type_of: TagType::from_u8(value.get(2)?, value.get(3)?),
+			created_at: Utc.timestamp_millis(value.get(4)?),
+			updated_at: Utc.timestamp_millis(value.get(5)?),
+		})
+	}
+}
+
+
+
+//  Book Tags
+pub struct BookTagModel {
+	pub id: usize,
+
+	pub book_id: usize,
+	pub tag_id: usize,
+
+	pub index: usize,
+
+	pub created_at: DateTime<Utc>,
+}
+
+impl<'a> TryFrom<&Row<'a>> for BookTagModel {
+	type Error = rusqlite::Error;
+
+	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
+		Ok(Self {
+			id: value.get(0)?,
+
+			book_id: value.get(1)?,
+			tag_id: value.get(2)?,
+
+			index: value.get(3)?,
+
+			created_at: Utc.timestamp_millis(value.get(4)?),
+		})
+	}
+}
 
 
 // Utils

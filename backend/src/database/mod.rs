@@ -119,6 +119,43 @@ pub async fn init() -> Result<Database> {
 		[]
 	)?;
 
+	// Tags
+	conn.execute(
+		r#"CREATE TABLE IF NOT EXISTS "tags" (
+			"id"			INTEGER NOT NULL,
+
+			"name"			TEXT NOT NULL COLLATE NOCASE,
+			"type_of"		INTEGER NOT NULL,
+
+			"data"			TEXT,
+
+			"created_at" 	DATETIME NOT NULL,
+			"updated_at" 	DATETIME NOT NULL,
+
+			PRIMARY KEY("id" AUTOINCREMENT),
+			UNIQUE("name", "type_of")
+		);"#,
+		[]
+	)?;
+
+	// Book Tags
+	conn.execute(
+		r#"CREATE TABLE IF NOT EXISTS "book_tags" (
+			"id"			INTEGER NOT NULL,
+
+			"book_id"		INTEGER NOT NULL,
+			"tag_id"		INTEGER NOT NULL,
+
+			"index"			INTEGER NOT NULL,
+
+			"created_at" 	DATETIME NOT NULL,
+
+			PRIMARY KEY("id" AUTOINCREMENT),
+			UNIQUE("book_id", "tag_id")
+		);"#,
+		[]
+	)?;
+
 
 	// TODO: type_of for Author, Book Meta, etc..
 	// Uploaded Images
