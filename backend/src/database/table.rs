@@ -1,4 +1,4 @@
-use librarian_common::{MetadataItemCached, DisplayMetaItem, Person, Source, ThumbnailStore};
+use librarian_common::{MetadataItemCached, DisplayMetaItem, Person, Source, ThumbnailStore, TagType, TagFE};
 use chrono::{DateTime, TimeZone, Utc};
 use rusqlite::Row;
 use serde::{Serialize, Serializer};
@@ -417,46 +417,6 @@ impl<'a> TryFrom<&Row<'a>> for PosterModel {
 
 
 // Tags
-pub enum TagType {
-	/// Will have data
-	Collection,
-	/// No Data
-	Genre,
-	/// No Data
-	Language,
-	// LocationFiction,
-	// LocationNonFiction,
-	// Timeframe,
-	// PersonFiction,
-	// PersonNonFiction,
-	// Pace,
-	// Difficulty,
-	// Mood,
-	// Length,
-	// Purpose,
-	// Awards,
-}
-
-impl TagType {
-	pub fn into_u8(&self) -> u8 {
-		match self {
-			Self::Collection => 0,
-			Self::Genre => 1,
-			Self::Language => 2,
-		}
-	}
-
-	pub fn from_u8(value: u8, _data: Option<String>) -> Self {
-		match value {
-			0 => Self::Collection,
-			1 => Self::Genre,
-			2 => Self::Language,
-
-			_ => unreachable!(),
-		}
-	}
-}
-
 
 pub struct TagModel {
 	pub id: usize,
@@ -483,9 +443,20 @@ impl<'a> TryFrom<&Row<'a>> for TagModel {
 	}
 }
 
+impl From<TagModel> for TagFE {
+	fn from(val: TagModel) -> Self {
+		TagFE {
+			id: val.id,
+			name: val.name,
+			type_of: val.type_of,
+			created_at: val.created_at,
+			updated_at: val.updated_at
+		}
+	}
+}
 
 
-//  Book Tags
+// Book Tags
 pub struct BookTagModel {
 	pub id: usize,
 

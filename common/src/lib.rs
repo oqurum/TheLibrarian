@@ -17,6 +17,89 @@ pub use http::*;
 pub use specific::*;
 pub use error::{Result, Error};
 
+
+
+// Tags
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TagFE {
+	pub id: usize,
+
+	pub name: String,
+	pub type_of: TagType,
+
+	#[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]
+	pub created_at: DateTime<Utc>,
+	#[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]
+	pub updated_at: DateTime<Utc>,
+}
+
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum TagType {
+	/// Will have data
+	Collection,
+	/// No Data
+	Genre,
+	/// No Data
+	Language,
+	// LocationFiction,
+	// LocationNonFiction,
+	// Timeframe,
+	// PersonFiction,
+	// PersonNonFiction,
+	// Pace,
+	// Difficulty,
+	// Mood,
+	// Length,
+	// Purpose,
+	// Awards,
+}
+
+impl TagType {
+	pub fn into_u8(&self) -> u8 {
+		match self {
+			Self::Collection => 0,
+			Self::Genre => 1,
+			Self::Language => 2,
+		}
+	}
+
+	pub fn from_u8(value: u8, _data: Option<String>) -> Self {
+		match value {
+			0 => Self::Collection,
+			1 => Self::Genre,
+			2 => Self::Language,
+
+			_ => unreachable!(),
+		}
+	}
+
+	/// Split up the u8 value and data stored.
+	pub fn split(self) -> (u8, Option<String>) {
+		(self.into_u8(), None) // TODO
+	}
+}
+
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct BookTag {
+	pub id: usize,
+
+	pub book_id: usize,
+
+	pub index: usize,
+
+	#[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]
+	pub created_at: DateTime<Utc>,
+
+	pub tag: TagFE,
+}
+
+
+
+
+
 // Member
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -1,7 +1,8 @@
 use std::sync::{Mutex, MutexGuard};
 
 use crate::Result;
-use librarian_common::api;
+use chrono::Utc;
+use librarian_common::{api, TagType};
 use rusqlite::{Connection, params, OptionalExtension};
 // TODO: use tokio::task::spawn_blocking;
 
@@ -185,6 +186,96 @@ pub struct Database(Mutex<Connection>);
 impl Database {
 	fn lock(&self) -> Result<MutexGuard<Connection>> {
 		Ok(self.0.lock()?)
+	}
+
+	// Tag
+
+	pub fn get_tag_by_id(&self, id: usize) -> Result<Option<TagModel>> {
+		Ok(self.lock()?.query_row(
+			r#"SELECT * FROM tags WHERE id = ?1"#,
+			params![id],
+			|v| TagModel::try_from(v)
+		).optional()?)
+	}
+
+	pub fn add_tag(&self, name: &str, type_of: TagType) -> Result<usize> {
+		let conn = self.lock()?;
+
+		let (type_of, data) = type_of.split();
+
+		conn.execute(r#"
+			INSERT INTO tags (name, type_of, data, created_at, updated_at)
+			VALUES (?1, ?2, ?3, ?4, ?5)
+		"#,
+		params![
+			name,
+			type_of,
+			data,
+			Utc::now().timestamp_millis(),
+			Utc::now().timestamp_millis()
+		])?;
+
+		Ok(conn.last_insert_rowid() as usize)
+	}
+
+
+
+	// Book Tag
+
+	pub fn get_book_tag_by_id(&self, id: usize) -> Result<Option<BookTagModel>> {
+		Ok(self.lock()?.query_row(
+			r#"SELECT * FROM book_tags WHERE id = ?1"#,
+			params![id],
+			|v| BookTagModel::try_from(v)
+		).optional()?)
+	}
+
+	pub fn add_book_tag(&self, book_id: usize, tag_id: usize, index: Option<usize>) -> Result<usize> {
+		let index = if let Some(index) = index {
+			self.lock()?.execute(
+				r#"UPDATE book_tags
+				SET index = index + 1
+				WHERE book_id = ?1 AND tag_id = ?2 AND index >= ?3"#,
+				[book_id, tag_id, index],
+			)?;
+
+			index
+		} else {
+			self.count_book_tags_by_bid_tid(book_id, tag_id)?
+		};
+
+		let conn = self.lock()?;
+
+		conn.execute(r#"
+			INSERT INTO book_tags (book_id, tag_id, index, created_at)
+			VALUES (?1, ?2, ?3, ?4)
+		"#,
+		params![
+			book_id,
+			tag_id,
+			index,
+			Utc::now().timestamp_millis(),
+		])?;
+
+		Ok(conn.last_insert_rowid() as usize)
+	}
+
+	pub fn count_book_tags_by_bid_tid(&self, book_id: usize, tag_id: usize) -> Result<usize> {
+		Ok(self.lock()?.query_row(
+			r#"SELECT COUNT(*) FROM book_tags WHERE book_id = ?1 AND tag_id = ?2"#,
+			[book_id, tag_id],
+			|v| v.get(0)
+		)?)
+	}
+
+	pub fn get_book_tags(&self, book_id: usize) -> Result<Vec<BookTagModel>> {
+		let this = self.lock()?;
+
+		let mut conn = this.prepare("SELECT * FROM book_tags WHERE book_id = ?1")?;
+
+		let map = conn.query_map([book_id], |v| BookTagModel::try_from(v))?;
+
+		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
 
 

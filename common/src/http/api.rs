@@ -2,7 +2,48 @@ use std::collections::HashMap;
 
 use serde::{Serialize, Deserialize};
 
-use crate::{Either, MediaItem, Progression, LibraryColl, BasicLibrary, BasicDirectory, Chapter, DisplayItem, DisplayMetaItem, Person, SearchType, Source, Member, Poster, Result};
+use crate::{Either, MediaItem, Progression, LibraryColl, BasicLibrary, BasicDirectory, Chapter, DisplayItem, DisplayMetaItem, Person, SearchType, Source, Member, Poster, Result, TagFE, BookTag, TagType};
+
+
+// Tags
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GetTagResponse {
+	pub value: TagFE
+}
+
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct NewTagBody {
+	pub name: String,
+	pub type_of: TagType,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct NewTagResponse {
+	pub id: usize
+}
+
+
+
+// Book Tags
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GetBookTagsResponse {
+	pub items: Vec<BookTag>,
+}
+
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct NewBookTagBody {
+	pub tag_id: usize,
+	pub index: Option<usize>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct NewBookTagResponse {
+	pub items: Vec<BookTag>,
+}
 
 
 // Images

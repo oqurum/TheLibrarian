@@ -8,6 +8,7 @@ pub mod member;
 pub mod person;
 pub mod publisher;
 pub mod poster;
+pub mod tag;
 
 pub fn api_route() -> Scope<
 	impl ServiceFactory<
@@ -27,6 +28,10 @@ pub fn api_route() -> Scope<
 		.service(book::get_book_info)
 		.service(book::update_book_id)
 		.service(book::load_book_thumbnail)
+
+		// Tags
+		.service(tag::create_new_tag)
+		.service(tag::get_tag_by_id)
 
 		// Member
 		.service(member::load_member_self)
