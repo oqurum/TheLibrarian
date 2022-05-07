@@ -208,37 +208,129 @@ form > .form-container {
 		object-fit: cover;
 	}
 
-	.top-left {
-		z-index: 99;
-		position: absolute;
-		top: 0px;
-		left: 4px;
-		display: none;
-		cursor: pointer;
-	}
-
+	.top-left,
+	.top-right,
+	.bottom-left,
 	.bottom-right {
 		z-index: 99;
-		position: absolute;
-		bottom: 0px;
-		right: 3px;
 		display: none;
-		cursor: pointer;
-	}
-
-	.bottom-left {
-		z-index: 99;
 		position: absolute;
-		bottom: 0px;
-		left: 3px;
-		display: none;
 		cursor: pointer;
 	}
 
 	&:hover .bottom-left,
 	&:hover .bottom-right,
-	&:hover .top-left {
+	&:hover .top-left,
+	&:hover .top-right {
 		display: block;
+	}
+
+	.top-left {
+		top: 0px;
+		left: 4px;
+	}
+
+	.top-right {
+		top: 0px;
+		right: 3px;
+	}
+
+	.bottom-right {
+		bottom: 0px;
+		right: 3px;
+	}
+
+	.bottom-left {
+		bottom: 0px;
+		left: 3px;
+	}
+}
+
+
+
+/* MULTI SELECTION */
+
+.multi-selection {
+	display: flex;
+	position: relative;
+	max-inline-size: var(--size-header-3);
+
+	&.focused {
+		//
+	}
+
+	&.opened {
+		//
+
+		.dropdown {
+			display: block;
+		}
+	}
+
+	.input {
+		color: var(--text1);
+		background: var(--surface1);
+		padding: .75rem .75rem .375rem;
+		outline-offset: 0px;
+		cursor: text;
+		overflow: hidden;
+
+		.chosen-list {
+			display: inline-flex;
+			flex-wrap: wrap;
+
+			.chosen-item {
+				background: var(--brand);
+				color: var(--gray-9);
+				border-radius: 2rem;
+				padding: .1rem 1rem;
+				margin-right: .375rem;
+				margin-bottom: .375rem;
+				cursor: pointer;
+
+				// .close {
+				// 	background: var(--brand);
+				// 	color: var(--gray-9);
+				// 	border-left: 1px solid var(--orange-5);
+				// 	font-weight: bold;
+				// 	margin-left: 4px;
+				// 	padding-left: 6px;
+				// 	font-weight: bold;
+				// }
+			}
+		}
+
+		input {
+			background: none;
+			outline: none;
+			min-width: 20%;
+			cursor: text;
+		}
+	}
+
+	.dropdown {
+		display: none;
+		position: absolute;
+		background: var(--surface1);
+		top: 100%;
+		width: 100%;
+		overflow: hidden;
+
+		.dropdown-list {
+			position: relative;
+			max-height: 300px;
+			overflow: auto;
+			will-change: scroll-position;
+
+			.list-item {
+				padding: 0.3em 0.5em;
+				cursor: pointer;
+
+				&:hover {
+					background: var(--surface2);
+				}
+			}
+		}
 	}
 }
 
