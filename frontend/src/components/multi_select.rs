@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use gloo_timers::future::TimeoutFuture;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
@@ -9,6 +10,7 @@ pub struct Property {
 	pub children: ChildrenWithProps<MultiselectItem>,
 
 	pub on_create_item: Option<Callback<MultiselectNewItem>>,
+	pub on_toggle_item: Option<Callback<(bool, usize)>>,
 }
 
 impl PartialEq for Property {
@@ -38,8 +40,6 @@ pub struct MultiselectModule {
 	is_focused: bool,
 	// Dropdown Opened
 	is_opened: bool,
-
-	selected: Vec<usize>,
 }
 
 impl Component for MultiselectModule {
@@ -51,7 +51,6 @@ impl Component for MultiselectModule {
 			input_ref: NodeRef::default(),
 			is_focused: false,
 			is_opened: false,
-			selected: Vec::new(),
 		}
 	}
 
@@ -61,14 +60,26 @@ impl Component for MultiselectModule {
 			Msg::Ignore => return false,
 
 			Msg::OnSelectItem(id) => {
-				if !self.selected.contains(&id) {
-					self.selected.push(id);
+				log::info!("-- Selected: {}", id);
+
+				if let Some(mut item) = ctx.props().children.iter().find(|v| v.props.id == id) {
+					let mut props = Rc::make_mut(&mut item.props);
+					props.selected = true;
+
+					if let Some(cb) = ctx.props().on_toggle_item.as_ref() {
+						cb.emit((true, props.id));
+					}
 				}
 			}
 
 			Msg::OnUnselectItem(id) => {
-				if let Some(index) = self.selected.iter().position(|v| *v == id) {
-					self.selected.swap_remove(index);
+				if let Some(mut item) = ctx.props().children.iter().find(|v| v.props.id == id) {
+					let mut props = Rc::make_mut(&mut item.props);
+					props.selected = false;
+
+					if let Some(cb) = ctx.props().on_toggle_item.as_ref() {
+						cb.emit((false, props.id));
+					}
 				}
 			}
 
@@ -120,12 +131,16 @@ impl Component for MultiselectModule {
 			<div class={classes!("multi-selection", Some("focused").filter(|_| self.is_focused), Some("opened").filter(|_| self.is_opened))}>
 				<div class="input" onclick={ctx.link().callback(|_| Msg::SetFocus)}>
 					<div class="chosen-list">
-						{ for self.selected.iter().copied().filter_map(|i| Some(Self::create_selected_pill(ctx, &ctx.props().children.iter().find(|v| v.props.id == i)?.props))) }
+						{ for ctx.props().children.iter().filter(|v| v.props.selected).map(|child| Self::create_selected_pill(ctx, &child.props)) }
 					</div>
 					<input
 						ref={self.input_ref.clone()}
 						onfocusin={ctx.link().callback(|_| Msg::OnFocus)}
-						onfocusout={ctx.link().callback(|_| Msg::OnUnfocus)}
+						onfocusout={ctx.link().callback_future(|_| async {
+							// TODO: Fix. Used since we unfocus when we click the dropdown. This provides enough time for the onmousedown event to fire.
+							TimeoutFuture::new(50).await;
+							Msg::OnUnfocus
+						})}
 						onkeyup={ctx.link().callback(|e: KeyboardEvent| if e.key() == "Enter" { Msg::OnCreate } else { Msg::Update })}
 						type="text"
 						placeholder="Enter Something"
@@ -136,7 +151,7 @@ impl Component for MultiselectModule {
 						{ for ctx.props().children.iter().filter_map(|mut item| {
 							let mut props = Rc::make_mut(&mut item.props);
 
-							if self.selected.contains(&props.id) {
+							if props.selected {
 								None
 							} else {
 								if props.on_click.is_none() {
@@ -170,7 +185,7 @@ impl MultiselectModule {
 		let item_id = props.id;
 
 		html! {
-			<div class="chosen-item" onclick={ctx.link().callback(move |_| Msg::OnUnselectItem(item_id))}>
+			<div class="chosen-item" onmousedown={ctx.link().callback(move |_| Msg::OnUnselectItem(item_id))}>
 				{ &props.name }
 			</div>
 		}
@@ -201,6 +216,9 @@ pub struct MultiselectItemProps {
 	pub id: usize,
 	pub name: String,
 	pub on_click: Option<Callback<usize>>,
+
+	#[prop_or_default]
+	pub selected: bool,
 }
 
 pub struct MultiselectItem;
