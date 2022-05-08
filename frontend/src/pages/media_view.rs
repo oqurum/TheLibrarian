@@ -1,16 +1,23 @@
 use js_sys::Date;
-use librarian_common::{api::{MediaViewResponse, self, GetPostersResponse}, Either};
+use librarian_common::{api::{MediaViewResponse, self, GetPostersResponse, GetTagsResponse}, Either, TagType, BookTag};
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::{prelude::*, html::Scope};
 
-use crate::request;
+use crate::{components::{MultiselectModule, MultiselectItem, MultiselectNewItem}, request};
+
+
 
 #[derive(Clone)]
 pub enum Msg {
 	// Retrive
 	RetrieveMediaView(Box<MediaViewResponse>),
 	RetrievePosters(GetPostersResponse),
+
+	MultiselectToggle(bool, usize),
+	MultiselectCreate(TagType, MultiselectNewItem),
+	MultiCreateResponse(BookTag),
+	AllTagsResponse(GetTagsResponse),
 
 	UpdatedPoster,
 
@@ -22,6 +29,7 @@ pub enum Msg {
 	ShowPopup(DisplayOverlay),
 	ClosePopup,
 
+	Update,
 	Ignore
 }
 
@@ -36,25 +44,130 @@ pub struct MediaView {
 
 	media_popup: Option<DisplayOverlay>,
 
+	/// If we're currently editing. This'll be set.
 	editing_item: Option<MediaViewResponse>,
+
+	// Multiselect Values
+	cached_tags: Vec<CachedTag>,
 }
 
 impl Component for MediaView {
 	type Message = Msg;
 	type Properties = Property;
 
-	fn create(_ctx: &Context<Self>) -> Self {
+	fn create(ctx: &Context<Self>) -> Self {
+		ctx.link().send_future(async {
+			Msg::AllTagsResponse(request::get_tags().await)
+		});
+
 		Self {
 			media: None,
 			cached_posters: None,
 			media_popup: None,
 			editing_item: None,
+
+			cached_tags: Vec::new(),
 		}
 	}
 
 	fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
 		match msg {
+			Msg::Update => (),
 			Msg::Ignore => return false,
+
+			// Multiselect
+			Msg::MultiselectToggle(toggle, tag_id) => {
+				if toggle {
+					let book_id = ctx.props().id;
+
+					// TODO: Update after save.
+					ctx.link()
+					.send_future(async move {
+						request::new_book_tag(book_id, tag_id, None).await;
+
+						let book_tag_resp = request::get_book_tag(book_id, tag_id).await;
+
+						Msg::MultiCreateResponse(book_tag_resp.value.unwrap())
+					});
+				} else {
+					if let Some(book) = self.editing_item.as_mut() {
+						if let Some(index) = book.tags.iter().position(|bt| bt.tag.id == tag_id) {
+							book.tags.remove(index);
+						}
+					}
+
+					// TODO: Update after we Save
+					if let Some(book) = self.media.as_mut() {
+						if let Some(index) = book.tags.iter().position(|bt| bt.tag.id == tag_id) {
+							book.tags.remove(index);
+						}
+					}
+
+					let book_id = ctx.props().id;
+
+					// TODO: Update after save.
+					ctx.link()
+					.send_future(async move {
+						request::delete_book_tag(book_id, tag_id).await;
+
+						Msg::Ignore
+					});
+				}
+			}
+
+			Msg::MultiselectCreate(type_of, item) => {
+				match &type_of {
+					TagType::Genre => {
+						let book_id = ctx.props().id;
+
+						ctx.link()
+						.send_future(async move {
+							let tag_resp = request::new_tag(item.name.clone(), type_of).await;
+							// TODO: Update after we Save
+							request::new_book_tag(book_id, tag_resp.id, None).await;
+
+							let book_tag_resp = request::get_book_tag(book_id, tag_resp.id).await;
+
+							item.register.emit(tag_resp.id);
+
+							Msg::MultiCreateResponse(book_tag_resp.value.unwrap())
+						});
+					}
+
+					_ => unimplemented!("{:?}", type_of)
+				}
+			}
+
+			Msg::MultiCreateResponse(book_tag) => {
+				// Add original tag to cache.
+				if !self.cached_tags.iter().any(|v| v.id == book_tag.tag.id) {
+					self.cached_tags.push(CachedTag {
+						type_of: book_tag.tag.type_of.clone(),
+						name: book_tag.tag.name.clone(),
+						id: book_tag.tag.id,
+					});
+				}
+
+				if let Some(book) = self.editing_item.as_mut() {
+					book.tags.push(book_tag.clone());
+				}
+
+				// TODO: Currently adding it since we don't take in account saving
+				if let Some(book) = self.media.as_mut() {
+					book.tags.push(book_tag);
+				}
+			}
+
+			Msg::AllTagsResponse(resp) => {
+				self.cached_tags = resp.items.into_iter()
+					.map(|v| CachedTag {
+						id: v.id,
+						type_of: v.type_of,
+						name: v.name
+					})
+					.collect();
+			}
+
 
 			Msg::UpdatedPoster => {
 				let meta_id = self.media.as_ref().unwrap().metadata.id;
@@ -156,7 +269,7 @@ impl Component for MediaView {
 	fn view(&self, ctx: &Context<Self>) -> Html {
 		let resp = self.editing_item.as_ref().or(self.media.as_ref());
 
-		if let Some(MediaViewResponse { people, metadata }) = resp {
+		if let Some(MediaViewResponse { people, metadata, tags }) = resp {
 			let meta_id = metadata.id;
 
 			html! {
@@ -293,6 +406,23 @@ impl Component for MediaView {
 
 											<span class="sub-title">{ "Google Books URL" }</span>
 											<input class="title" type="text" />
+
+											<h5>{ "Tags" }</h5>
+
+											<span class="sub-title">{ "Genre" }</span>
+											<MultiselectModule
+												on_create_item={ctx.link().callback(|v| Msg::MultiselectCreate(TagType::Genre, v))}
+												on_toggle_item={ctx.link().callback(|(a, b)| Msg::MultiselectToggle(a, b))}
+											>
+												{
+													for self.cached_tags
+														.iter()
+														.filter(|v| v.type_of.into_u8() == TagType::Genre.into_u8())
+														.map(|tag| html_nested! {
+															<MultiselectItem name={tag.name.clone()} id={tag.id} selected={tags.iter().any(|bt| bt.tag.id == tag.id)} />
+														})
+												}
+											</MultiselectModule>
 										</div>
 									}
 								} else {
@@ -333,6 +463,9 @@ impl Component for MediaView {
 																	}
 																})}
 															>
+																<div class="top-right">
+																	<span class="material-icons">{ "delete" }</span>
+																</div>
 																<img src={poster.path.clone()} />
 															</div>
 														}
@@ -448,6 +581,16 @@ impl MediaView {
 		})
 	}
 }
+
+
+#[derive(Debug, Clone)]
+pub struct CachedTag {
+	type_of: TagType,
+	id: usize,
+	name: String,
+}
+
+
 
 #[derive(Clone, Copy)]
 pub enum ChangingType {

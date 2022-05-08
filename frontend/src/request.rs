@@ -3,9 +3,69 @@ use wasm_bindgen::{JsValue, JsCast};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, Request, RequestMode, Response, Headers, FormData};
 
-use librarian_common::{api::*, SearchType, Either, Source};
+use librarian_common::{api::*, SearchType, Either, Source, TagType};
 
 // TODO: Manage Errors.
+
+
+// Tags
+
+pub async fn get_tags() -> GetTagsResponse {
+	fetch(
+		"GET",
+		"/api/v1/tags",
+		Option::<&()>::None
+	).await.unwrap()
+}
+
+pub async fn get_tag(id: usize) -> GetTagResponse {
+	fetch(
+		"GET",
+		&format!("/api/v1/tag/{}", id),
+		Option::<&()>::None
+	).await.unwrap()
+}
+
+pub async fn new_tag(name: String, type_of: TagType) -> NewTagResponse {
+	fetch(
+		"POST",
+		"/api/v1/tag",
+		Some(&NewTagBody {
+			name,
+			type_of
+		})
+	).await.unwrap_or_default()
+}
+
+
+// Book Tag
+
+pub async fn new_book_tag(book_id: usize, tag_id: usize, index: Option<usize>) -> NewBookTagResponse {
+	fetch(
+		"POST",
+		&format!("/api/v1/tag/book/{book_id}"),
+		Some(&NewBookTagBody {
+			tag_id,
+			index,
+		})
+	).await.unwrap()
+}
+
+pub async fn get_book_tag(book_id: usize, tag_id: usize) -> GetBookTagResponse {
+	fetch(
+		"GET",
+		&format!("/api/v1/tag/{tag_id}/book/{book_id}"),
+		Option::<&()>::None
+	).await.unwrap()
+}
+
+pub async fn delete_book_tag(book_id: usize, tag_id: usize) -> DeletionResponse {
+	fetch(
+		"DELETE",
+		&format!("/api/v1/tag/{tag_id}/book/{book_id}"),
+		Option::<&()>::None
+	).await.unwrap()
+}
 
 
 // Image
