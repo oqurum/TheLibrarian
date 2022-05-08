@@ -1,4 +1,4 @@
-use librarian_common::{MetadataItemCached, DisplayMetaItem, Person, Source, ThumbnailStore, TagType, TagFE};
+use librarian_common::{MetadataItemCached, DisplayMetaItem, Person, Source, ThumbnailStore, TagType, TagFE, BookTag};
 use chrono::{DateTime, TimeZone, Utc};
 use rusqlite::Row;
 use serde::{Serialize, Serializer};
@@ -482,6 +482,55 @@ impl<'a> TryFrom<&Row<'a>> for BookTagModel {
 
 			created_at: Utc.timestamp_millis(value.get(4)?),
 		})
+	}
+}
+
+
+pub struct BookTagInfo {
+	pub id: usize,
+
+	pub book_id: usize,
+
+	pub index: usize,
+
+	pub created_at: DateTime<Utc>,
+
+	pub tag: TagModel,
+}
+
+impl<'a> TryFrom<&Row<'a>> for BookTagInfo {
+	type Error = rusqlite::Error;
+
+	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
+		Ok(Self {
+			id: value.get(0)?,
+
+			book_id: value.get(1)?,
+
+			index: value.get(2)?,
+
+			created_at: Utc.timestamp_millis(value.get(3)?),
+
+			tag: TagModel {
+				id: value.get(4)?,
+				name: value.get(5)?,
+				type_of: TagType::from_u8(value.get(6)?, value.get(7)?),
+				created_at: Utc.timestamp_millis(value.get(8)?),
+				updated_at: Utc.timestamp_millis(value.get(9)?),
+			}
+		})
+	}
+}
+
+impl From<BookTagInfo> for BookTag {
+	fn from(val: BookTagInfo) -> Self {
+		BookTag {
+			id: val.id,
+			book_id: val.book_id,
+			index: val.index,
+			created_at: val.created_at,
+			tag: val.tag.into(),
+		}
 	}
 }
 

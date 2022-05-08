@@ -21,7 +21,7 @@ pub use error::{Result, Error};
 
 // Tags
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct TagFE {
 	pub id: usize,
 
@@ -35,7 +35,7 @@ pub struct TagFE {
 }
 
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum TagType {
 	/// Will have data
 	Collection,
@@ -82,7 +82,7 @@ impl TagType {
 }
 
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct BookTag {
 	pub id: usize,
 

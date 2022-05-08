@@ -4,12 +4,27 @@ use serde::{Serialize, Deserialize};
 
 use crate::{Either, MediaItem, Progression, LibraryColl, BasicLibrary, BasicDirectory, Chapter, DisplayItem, DisplayMetaItem, Person, SearchType, Source, Member, Poster, Result, TagFE, BookTag, TagType};
 
+// General
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DeletionResponse {
+	pub amount: usize,
+}
+
+
+
 
 // Tags
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetTagResponse {
-	pub value: TagFE
+	pub value: Option<TagFE>
+}
+
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GetTagsResponse {
+	pub items: Vec<TagFE>,
 }
 
 
@@ -21,7 +36,7 @@ pub struct NewTagBody {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct NewTagResponse {
-	pub id: usize
+	pub id: usize,
 }
 
 
@@ -42,8 +57,15 @@ pub struct NewBookTagBody {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NewBookTagResponse {
-	pub items: Vec<BookTag>,
+	pub id: usize,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GetBookTagResponse {
+	pub value: Option<BookTag>,
+}
+
+
 
 
 // Images
@@ -192,6 +214,7 @@ pub struct ModifyOptionsBody {
 pub struct MediaViewResponse {
 	pub metadata: DisplayMetaItem,
 	pub people: Vec<Person>,
+	pub tags: Vec<BookTag>,
 }
 
 

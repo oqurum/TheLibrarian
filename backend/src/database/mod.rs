@@ -147,7 +147,7 @@ pub async fn init() -> Result<Database> {
 			"book_id"		INTEGER NOT NULL,
 			"tag_id"		INTEGER NOT NULL,
 
-			"index"			INTEGER NOT NULL,
+			"windex"		INTEGER NOT NULL,
 
 			"created_at" 	DATETIME NOT NULL,
 
@@ -218,6 +218,15 @@ impl Database {
 		Ok(conn.last_insert_rowid() as usize)
 	}
 
+	pub fn get_tags(&self) -> Result<Vec<TagModel>> {
+		let this = self.lock()?;
+
+		let mut conn = this.prepare("SELECT * FROM tags")?;
+
+		let map = conn.query_map([], |v| TagModel::try_from(v))?;
+
+		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+	}
 
 
 	// Book Tag
@@ -234,8 +243,8 @@ impl Database {
 		let index = if let Some(index) = index {
 			self.lock()?.execute(
 				r#"UPDATE book_tags
-				SET index = index + 1
-				WHERE book_id = ?1 AND tag_id = ?2 AND index >= ?3"#,
+				SET windex = windex + 1
+				WHERE book_id = ?1 AND tag_id = ?2 AND windex >= ?3"#,
 				[book_id, tag_id, index],
 			)?;
 
@@ -247,7 +256,7 @@ impl Database {
 		let conn = self.lock()?;
 
 		conn.execute(r#"
-			INSERT INTO book_tags (book_id, tag_id, index, created_at)
+			INSERT INTO book_tags (book_id, tag_id, windex, created_at)
 			VALUES (?1, ?2, ?3, ?4)
 		"#,
 		params![
@@ -276,6 +285,39 @@ impl Database {
 		let map = conn.query_map([book_id], |v| BookTagModel::try_from(v))?;
 
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+	}
+
+	pub fn get_book_tags_info(&self, book_id: usize) -> Result<Vec<BookTagInfo>> {
+		let this = self.lock()?;
+
+		let mut conn = this.prepare(
+			r#"SELECT book_tags.id, book_tags.book_id, windex, book_tags.created_at, tags.*
+			FROM book_tags
+			JOIN tags ON book_tags.tag_id == tags.id
+			WHERE book_id = ?1"#
+		)?;
+
+		let map = conn.query_map([book_id], |v| BookTagInfo::try_from(v))?;
+
+		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+	}
+
+	pub fn get_book_tag_info_by_bid_tid(&self, book_id: usize, tag_id: usize) -> Result<Option<BookTagInfo>> {
+		Ok(self.lock()?.query_row(
+			r#"SELECT book_tags.id, book_tags.book_id, windex, book_tags.created_at, tags.*
+			FROM book_tags
+			JOIN tags ON book_tags.tag_id == tags.id
+			WHERE book_id = ?1 AND tag_id = ?2"#,
+			params![book_id, tag_id],
+			|v| BookTagInfo::try_from(v)
+		).optional()?)
+	}
+
+	pub fn remove_book_tag(&self, book_id: usize, tag_id: usize) -> Result<usize> {
+		Ok(self.lock()?.execute(
+			r#"DELETE FROM book_tags WHERE book_id = ?1 AND tag_id = ?2"#,
+			[book_id, tag_id],
+		)?)
 	}
 
 

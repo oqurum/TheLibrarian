@@ -117,14 +117,18 @@ pub async fn load_book_list(
 
 
 #[get("/book/{id}")]
-pub async fn get_book_info(meta_id: web::Path<usize>, db: web::Data<Database>) -> WebResult<web::Json<api::MediaViewResponse>> {
-	let meta = db.get_book_by_id(*meta_id)?.unwrap();
+pub async fn get_book_info(book_id: web::Path<usize>, db: web::Data<Database>) -> WebResult<web::Json<api::MediaViewResponse>> {
+	let meta = db.get_book_by_id(*book_id)?.unwrap();
 	let people = db.get_person_list_by_meta_id(meta.id)?;
+	let tags = db.get_book_tags_info(meta.id)?;
 
 	Ok(web::Json(api::MediaViewResponse {
 		metadata: meta.into(),
 		people: people.into_iter()
 			.map(|p| p.into())
+			.collect(),
+		tags: tags.into_iter()
+			.map(|t| t.into())
 			.collect(),
 	}))
 }

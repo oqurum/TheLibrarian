@@ -30,8 +30,15 @@ pub fn api_route() -> Scope<
 		.service(book::load_book_thumbnail)
 
 		// Tags
+		.service(tag::get_tags)
 		.service(tag::create_new_tag)
 		.service(tag::get_tag_by_id)
+
+		// Book Tags
+		.service(tag::get_book_tag)
+		.service(tag::add_book_tag)
+		.service(tag::delete_book_tag)
+		.service(tag::get_tags_for_book_id)
 
 		// Member
 		.service(member::load_member_self)
