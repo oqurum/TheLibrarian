@@ -146,6 +146,8 @@ impl Component for MediaView {
 						name: book_tag.tag.name.clone(),
 						id: book_tag.tag.id,
 					});
+
+					self.cached_tags.sort_unstable_by(|a, b| a.name.partial_cmp(&b.name).unwrap());
 				}
 
 				if let Some(book) = self.editing_item.as_mut() {
@@ -166,6 +168,8 @@ impl Component for MediaView {
 						name: v.name
 					})
 					.collect();
+
+				self.cached_tags.sort_unstable_by(|a, b| a.name.partial_cmp(&b.name).unwrap());
 			}
 
 
