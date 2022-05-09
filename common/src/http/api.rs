@@ -192,6 +192,12 @@ pub struct GetPeopleSearch {
 }
 
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GetPersonResponse {
+	pub person: Person,
+}
+
+
 
 // Options
 

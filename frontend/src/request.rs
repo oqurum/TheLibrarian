@@ -168,6 +168,13 @@ pub async fn get_people(query: Option<&str>, offset: Option<usize>, limit: Optio
 	).await.unwrap()
 }
 
+pub async fn get_person(id: usize) -> GetPersonResponse {
+	fetch(
+		"GET",
+		&format!("/api/v1/person/{}", id),
+		Option::<&()>::None
+	).await.unwrap()
+}
 
 // Books
 

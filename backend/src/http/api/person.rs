@@ -45,6 +45,17 @@ pub async fn load_author_list(
 }
 
 
+// Person
+#[get("/person/{id}")]
+async fn load_person(person_id: web::Path<usize>, db: web::Data<Database>) -> WebResult<web::Json<api::GetPersonResponse>> {
+	let person = db.get_person_by_id(*person_id)?.unwrap();
+
+	Ok(web::Json(api::GetPersonResponse {
+		person: person.into()
+	}))
+}
+
+
 // Person Thumbnail
 #[get("/person/{id}/thumbnail")]
 async fn load_person_thumbnail(person_id: web::Path<usize>, db: web::Data<Database>) -> WebResult<HttpResponse> {
