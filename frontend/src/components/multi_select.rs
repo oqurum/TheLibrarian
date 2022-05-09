@@ -127,6 +127,8 @@ impl Component for MultiselectModule {
 	}
 
 	fn view(&self, ctx: &Context<Self>) -> Html {
+		let input_val_lc = self.input_ref.cast::<HtmlInputElement>().map(|v| v.value().to_lowercase());
+
 		html! {
 			<div class={classes!("multi-selection", Some("focused").filter(|_| self.is_focused), Some("opened").filter(|_| self.is_opened))}>
 				<div class="input" onclick={ctx.link().callback(|_| Msg::SetFocus)}>
@@ -138,7 +140,7 @@ impl Component for MultiselectModule {
 						onfocusin={ctx.link().callback(|_| Msg::OnFocus)}
 						onfocusout={ctx.link().callback_future(|_| async {
 							// TODO: Fix. Used since we unfocus when we click the dropdown. This provides enough time for the onmousedown event to fire.
-							TimeoutFuture::new(50).await;
+							TimeoutFuture::new(100).await;
 							Msg::OnUnfocus
 						})}
 						onkeyup={ctx.link().callback(|e: KeyboardEvent| if e.key() == "Enter" { Msg::OnCreate } else { Msg::Update })}
@@ -150,6 +152,12 @@ impl Component for MultiselectModule {
 					<div class="dropdown-list">
 						{ for ctx.props().children.iter().filter_map(|mut item| {
 							let mut props = Rc::make_mut(&mut item.props);
+
+							if let Some(v) = input_val_lc.as_deref() {
+								if !props.name.to_lowercase().contains(v) {
+									return None;
+								}
+							}
 
 							if props.selected {
 								None
