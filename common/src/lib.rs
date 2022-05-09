@@ -42,18 +42,26 @@ pub enum TagType {
 	/// No Data
 	Genre,
 	/// No Data
+	Subject,
+	/// No Data
 	Language,
-	// LocationFiction,
-	// LocationNonFiction,
+	/// No Data
+	LocationFiction,
+	/// No Data
+	LocationNonFiction,
+	/// No Data
 	// Timeframe,
-	// PersonFiction,
-	// PersonNonFiction,
+	/// No Data
+	PersonFiction,
+	/// No Data
+	PersonNonFiction,
 	// Pace,
 	// Difficulty,
 	// Mood,
 	// Length,
 	// Purpose,
-	// Awards,
+	/// No Data
+	Award,
 }
 
 impl TagType {
@@ -61,7 +69,19 @@ impl TagType {
 		match self {
 			Self::Collection => 0,
 			Self::Genre => 1,
-			Self::Language => 2,
+			Self::Subject => 2,
+			Self::Language => 3,
+			Self::LocationFiction => 4,
+			Self::LocationNonFiction => 5,
+			// Self::Timeframe => 6,
+			Self::PersonFiction => 7,
+			Self::PersonNonFiction => 8,
+			// Self::Pace => 9,
+			// Self::Difficulty => 10,
+			// Self::Mood => 11,
+			// Self::Length => 12,
+			// Self::Purpose => 13,
+			Self::Award => 14,
 		}
 	}
 
@@ -69,7 +89,19 @@ impl TagType {
 		match value {
 			0 => Self::Collection,
 			1 => Self::Genre,
-			2 => Self::Language,
+			2 => Self::Subject,
+			3 => Self::Language,
+			4 => Self::LocationFiction,
+			5 => Self::LocationNonFiction,
+			// 6 => Self::Timeframe,
+			7 => Self::PersonFiction,
+			8 => Self::PersonNonFiction,
+			// 9 => Self::Pace,
+			// 10 => Self::Difficulty,
+			// 11 => Self::Mood,
+			// 12 => Self::Length,
+			// 13 => Self::Purpose,
+			14 => Self::Award,
 
 			_ => unreachable!(),
 		}

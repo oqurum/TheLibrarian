@@ -117,7 +117,8 @@ impl Component for MediaView {
 
 			Msg::MultiselectCreate(type_of, item) => {
 				match &type_of {
-					TagType::Genre => {
+					TagType::Genre |
+					TagType::Subject => {
 						let book_id = ctx.props().id;
 
 						ctx.link()
@@ -134,7 +135,7 @@ impl Component for MediaView {
 						});
 					}
 
-					_ => unimplemented!("{:?}", type_of)
+					_ => unimplemented!("Msg::MultiselectCreate {:?}", type_of)
 				}
 			}
 
@@ -422,6 +423,21 @@ impl Component for MediaView {
 													for self.cached_tags
 														.iter()
 														.filter(|v| v.type_of.into_u8() == TagType::Genre.into_u8())
+														.map(|tag| html_nested! {
+															<MultiselectItem name={tag.name.clone()} id={tag.id} selected={tags.iter().any(|bt| bt.tag.id == tag.id)} />
+														})
+												}
+											</MultiselectModule>
+
+											<span class="sub-title">{ "Subject" }</span>
+											<MultiselectModule
+												on_create_item={ctx.link().callback(|v| Msg::MultiselectCreate(TagType::Subject, v))}
+												on_toggle_item={ctx.link().callback(|(a, b)| Msg::MultiselectToggle(a, b))}
+											>
+												{
+													for self.cached_tags
+														.iter()
+														.filter(|v| v.type_of.into_u8() == TagType::Subject.into_u8())
 														.map(|tag| html_nested! {
 															<MultiselectItem name={tag.name.clone()} id={tag.id} selected={tags.iter().any(|bt| bt.tag.id == tag.id)} />
 														})
