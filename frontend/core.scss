@@ -861,7 +861,8 @@ form > .form-container {
 
 
 .home-view-container,
-.media-view-container {
+.media-view-container,
+.person-view-container {
 	display: flex;
 	flex-direction: row;
 	flex-grow: 1;
@@ -1041,11 +1042,7 @@ form > .form-container {
 
 
 /* Person List View Page */
-.person-view-container {
-	margin: 0.5em;
-	flex-grow: 1;
-	overflow-y: hidden;
-
+.main-content-view {
 	> .person-list {
 		display: flex;
 		flex-direction: row;
@@ -1108,6 +1105,12 @@ form > .form-container {
 
 	border-radius: var(--radius-2);
 	border: var(--border-size-1) solid transparent;
+
+	// open-props fix
+	margin-block: unset;
+	margin-inline: unset;
+	padding-block: unset;
+	padding-inline: unset;
 
 	&:hover {
 		border-color: var(--brand);

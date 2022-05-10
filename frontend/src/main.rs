@@ -94,6 +94,9 @@ pub enum Route {
 	#[at("/people")]
 	People,
 
+	#[at("/person/:id")]
+	Person { id: usize },
+
 	#[at("/options")]
 	Options,
 
@@ -116,11 +119,15 @@ fn switch(route: &Route) -> Html {
 		}
 
 		Route::ViewMeta { meta_id } => {
-			html! { <pages::MediaView id={meta_id}  /> }
+			html! { <pages::MediaView id={meta_id} /> }
 		}
 
 		Route::People => {
 			html! { <pages::AuthorListPage /> }
+		}
+
+		Route::Person { id } => {
+			html! { <pages::AuthorView id={id} /> }
 		}
 
 		Route::Options => {

@@ -3,8 +3,9 @@ use gloo_utils::document;
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{HtmlElement, HtmlInputElement};
 use yew::{prelude::*, html::Scope};
+use yew_router::prelude::Link;
 
-use crate::{request, components::{PopupType, Popup}, util};
+use crate::{request, components::{PopupType, Popup}, util, Route};
 
 
 #[derive(Properties, PartialEq)]
@@ -163,7 +164,7 @@ impl Component for AuthorListPage {
 			// let remaining = (self.total_media_count as usize - items.len()).min(50);
 
 			html! {
-				<div class="person-view-container">
+				<div class="main-content-view">
 					<div class="person-list" ref={ self.author_list_ref.clone() }>
 						{ for items.iter().map(|item| self.render_media_item(item, ctx.link())) }
 						// { for (0..remaining).map(|_| Self::render_placeholder_item()) }
@@ -437,7 +438,7 @@ impl AuthorListPage {
 		});
 
 		html! {
-			<div class="person-container">
+			<Link<Route> to={Route::Person { id: item.id }} classes={ classes!("person-container") }>
 				<div class="photo">
 					<div class="bottom-right">
 						<span class="material-icons" onclick={on_click_more} title="More Options">{ "more_horiz" }</span>
@@ -445,7 +446,7 @@ impl AuthorListPage {
 					<img src={ item.get_thumb_url() } />
 				</div>
 				<span class="title">{ item.name.clone() }</span>
-			</div>
+			</Link<Route>>
 		}
 	}
 
