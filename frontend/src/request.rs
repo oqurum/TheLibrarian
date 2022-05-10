@@ -193,10 +193,11 @@ pub async fn get_books(
 	offset: Option<usize>,
 	limit: Option<usize>,
 	search: Option<SearchQuery>,
+	person_id: Option<usize>,
 ) -> GetBookListResponse {
 	let url = format!(
 		"/api/v1/books?{}",
-		serde_urlencoded::to_string(BookListQuery::new(offset, limit, search).unwrap()).unwrap()
+		serde_urlencoded::to_string(BookListQuery::new(offset, limit, search, person_id).unwrap()).unwrap()
 	);
 
 	fetch("GET", &url, Option::<&()>::None).await.unwrap()

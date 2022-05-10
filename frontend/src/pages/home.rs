@@ -121,7 +121,8 @@ impl Component for HomePage {
 					Msg::MediaListResults(request::get_books(
 						offset,
 						None,
-						get_search_query()
+						get_search_query(),
+						None,
 					).await)
 				});
 			}
@@ -166,7 +167,6 @@ impl Component for HomePage {
 
 										item={item.clone()}
 										callback={ctx.link().callback(|v| v)}
-										library_list_ref={self.library_list_ref.clone()}
 									/>
 								}
 							})
@@ -276,15 +276,13 @@ impl HomePage {
 #[derive(Properties)]
 pub struct MediaItemProps {
 	pub item: DisplayItem,
-	pub callback: Callback<Msg>,
-	pub library_list_ref: NodeRef,
+	pub callback: Option<Callback<Msg>>,
 	pub is_editing: bool,
 }
 
 impl PartialEq for MediaItemProps {
 	fn eq(&self, other: &Self) -> bool {
 		self.item == other.item &&
-		self.library_list_ref == other.library_list_ref &&
 		self.is_editing == other.is_editing
 	}
 }
@@ -301,7 +299,10 @@ impl Component for MediaItem {
 	}
 
 	fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
-		ctx.props().callback.emit(msg);
+		if let Some(cb) = ctx.props().callback.as_ref() {
+			cb.emit(msg);
+		}
+
 		true
 	}
 
@@ -309,11 +310,9 @@ impl Component for MediaItem {
 		let &MediaItemProps {
 			is_editing,
 			ref item,
-			ref library_list_ref,
 			..
 		} = ctx.props();
 
-		let library_list_ref = library_list_ref.clone();
 
 		let meta_id = item.id;
 

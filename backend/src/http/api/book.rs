@@ -64,7 +64,7 @@ pub async fn load_book_list(
 	let (items, count) = if let Some(search) = query.search_query() {
 		let search = search?;
 
-		let count = db.count_search_book(&search)?;
+		let count = db.count_search_book(&search, query.person_id)?;
 
 		let items = if count == 0 {
 			Vec::new()
@@ -73,6 +73,7 @@ pub async fn load_book_list(
 				&search,
 				query.offset.unwrap_or(0),
 				query.limit.unwrap_or(50),
+				query.person_id,
 			)?
 				.into_iter()
 				.map(|meta| {
@@ -93,6 +94,7 @@ pub async fn load_book_list(
 		let items = db.get_book_by(
 			query.offset.unwrap_or(0),
 			query.limit.unwrap_or(50),
+			query.person_id,
 		)?
 			.into_iter()
 			.map(|meta| {

@@ -140,10 +140,16 @@ pub struct BookListQuery {
 	pub limit: Option<usize>,
 	/// `SearchQuery`
 	pub search: Option<String>,
+	pub person_id: Option<usize>,
 }
 
 impl BookListQuery {
-	pub fn new(offset: Option<usize>, limit: Option<usize>, search: Option<SearchQuery>) -> Result<Self> {
+	pub fn new(
+		offset: Option<usize>,
+		limit: Option<usize>,
+		search: Option<SearchQuery>,
+		person_id: Option<usize>,
+	) -> Result<Self> {
 		let search = search.map(serde_urlencoded::to_string)
 			.transpose()?;
 
@@ -151,6 +157,7 @@ impl BookListQuery {
 			offset,
 			limit,
 			search,
+			person_id
 		})
 	}
 

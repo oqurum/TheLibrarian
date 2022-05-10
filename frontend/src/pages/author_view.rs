@@ -13,6 +13,7 @@ pub enum Msg {
 	// Retrive
 	RetrieveMediaView(Box<GetPersonResponse>),
 	RetrievePosters(GetPostersResponse),
+	BooksListResults(api::GetBookListResponse),
 
 	UpdatedPoster,
 
@@ -36,6 +37,7 @@ pub struct Property {
 pub struct AuthorView {
 	media: Option<GetPersonResponse>,
 	cached_posters: Option<GetPostersResponse>,
+	cached_books: Option<api::GetBookListResponse>,
 
 	media_popup: Option<DisplayOverlay>,
 
@@ -51,9 +53,24 @@ impl Component for AuthorView {
 	type Properties = Property;
 
 	fn create(ctx: &Context<Self>) -> Self {
+		let person_id = ctx.props().id;
+
+		ctx.link()
+		.send_future(async move {
+			let resp = request::get_books(
+				None,
+				None,
+				None,
+				Some(person_id),
+			).await;
+
+			Msg::BooksListResults(resp)
+		});
+
 		Self {
 			media: None,
 			cached_posters: None,
+			cached_books: None,
 
 			media_popup: None,
 			editing_item: None,
@@ -66,6 +83,11 @@ impl Component for AuthorView {
 		match msg {
 			Msg::Update => (),
 			Msg::Ignore => return false,
+
+			Msg::BooksListResults(resp) => {
+				self.cached_books = Some(resp);
+			}
+
 			Msg::UpdatedPoster => {
 				let meta_id = self.media.as_ref().unwrap().person.id;
 
@@ -319,6 +341,33 @@ impl Component for AuthorView {
 								html! {}
 							}
 						}
+
+						<section>
+							<h2>{ "Books" }</h2>
+							<div class="books-container">
+								<div class="library-list normal horizontal">
+									// <div class="add-book" title="Add Book">
+									// 	<span class="material-icons">{ "add" }</span>
+									// </div>
+									{
+										if let Some(resp) = self.cached_books.as_ref() {
+											html! {{
+												for resp.items.iter().map(|item| {
+													html! {
+														<MediaItem
+															is_editing=false
+															item={item.clone()}
+														/>
+													}
+												})
+											}}
+										} else {
+											html! {}
+										}
+									}
+								</div>
+							</div>
+						</section>
 					</div>
 				</div>
 			}
