@@ -9,8 +9,6 @@ use yew::prelude::*;
 const PREV_DEFAULT_FN_NAMES: [&str; 7] = ["drag", "dragstart", "dragend", "dragover", "dragenter", "dragleave", "drop"];
 const DRAGOVER_EVENTS: [&str; 2] = ["dragover", "dragenter"];
 const DRAGLEAVE_EVENTS: [&str; 3] = ["dragleave", "dragend", "drop"];
-const DROP_EVENT: &str = "drop";
-
 
 #[derive(Properties, PartialEq)]
 pub struct Property {
@@ -18,6 +16,10 @@ pub struct Property {
 	pub title: Option<String>,
 
 	pub children: Children,
+
+	pub id: usize,
+
+	pub on_upload: Option<Callback<()>>
 }
 
 
@@ -26,7 +28,7 @@ pub enum Msg {
 
 	OnDragOver,
 	OnDragLeave,
-	OnDrop(FileList)
+	OnDrop(FileList),
 }
 
 pub struct UploadModule {
@@ -63,6 +65,9 @@ impl Component for UploadModule {
 			Msg::OnDragLeave => self.is_drag_over = false,
 
 			Msg::OnDrop(files) => {
+				let cb = ctx.props().on_upload.clone();
+				let id = ctx.props().id;
+
 				ctx.link()
 				.send_future(async move {
 					for file in files.iter() {
@@ -72,7 +77,14 @@ impl Component for UploadModule {
 						opts.method("POST");
 						opts.body(Some(&JsValue::from((file as &Blob).clone())));
 
-						let _ = JsFuture::from(window().fetch_with_str_and_init("/api/v1/posters", &opts)).await;
+						let _ = JsFuture::from(window().fetch_with_str_and_init(
+							&format!("/api/v1/posters/{}/upload", id),
+							&opts
+						)).await;
+					}
+
+					if let Some(cb) = cb {
+						cb.emit(());
 					}
 
 					Msg::Ignore

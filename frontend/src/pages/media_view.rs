@@ -4,7 +4,7 @@ use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::{prelude::*, html::Scope};
 
-use crate::{components::{MultiselectModule, MultiselectItem, MultiselectNewItem}, request};
+use crate::{components::{MultiselectModule, MultiselectItem, MultiselectNewItem, UploadModule}, request};
 
 
 
@@ -19,7 +19,7 @@ pub enum Msg {
 	MultiCreateResponse(BookTag),
 	AllTagsResponse(GetTagsResponse),
 
-	UpdatedPoster,
+	ReloadPosters,
 
 	// Events
 	ToggleEdit,
@@ -174,7 +174,7 @@ impl Component for MediaView {
 			}
 
 
-			Msg::UpdatedPoster => {
+			Msg::ReloadPosters => {
 				let meta_id = self.media.as_ref().unwrap().metadata.id;
 
 				ctx.link()
@@ -191,12 +191,7 @@ impl Component for MediaView {
 					self.editing_item = self.media.clone();
 
 					if self.cached_posters.is_none() {
-						let metadata_id = self.media.as_ref().unwrap().metadata.id;
-
-						ctx.link()
-						.send_future(async move {
-							Msg::RetrievePosters(request::get_posters_for_meta(metadata_id).await)
-						});
+						ctx.link().send_message(Msg::ReloadPosters);
 					}
 				} else {
 					self.editing_item = None;
@@ -458,9 +453,15 @@ impl Component for MediaView {
 										<section>
 											<h2>{ "Posters" }</h2>
 											<div class="posters-container">
-												<div class="add-poster" title="Add Poster">
+												<UploadModule
+													id={ctx.props().id}
+													class="add-poster"
+													title="Add Poster"
+													on_upload={ctx.link().callback(|_| Msg::ReloadPosters)}
+												>
 													<span class="material-icons">{ "add" }</span>
-												</div>
+												</UploadModule>
+
 												{
 													for resp.items.iter().map(move |poster| {
 														let url_or_id = poster.id.map(Either::Right).unwrap_or_else(|| Either::Left(poster.path.clone()));
@@ -478,7 +479,7 @@ impl Component for MediaView {
 																		} else {
 																			request::change_poster_for_meta(meta_id, url_or_id).await;
 
-																			Msg::UpdatedPoster
+																			Msg::ReloadPosters
 																		}
 																	}
 																})}
