@@ -1,6 +1,9 @@
+use std::io::Write;
+
 use actix_files::NamedFile;
-use actix_web::{get, post, put, web, HttpResponse, Responder};
+use actix_web::{get, post, web, HttpResponse, Responder};
 use chrono::Utc;
+use futures::TryStreamExt;
 use librarian_common::{Poster, api, ThumbnailStoreType, Either};
 
 use crate::{WebResult, Error, store_image, database::{table::NewPosterModel, Database}};
@@ -91,13 +94,27 @@ async fn post_change_poster(
 }
 
 
-#[put("/posters/{meta_id}")]
-async fn put_upload_poster(
-	path: web::Path<usize>,
-	// body: web::Payload,
-	db: web::Data<Database>
-) -> HttpResponse {
-	//
+#[post("/posters/{book_id}/upload")]
+async fn post_upload_poster(
+	book_id: web::Path<usize>,
+	mut body: web::Payload,
+	db: web::Data<Database>,
+) -> WebResult<HttpResponse> {
+	let book = db.get_book_by_id(*book_id)?.unwrap();
 
-	HttpResponse::Ok().finish()
+	let mut file = std::io::Cursor::new(Vec::new());
+
+	while let Some(item) = body.try_next().await? {
+		file.write_all(&item).map_err(Error::from)?;
+	}
+
+	let hash = store_image(ThumbnailStoreType::Metadata, file.into_inner()).await?;
+
+	db.add_poster(&NewPosterModel {
+		link_id: book.id,
+		path: hash,
+		created_at: Utc::now(),
+	})?;
+
+	Ok(HttpResponse::Ok().finish())
 }

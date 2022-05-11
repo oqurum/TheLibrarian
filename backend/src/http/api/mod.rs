@@ -52,7 +52,7 @@ pub fn api_route() -> Scope<
 		.service(poster::get_local_image)
 		.service(poster::get_poster_list)
 		.service(poster::post_change_poster)
-		.service(poster::put_upload_poster)
+		.service(poster::post_upload_poster)
 
 		// External
 		.service(external::get_external_search)
