@@ -1,5 +1,5 @@
 use js_sys::Date;
-use librarian_common::{api::{MediaViewResponse, self, GetPostersResponse, GetTagsResponse}, Either, TagType, BookTag};
+use librarian_common::{api::{MediaViewResponse, self, GetPostersResponse, GetTagsResponse}, Either, TagType, BookTag, Id};
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::{prelude::*, html::Scope};
@@ -454,7 +454,7 @@ impl Component for MediaView {
 											<h2>{ "Posters" }</h2>
 											<div class="posters-container">
 												<UploadModule
-													id={ctx.props().id}
+													id={Id::Book(ctx.props().id)}
 													class="add-poster"
 													title="Add Poster"
 													on_upload={ctx.link().callback(|_| Msg::ReloadPosters)}

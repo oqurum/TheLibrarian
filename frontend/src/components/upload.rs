@@ -1,5 +1,6 @@
 use gloo_file::{FileList, Blob};
 use gloo_utils::window;
+use librarian_common::Id;
 use wasm_bindgen::{JsCast, prelude::Closure, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{HtmlElement, RequestInit};
@@ -17,7 +18,7 @@ pub struct Property {
 
 	pub children: Children,
 
-	pub id: usize,
+	pub id: Id,
 
 	pub on_upload: Option<Callback<()>>
 }
@@ -71,16 +72,22 @@ impl Component for UploadModule {
 				ctx.link()
 				.send_future(async move {
 					for file in files.iter() {
-						// let task = gloo_file::futures::read_as_bytes(&file).await.expect("Unable to read file bytes");
+						match id {
+							Id::Book(id) => {
+								let mut opts = RequestInit::new();
+								opts.method("POST");
+								opts.body(Some(&JsValue::from((file as &Blob).clone())));
 
-						let mut opts = RequestInit::new();
-						opts.method("POST");
-						opts.body(Some(&JsValue::from((file as &Blob).clone())));
+								let _ = JsFuture::from(window().fetch_with_str_and_init(
+									&format!("/api/v1/posters/{}/upload", id),
+									&opts
+								)).await;
+							}
 
-						let _ = JsFuture::from(window().fetch_with_str_and_init(
-							&format!("/api/v1/posters/{}/upload", id),
-							&opts
-						)).await;
+							Id::Author(_id) => {
+								//
+							}
+						}
 					}
 
 					if let Some(cb) = cb {

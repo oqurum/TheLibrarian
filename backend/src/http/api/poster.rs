@@ -108,7 +108,7 @@ async fn post_upload_poster(
 		file.write_all(&item).map_err(Error::from)?;
 	}
 
-	let hash = store_image(ThumbnailStoreType::Metadata, file.into_inner()).await?;
+	let hash = store_image(ThumbnailStoreType::Uploaded, file.into_inner()).await?;
 
 	db.add_poster(&NewPosterModel {
 		link_id: book.id,
