@@ -327,7 +327,7 @@ form > .form-container {
 				padding: 0.3em 0.5em;
 				cursor: pointer;
 
-				&:hover {
+				&.hovering {
 					background: var(--surface2);
 				}
 			}
