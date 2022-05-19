@@ -23,6 +23,9 @@ pub use error::{Result, WebResult, WebError, Error, InternalError};
 
 #[actix_web::main]
 async fn main() -> Result<()> {
+	// Initial Register of lazy_static CONFIG.
+	config::save_config().await?;
+
 	let db = database::init().await?;
 
 	let db_data = web::Data::new(db);
