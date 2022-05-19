@@ -10,6 +10,8 @@ pub mod button;
 pub mod edit_metadata;
 pub mod search_book;
 
+pub static YEW_CLOSE_POPUP: &str = "yew_close_popup";
+
 #[derive(Clone, Copy, PartialEq)]
 pub enum PopupType {
 	/// Full foreground overlay
@@ -28,7 +30,7 @@ impl PopupType {
 			// If we didn't click inside of the container
 			Self::AtPoint(_, _) if !does_parent_contain_class(&element, "popup-at-point") => true,
 			// Otherwise just check for a "data-close-popup" attribute
-			_ => does_parent_contain_attribute(&element, "yew-close-popup")
+			_ => does_parent_contain_attribute(&element, YEW_CLOSE_POPUP)
 		}
 	}
 }

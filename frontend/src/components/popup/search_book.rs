@@ -6,7 +6,7 @@ use yew::prelude::*;
 
 use crate::{request, util::{self, LoadingItem}};
 
-use super::{Popup, PopupType};
+use super::{Popup, PopupType, YEW_CLOSE_POPUP};
 
 
 #[derive(Properties, PartialEq)]
@@ -135,7 +135,7 @@ impl PopupSearchBook {
 		html! {
 			<div
 				class="book-search-item"
-				yew-close-popup=""
+				{YEW_CLOSE_POPUP}
 				onclick={
 					ctx.link()
 					.callback_future(move |_| {

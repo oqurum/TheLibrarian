@@ -5,7 +5,7 @@ use web_sys::{HtmlElement, HtmlInputElement};
 use yew::{prelude::*, html::Scope};
 use yew_router::prelude::Link;
 
-use crate::{request, components::{PopupType, Popup}, util, Route};
+use crate::{request, components::{PopupType, Popup, popup::YEW_CLOSE_POPUP}, util, Route};
 
 
 #[derive(Properties, PartialEq)]
@@ -184,18 +184,18 @@ impl Component for AuthorListPage {
 										html! {
 											<Popup type_of={ PopupType::AtPoint(mouse_pos.0, mouse_pos.1) } on_close={ctx.link().callback(|_| Msg::ClosePopup)}>
 												<div class="menu-list">
-													<div class="menu-item" yew-close-popup="">{ "Start Reading" }</div>
-													<div class="menu-item" yew-close-popup="" onclick={
+													<div class="menu-item" {YEW_CLOSE_POPUP}>{ "Start Reading" }</div>
+													<div class="menu-item" {YEW_CLOSE_POPUP} onclick={
 														Self::on_click_prevdef(ctx.link(), Msg::PosterItem(PosterItem::UpdatePerson(person_id)))
 													}>{ "Refresh Person" }</div>
-													<div class="menu-item" yew-close-popup="" onclick={
+													<div class="menu-item" {YEW_CLOSE_POPUP} onclick={
 														Self::on_click_prevdef_stopprop(ctx.link(), Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::SearchForPerson { person_id, input_value: None, response: None })))
 													}>{ "Search For Person" }</div>
-													<div class="menu-item" yew-close-popup="" onclick={
+													<div class="menu-item" {YEW_CLOSE_POPUP} onclick={
 														Self::on_click_prevdef_stopprop(ctx.link(), Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::CombinePersonWith { person_id, input_value: None, response: None })))
 													} title="Join Person into Another">{ "Join Into Person" }</div>
-													<div class="menu-item" yew-close-popup="">{ "Delete" }</div>
-													<div class="menu-item" yew-close-popup="" onclick={
+													<div class="menu-item" {YEW_CLOSE_POPUP}>{ "Delete" }</div>
+													<div class="menu-item" {YEW_CLOSE_POPUP} onclick={
 														Self::on_click_prevdef_stopprop(ctx.link(), Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::Info { person_id })))
 													}>{ "Show Info" }</div>
 												</div>
@@ -255,7 +255,7 @@ impl Component for AuthorListPage {
 																									html! { // TODO: Place into own component.
 																										<div
 																											class="person-search-item"
-																											yew-close-popup=""
+																											{YEW_CLOSE_POPUP}
 																											onclick={
 																												ctx.link()
 																												.callback_future(move |_| {
@@ -338,7 +338,7 @@ impl Component for AuthorListPage {
 																				html! { // TODO: Place into own component.
 																					<div
 																						class="person-search-item"
-																						yew-close-popup=""
+																						{YEW_CLOSE_POPUP}
 																						onclick={
 																							ctx.link()
 																							.callback_future(move |_| {
