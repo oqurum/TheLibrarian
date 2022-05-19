@@ -90,7 +90,7 @@ body {
 
 
 .button {
-	display: inline-flex;
+	display: inline-block;
 	white-space: nowrap;
 	cursor: pointer;
 
@@ -98,6 +98,8 @@ body {
 
 	padding-inline: var(--size-2);
 	padding-block: var(--size-1);
+	margin-block: unset;
+	margin-inline: unset;
 
 	color: var(--blue-1);
 	border: var(--border-size-2) solid var(--brand);
