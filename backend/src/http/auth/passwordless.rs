@@ -7,6 +7,7 @@ use actix_identity::Identity;
 use actix_web::{http::header, HttpResponse};
 use actix_web::web;
 
+use crate::config::get_config;
 use crate::{Result, WebResult, Error};
 use chrono::Utc;
 use lettre::message::header::ContentType;
@@ -48,6 +49,9 @@ pub async fn post_passwordless_oauth(
 		smtp_relay: String::from(""),
 	};
 
+	if !get_config().auth.new_users && db.get_member_by_email(query.0.email.trim())?.is_none() {
+		return Ok(HttpResponse::Forbidden().finish());
+	}
 
 	let oauth_token = gen_sample_alphanumeric(32, &mut rand::thread_rng());
 

@@ -12,6 +12,7 @@ use serde::{Serialize, Deserialize};
 
 use crate::Error;
 use crate::WebResult;
+use crate::config::get_config;
 use crate::database::{table, Database};
 
 
@@ -48,6 +49,8 @@ pub async fn post_password_oauth(
 		} else {
 			panic!("Unable to very password hash for account");
 		}
+	} else if !get_config().auth.new_users {
+		return Ok(HttpResponse::Forbidden().finish());
 	} else {
 		let hash = bcrypt::hash(&password, bcrypt::DEFAULT_COST).map_err(Error::from)?;
 
