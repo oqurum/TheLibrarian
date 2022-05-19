@@ -379,7 +379,7 @@ impl Component for MediaView {
 												type="text"
 												onchange={Self::on_change_select(ctx.link(), ChangingType::Language)}
 											>
-												<option value="-1">{ "Unknown" }</option>
+												<option value="-1" selected={metadata.language.is_none()}>{ "Unknown" }</option>
 												{
 													for LANGUAGES.iter()
 														.enumerate()
