@@ -28,6 +28,18 @@ pub fn file_size_bytes_to_readable_string(value: i64) -> String {
 }
 
 
+pub fn string_to_upper_case(mut value: String) -> String {
+	// Get the first char
+	if let Some(v) = value.chars().next() {
+		// Uppercase first char
+		let first = v.to_uppercase().to_string();
+
+		// Replace first char with uppercase one.
+		value.replace_range(0..v.len_utf8(), &first);
+	}
+
+	value
+}
 
 
 

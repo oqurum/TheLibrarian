@@ -254,7 +254,7 @@ pub struct DisplayMetaItem {
 	pub tags_country: Option<String>,
 
 	pub available_at: Option<String>,
-	pub year: Option<i64>,
+	pub language: Option<u16>,
 
 	#[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]
 	pub created_at: DateTime<Utc>,
@@ -294,7 +294,7 @@ impl Default for DisplayMetaItem {
 			updated_at: Utc::now(),
 			deleted_at: Default::default(),
 			available_at: Default::default(),
-			year: Default::default(),
+			language: Default::default(),
 			tags_author: Default::default(),
 			tags_country: Default::default(),
 		}

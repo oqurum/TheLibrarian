@@ -79,7 +79,7 @@ impl Metadata for GoogleBooksMetadata {
 								.and_then(|v|
 								v.iter().find_map(|v| if v.type_of == "ISBN_13" { Some(v.identifier.clone()) } else { None })),
 							available_at: None,
-							year: None,
+							language: None,
 						}));
 					}
 
@@ -147,7 +147,7 @@ impl GoogleBooksMetadata {
 					.and_then(|v|
 					v.iter().find_map(|v| if v.type_of == "ISBN_13" { Some(v.identifier.clone()) } else { None })),
 				available_at: None,
-				year: None,
+				language: None,
 			}
 		}))
 	}

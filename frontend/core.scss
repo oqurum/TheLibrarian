@@ -30,6 +30,8 @@
 	--ratio-portrait: 0.668;
 
 	--brand: var(--orange-3);
+	--brand1: var(--orange-4);
+	--brand2: var(--orange-2);
 	--text1: var(--gray-1);
 	--text2: var(--gray-3);
 	--surface1: var(--gray-9);
@@ -288,6 +290,10 @@ form > .form-container {
 				margin-bottom: .375rem;
 				cursor: pointer;
 
+				&:hover {
+					background: var(--brand1);
+				}
+
 				// .close {
 				// 	background: var(--brand);
 				// 	color: var(--gray-9);
@@ -319,6 +325,7 @@ form > .form-container {
 
 		.dropdown-list {
 			position: relative;
+			padding: 2px;
 			max-height: 300px;
 			overflow: auto;
 			will-change: scroll-position;

@@ -106,8 +106,8 @@ impl Metadata for OpenLibraryMetadata {
 							cached: MetadataItemCached::default(),
 							isbn_10: None,
 							isbn_13: None,
-							available_at: None,
-							year: item.first_publish_year,
+							available_at: None, // TODO: item.first_publish_year,
+							language: None, // TODO
 						}));
 					}
 
@@ -220,7 +220,7 @@ impl OpenLibraryMetadata {
 				isbn_10: book_info.isbn_10.as_ref().and_then(|v| v.first().cloned()),
 				isbn_13: book_info.isbn_13.as_ref().and_then(|v| v.first().cloned()),
 				available_at: None,
-				year: None,
+				language: None,
 			}
 		}))
 	}

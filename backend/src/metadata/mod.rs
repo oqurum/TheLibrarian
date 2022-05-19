@@ -287,7 +287,7 @@ pub struct FoundItem {
 	pub isbn_13: Option<String>,
 
 	pub available_at: Option<String>,
-	pub year: Option<i64>
+	pub language: Option<u16>
 }
 
 impl From<FoundItem> for BookModel {
@@ -311,7 +311,7 @@ impl From<FoundItem> for BookModel {
 			updated_at: Utc::now(),
 			deleted_at: None,
 			available_at: val.available_at,
-			year: val.year,
+			language: val.language,
 		}
 	}
 }

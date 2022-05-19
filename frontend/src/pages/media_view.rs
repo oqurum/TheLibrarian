@@ -1,7 +1,7 @@
 use js_sys::Date;
-use librarian_common::{api::{MediaViewResponse, self, GetPostersResponse, GetTagsResponse}, Either, TagType, BookTag, Id};
+use librarian_common::{api::{MediaViewResponse, self, GetPostersResponse, GetTagsResponse}, Either, TagType, BookTag, Id, LANGUAGES, util::string_to_upper_case};
 use wasm_bindgen::{JsCast, JsValue};
-use web_sys::{HtmlInputElement, HtmlTextAreaElement};
+use web_sys::{HtmlInputElement, HtmlTextAreaElement, HtmlSelectElement};
 use yew::{prelude::*, html::Scope};
 
 use crate::{components::{MultiselectModule, MultiselectItem, MultiselectNewItem, UploadModule}, request};
@@ -230,7 +230,7 @@ impl Component for MediaView {
 						let date = Date::new(&JsValue::from_str(&v));
 						format!("{}-{}-{}", date.get_full_year(), date.get_month() + 1, date.get_date())
 					}),
-					ChangingType::Year => updating.metadata.year = value.and_then(|v| v.parse().ok()),
+					ChangingType::Language => updating.metadata.language = value.and_then(|v| v.parse().ok()),
 					ChangingType::Isbn10 => updating.metadata.isbn_10 = value,
 					ChangingType::Isbn13 => updating.metadata.isbn_13 = value,
 				}
@@ -351,13 +351,6 @@ impl Component for MediaView {
 										<div class="metadata">
 											<h5>{ "Book Info" }</h5>
 
-											<span class="sub-title">{"Year"}</span>
-											<input class="title" type="text"
-												placeholder="YYYY"
-												onchange={Self::on_change_input(ctx.link(), ChangingType::Year)}
-												value={ metadata.year.unwrap_or_default().to_string() }
-											/>
-
 											<span class="sub-title">{"Available At"}</span>
 											<input class="title" type="text"
 												placeholder="YYYY-MM-DD"
@@ -381,7 +374,29 @@ impl Component for MediaView {
 											<input class="title" type="text" />
 
 											<span class="sub-title">{"Language"}</span>
-											<input class="title" type="text" />
+											<select
+												class="title"
+												type="text"
+												onchange={Self::on_change_select(ctx.link(), ChangingType::Language)}
+											>
+												<option value="-1">{ "Unknown" }</option>
+												{
+													for LANGUAGES.iter()
+														.enumerate()
+														.map(|(index, lang)| {
+															let selected = metadata.language.filter(|v| index as u16 == *v).is_some();
+
+															html! {
+																<option
+																	{selected}
+																	value={index.to_string()}
+																>
+																	{ string_to_upper_case(lang.to_string()) }
+																</option>
+															}
+														})
+												}
+											</select>
 
 											<span class="sub-title">{"Format"}</span>
 											<input class="title" type="text" />
@@ -485,7 +500,9 @@ impl Component for MediaView {
 																})}
 															>
 																<div class="top-right">
-																	<span class="material-icons">{ "delete" }</span>
+																	<span
+																		class="material-icons"
+																	>{ "delete" }</span>
 																</div>
 																<img src={poster.path.clone()} />
 															</div>
@@ -573,6 +590,12 @@ impl MediaView {
 		self.editing_item.is_some()
 	}
 
+	fn on_change_select(scope: &Scope<Self>, updating: ChangingType) -> Callback<Event> {
+		scope.callback(move |e: Event| {
+			Msg::UpdateEditing(updating, e.target().unwrap().dyn_into::<HtmlSelectElement>().unwrap().value())
+		})
+	}
+
 	fn on_change_input(scope: &Scope<Self>, updating: ChangingType) -> Callback<Event> {
 		scope.callback(move |e: Event| {
 			Msg::UpdateEditing(updating, e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap().value())
@@ -621,7 +644,7 @@ pub enum ChangingType {
 	Rating,
 	ThumbPath,
 	AvailableAt,
-	Year,
+	Language,
 	Isbn10,
 	Isbn13,
 }

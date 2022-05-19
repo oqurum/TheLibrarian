@@ -30,7 +30,7 @@ pub struct BookModel {
 	pub tags_country: Option<String>,
 
 	pub available_at: Option<String>,
-	pub year: Option<i64>,
+	pub language: Option<u16>,
 
 	#[serde(serialize_with = "serialize_datetime")]
 	pub created_at: DateTime<Utc>,
@@ -61,7 +61,7 @@ impl<'a> TryFrom<&Row<'a>> for BookModel {
 			tags_author: value.get(9)?,
 			tags_country: value.get(10)?,
 			available_at: value.get(11)?,
-			year: value.get(12)?,
+			language: value.get(12)?,
 			created_at: Utc.timestamp_millis(value.get(13)?),
 			updated_at: Utc.timestamp_millis(value.get(14)?),
 			deleted_at: value.get::<_, Option<_>>(15)?.map(|v| Utc.timestamp_millis(v)),
@@ -84,7 +84,7 @@ impl From<BookModel> for DisplayMetaItem {
 			tags_author: val.tags_author,
 			tags_country: val.tags_country,
 			available_at: val.available_at,
-			year: val.year,
+			language: val.language,
 			created_at: val.created_at,
 			updated_at: val.updated_at,
 			deleted_at: val.deleted_at,
@@ -108,7 +108,7 @@ impl From<DisplayMetaItem> for BookModel {
             tags_author: val.tags_author,
             tags_country: val.tags_country,
             available_at: val.available_at,
-            year: val.year,
+            language: val.language,
             created_at: val.created_at,
             updated_at: val.updated_at,
             deleted_at: val.deleted_at,
