@@ -39,14 +39,16 @@ impl Component for OptionsPage {
 	fn view(&self, ctx: &Context<Self>) -> Html {
 		if let Some(_resp) = self.resp.as_ref() {
 			html! {
-				<div class="options-page">
-					<h2>{ "Settings" }</h2>
-					<a href="/auth/logout">{ "Logout" }</a>
+				<div class="settings-view-container">
+					<div class="main-content-view">
+						<h2>{ "Settings" }</h2>
+						<a class="button" href="/auth/logout">{ "Logout" }</a>
 
-					// <button class="button" onclick={ ctx.link().callback_future(|_| async {
-					// 	request::run_task().await;
-					// 	Msg::Ignore
-					// }) }>{ "Run Library Scan + Metadata Updater" }</button>
+						// <button class="button" onclick={ ctx.link().callback_future(|_| async {
+						// 	request::run_task().await;
+						// 	Msg::Ignore
+						// }) }>{ "Run Library Scan + Metadata Updater" }</button>
+					</div>
 				</div>
 			}
 		} else {
