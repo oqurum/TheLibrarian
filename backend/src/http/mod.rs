@@ -1,4 +1,5 @@
-use actix_identity::{CookieIdentityPolicy, IdentityService};
+use actix_identity::{CookieIdentityPolicy, IdentityService, Identity};
+use actix_web::HttpResponse;
 use actix_web::{web, App, HttpServer, cookie::SameSite};
 
 use crate::database::Database;
@@ -12,6 +13,11 @@ pub use self::auth::*;
 // TODO: Convert to async closure (https://github.com/rust-lang/rust/issues/62290)
 async fn default_handler() -> impl actix_web::Responder {
 	actix_files::NamedFile::open_async("../frontend/dist/index.html").await
+}
+
+async fn logout(ident: Identity) -> HttpResponse {
+	ident.forget();
+	HttpResponse::Ok().finish()
 }
 
 
@@ -29,6 +35,11 @@ pub async fn register_http_service(db_data: web::Data<Database>) -> std::io::Res
 
 			// API
 			.service(api_route())
+
+			.route(
+				"/auth/logout",
+				web::get().to(logout)
+			)
 
 			// Password
 			.route(

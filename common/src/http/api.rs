@@ -209,8 +209,8 @@ pub struct GetPersonResponse {
 // Options
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct GetOptionsResponse {
-	pub libraries: Vec<LibraryColl>
+pub struct GetSettingsResponse {
+	//
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

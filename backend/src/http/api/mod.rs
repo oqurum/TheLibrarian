@@ -1,4 +1,4 @@
-use actix_web::{web, Scope, dev::{ServiceFactory, ServiceRequest, ServiceResponse}};
+use actix_web::{web, Scope, dev::{ServiceFactory, ServiceRequest, ServiceResponse}, HttpResponse};
 
 use super::LoginRequired;
 
@@ -9,6 +9,7 @@ pub mod person;
 pub mod publisher;
 pub mod poster;
 pub mod tag;
+pub mod settings;
 
 pub fn api_route() -> Scope<
 	impl ServiceFactory<
@@ -56,4 +57,13 @@ pub fn api_route() -> Scope<
 
 		// External
 		.service(external::get_external_search)
+
+		// Settings
+		.service(settings::get_settings)
+
+		.default_service(web::route().to(default_handler))
+}
+
+async fn default_handler() -> HttpResponse {
+	HttpResponse::NotFound().finish()
 }

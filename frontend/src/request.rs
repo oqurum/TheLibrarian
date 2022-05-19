@@ -210,8 +210,8 @@ pub async fn get_book_info(id: usize) -> GetBookIdResponse {
 
 // Options
 
-pub async fn get_options() -> GetOptionsResponse {
-	fetch("GET", "/api/v1/options", Option::<&()>::None).await.unwrap()
+pub async fn get_settings() -> GetSettingsResponse {
+	fetch("GET", "/api/v1/settings", Option::<&()>::None).await.unwrap()
 }
 
 pub async fn update_options_add(options: ModifyOptionsBody) {
