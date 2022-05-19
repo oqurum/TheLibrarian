@@ -22,6 +22,15 @@ lazy_static! {
 }
 
 
+pub fn update_config<F: FnMut(&mut Config) -> Result<()>>(mut value: F) -> Result<()> {
+	let mut config = get_config();
+
+	value(&mut config)?;
+
+	*CONFIG_FILE.lock().unwrap() = config;
+
+	Ok(())
+}
 
 
 pub fn get_config() -> Config {

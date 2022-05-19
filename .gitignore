@@ -3,5 +3,6 @@
 database.db
 dist
 /app/thumbnails
+/app/config.json
 
 /ignore
