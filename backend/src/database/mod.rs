@@ -2,7 +2,7 @@ use std::sync::{Mutex, MutexGuard};
 
 use crate::Result;
 use chrono::Utc;
-use librarian_common::{api, TagType};
+use librarian_common::TagType;
 use rusqlite::{Connection, params, OptionalExtension};
 // TODO: use tokio::task::spawn_blocking;
 
@@ -428,13 +428,13 @@ impl Database {
 
 	// Search
 
-	fn gen_search_query(search: &api::SearchQuery, person_id: Option<usize>) -> Option<String> {
+	fn gen_search_query(query: Option<&str>, person_id: Option<usize>) -> Option<String> {
 		let mut sql = String::from("SELECT * FROM book WHERE ");
 		let orig_len = sql.len();
 
 		// Query
 
-		if let Some(query) = search.query.as_deref() {
+		if let Some(query) = query.as_ref() {
 			let mut escape_char = '\\';
 			// Change our escape character if it's in the query.
 			if query.contains(escape_char) {
@@ -455,18 +455,10 @@ impl Database {
 		}
 
 
-		// Source
-
-		if let Some(source) = search.source.as_deref() {
-			if search.query.is_some() {
-				sql += "AND ";
-			}
-
-			sql += &format!("source LIKE '{}%' ", source);
-		}
+		// Search with specific person
 
 		if let Some(pid) = person_id {
-			if search.query.is_some() || search.source.is_some() {
+			if query.is_some() {
 				sql += "AND ";
 			}
 
@@ -485,8 +477,8 @@ impl Database {
 		}
 	}
 
-	pub fn search_book_list(&self, search: &api::SearchQuery, offset: usize, limit: usize, person_id: Option<usize>) -> Result<Vec<BookModel>> {
-		let mut sql = match Self::gen_search_query(search, person_id) {
+	pub fn search_book_list(&self, query: Option<&str>, offset: usize, limit: usize, person_id: Option<usize>) -> Result<Vec<BookModel>> {
+		let mut sql = match Self::gen_search_query(query, person_id) {
 			Some(v) => v,
 			None => return Ok(Vec::new())
 		};
@@ -502,8 +494,8 @@ impl Database {
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
 
-	pub fn count_search_book(&self, search: &api::SearchQuery, person_id: Option<usize>) -> Result<usize> {
-		let sql = match Self::gen_search_query(search, person_id) {
+	pub fn count_search_book(&self, query: Option<&str>, person_id: Option<usize>) -> Result<usize> {
+		let sql = match Self::gen_search_query(query, person_id) {
 			Some(v) => v.replace("SELECT *", "SELECT COUNT(*)"),
 			None => return Ok(0)
 		};
