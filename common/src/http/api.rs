@@ -2,7 +2,16 @@ use std::collections::HashMap;
 
 use serde::{Serialize, Deserialize};
 
-use crate::{Either, MediaItem, Progression, LibraryColl, BasicLibrary, BasicDirectory, Chapter, DisplayItem, DisplayMetaItem, Person, SearchType, Source, Member, Poster, Result, TagFE, BookTag, TagType};
+use crate::{
+	Either, MediaItem, Progression, LibraryColl,
+	BasicLibrary, BasicDirectory, Chapter,
+	DisplayItem, DisplayMetaItem, Person,
+	SearchType, Source, Member, Poster,
+	Result, TagFE, BookTag, TagType
+};
+
+
+
 
 // General
 
@@ -10,8 +19,6 @@ use crate::{Either, MediaItem, Progression, LibraryColl, BasicLibrary, BasicDire
 pub struct DeletionResponse {
 	pub amount: usize,
 }
-
-
 
 
 // Tags

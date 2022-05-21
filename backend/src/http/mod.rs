@@ -6,6 +6,7 @@ use crate::database::Database;
 
 mod api;
 mod auth;
+mod search;
 pub use self::api::api_route;
 pub use self::auth::*;
 
@@ -32,6 +33,8 @@ pub async fn register_http_service(db_data: web::Data<Database>) -> std::io::Res
 					.max_age_secs(60 * 60 * 24 * 365)
 					.same_site(SameSite::Strict)
 			))
+
+			.service(search::public_search)
 
 			// API
 			.service(api_route())
