@@ -250,7 +250,7 @@ pub struct DisplayMetaItem {
 	pub isbn_10: Option<String>,
 	pub isbn_13: Option<String>,
 
-	pub tags_author: Option<String>,
+	pub is_public: bool,
 	pub tags_country: Option<String>,
 
 	pub available_at: Option<String>,
@@ -295,7 +295,7 @@ impl Default for DisplayMetaItem {
 			deleted_at: Default::default(),
 			available_at: Default::default(),
 			language: Default::default(),
-			tags_author: Default::default(),
+			is_public: Default::default(),
 			tags_country: Default::default(),
 		}
 	}

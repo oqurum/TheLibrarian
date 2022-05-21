@@ -26,9 +26,10 @@ pub async fn init() -> Result<Database> {
 
 			"cached"				TEXT,
 
-			"tags_genre"			TEXT,
-			"tags_collection"		TEXT,
-			"tags_author"			TEXT,
+			"isbn_10"				TEXT,
+			"isbn_13"				TEXT,
+
+			"is_public"				INTEGER NOT NULL,
 			"tags_country"			TEXT,
 
 			"available_at"			DATETIME,
@@ -343,7 +344,7 @@ impl Database {
 			lock.execute(r#"
 				INSERT INTO book (
 					title, clean_title, description, rating, thumb_url,
-					cached,
+					cached, is_public,
 					isbn_10, isbn_13, tags_author, tags_country,
 					available_at, language,
 					created_at, updated_at, deleted_at
@@ -351,8 +352,8 @@ impl Database {
 				VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)"#,
 				params![
 					&meta.title, &meta.clean_title, &meta.description, &meta.rating, meta.thumb_path.to_optional_string(),
-					&meta.cached.as_string_optional(),
-					&meta.isbn_10, &meta.isbn_13, &meta.tags_author, &meta.tags_country,
+					&meta.cached.as_string_optional(), meta.is_public,
+					&meta.isbn_10, &meta.isbn_13, &meta.is_public, &meta.tags_country,
 					&meta.available_at, &meta.language,
 					&meta.created_at.timestamp_millis(), &meta.updated_at.timestamp_millis(),
 					meta.deleted_at.as_ref().map(|v| v.timestamp_millis()),
@@ -372,16 +373,16 @@ impl Database {
 		.execute(r#"
 			UPDATE book SET
 				title = ?2, clean_title = ?3, description = ?4, rating = ?5, thumb_url = ?6,
-				cached = ?7,
-				isbn_10 = ?8, isbn_13 = ?9, tags_author = ?10, tags_country = ?11,
-				available_at = ?12, language = ?13,
-				created_at = ?14, updated_at = ?15, deleted_at = ?16
+				cached = ?7, is_public = ?8
+				isbn_10 = ?9, isbn_13 = ?10, tags_author = ?11, tags_country = ?12,
+				available_at = ?13, language = ?14,
+				created_at = ?15, updated_at = ?16, deleted_at = ?17
 			WHERE id = ?1"#,
 			params![
 				meta.id,
 				&meta.title, &meta.clean_title, &meta.description, &meta.rating, meta.thumb_path.to_optional_string(),
-				&meta.cached.as_string_optional(),
-				&meta.isbn_10, &meta.isbn_13, &meta.tags_author, &meta.tags_country,
+				&meta.cached.as_string_optional(), meta.is_public,
+				&meta.isbn_10, &meta.isbn_13, &meta.is_public, &meta.tags_country,
 				&meta.available_at, &meta.language,
 				&meta.created_at.timestamp_millis(), &meta.updated_at.timestamp_millis(),
 				meta.deleted_at.as_ref().map(|v| v.timestamp_millis()),

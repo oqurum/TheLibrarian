@@ -305,7 +305,7 @@ impl From<FoundItem> for BookModel {
 			cached: val.cached,
 			isbn_10: val.isbn_10,
 			isbn_13: val.isbn_13,
-			tags_author: None,
+			is_public: false,
 			tags_country: None,
 			created_at: Utc::now(),
 			updated_at: Utc::now(),
