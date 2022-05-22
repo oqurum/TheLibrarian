@@ -407,7 +407,7 @@ impl Database {
 		)?)
 	}
 
-	pub fn get_book_by(&self, offset: usize, limit: usize, person_id: Option<usize>) -> Result<Vec<BookModel>> {
+	pub fn get_book_by(&self, offset: usize, limit: usize, only_public: bool, person_id: Option<usize>) -> Result<Vec<BookModel>> {
 		let this = self.lock()?;
 
 		let inner_query = if let Some(pid) = person_id {
@@ -429,13 +429,24 @@ impl Database {
 
 	// Search
 
-	fn gen_search_query(query: Option<&str>, person_id: Option<usize>) -> Option<String> {
+	fn gen_search_query(query: Option<&str>, only_public: bool, person_id: Option<usize>) -> Option<String> {
 		let mut sql = String::from("SELECT * FROM book WHERE ");
 		let orig_len = sql.len();
+
+		// Only Public
+
+		if only_public {
+			sql += "is_public = true ";
+		}
+
 
 		// Query
 
 		if let Some(query) = query.as_ref() {
+			if only_public {
+				sql += "AND ";
+			}
+
 			let mut escape_char = '\\';
 			// Change our escape character if it's in the query.
 			if query.contains(escape_char) {
@@ -459,7 +470,7 @@ impl Database {
 		// Search with specific person
 
 		if let Some(pid) = person_id {
-			if query.is_some() {
+			if only_public || query.is_some() {
 				sql += "AND ";
 			}
 
@@ -478,8 +489,8 @@ impl Database {
 		}
 	}
 
-	pub fn search_book_list(&self, query: Option<&str>, offset: usize, limit: usize, person_id: Option<usize>) -> Result<Vec<BookModel>> {
-		let mut sql = match Self::gen_search_query(query, person_id) {
+	pub fn search_book_list(&self, query: Option<&str>, offset: usize, limit: usize, only_public: bool, person_id: Option<usize>) -> Result<Vec<BookModel>> {
+		let mut sql = match Self::gen_search_query(query, only_public, person_id) {
 			Some(v) => v,
 			None => return Ok(Vec::new())
 		};
@@ -495,8 +506,8 @@ impl Database {
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
 
-	pub fn count_search_book(&self, query: Option<&str>, person_id: Option<usize>) -> Result<usize> {
-		let sql = match Self::gen_search_query(query, person_id) {
+	pub fn count_search_book(&self, query: Option<&str>, only_public: bool, person_id: Option<usize>) -> Result<usize> {
+		let sql = match Self::gen_search_query(query, only_public, person_id) {
 			Some(v) => v.replace("SELECT *", "SELECT COUNT(*)"),
 			None => return Ok(0)
 		};

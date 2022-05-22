@@ -15,12 +15,17 @@ pub async fn public_search(
 	let offset = query.offset.unwrap_or(0);
 	let limit = query.limit.unwrap_or(25);
 
-	let total = db.count_search_book(Some(&query.query), None)?;
+	let total = db.count_search_book(
+		Some(&query.query),
+		!query.view_private,
+		None
+	)?;
 
 	let items = db.search_book_list(
 		Some(&query.query),
 		offset,
 		limit,
+		!query.view_private,
 		None
 	)?;
 
