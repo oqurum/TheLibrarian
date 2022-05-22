@@ -233,6 +233,7 @@ impl Component for MediaView {
 					ChangingType::Language => updating.metadata.language = value.and_then(|v| v.parse().ok()),
 					ChangingType::Isbn10 => updating.metadata.isbn_10 = value,
 					ChangingType::Isbn13 => updating.metadata.isbn_13 = value,
+					ChangingType::Publicity => updating.metadata.is_public = value.and_then(|v| v.parse().ok()).unwrap_or_default(),
 				}
 			}
 
@@ -311,6 +312,20 @@ impl Component for MediaView {
 										html! {
 											<>
 												<h5>{ "Book Display Info" }</h5>
+
+												<span class="sub-title">{"Publicity"}</span>
+												<select
+													class="title"
+													type="text"
+													onchange={Self::on_change_select(ctx.link(), ChangingType::Publicity)}
+												>
+													<option selected={metadata.is_public} value="true">
+														{"Public"}
+													</option>
+													<option selected={!metadata.is_public} value="false">
+														{"Private"}
+													</option>
+												</select>
 
 												<span class="sub-title">{"Title"}</span>
 												<input class="title" type="text"
@@ -647,6 +662,7 @@ pub enum ChangingType {
 	Language,
 	Isbn10,
 	Isbn13,
+	Publicity,
 }
 
 
