@@ -251,7 +251,7 @@ pub struct DisplayMetaItem {
 	pub isbn_13: Option<String>,
 
 	pub is_public: bool,
-	pub tags_country: Option<String>,
+	pub edition_count: usize,
 
 	pub available_at: Option<String>,
 	pub language: Option<u16>,
@@ -296,7 +296,7 @@ impl Default for DisplayMetaItem {
 			available_at: Default::default(),
 			language: Default::default(),
 			is_public: Default::default(),
-			tags_country: Default::default(),
+			edition_count: Default::default(),
 		}
 	}
 }

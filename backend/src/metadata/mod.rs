@@ -306,7 +306,7 @@ impl From<FoundItem> for BookModel {
 			isbn_10: val.isbn_10,
 			isbn_13: val.isbn_13,
 			is_public: false,
-			tags_country: None,
+			edition_count: 0,
 			created_at: Utc::now(),
 			updated_at: Utc::now(),
 			deleted_at: None,
