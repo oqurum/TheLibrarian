@@ -1,11 +1,10 @@
 use std::{collections::HashMap, ops::{Deref, DerefMut}};
 
-use crate::Result;
 use async_trait::async_trait;
 use librarian_common::{SearchFor, Source, MetadataItemCached, ThumbnailStore};
 use chrono::Utc;
 
-use crate::database::{table::{self, BookModel}, Database};
+use crate::{Result, database::Database, model::{NewPersonModel, TagPersonAltModel, BookModel}};
 
 use self::{
 	google_books::GoogleBooksMetadata,
@@ -233,7 +232,7 @@ impl MetadataReturned {
 					}
 				}
 
-				let author = table::NewPersonModel {
+				let author = NewPersonModel {
 					source: author_info.source,
 					name: author_info.name,
 					description: author_info.description,
@@ -249,7 +248,7 @@ impl MetadataReturned {
 				if let Some(alts) = author_info.other_names {
 					for name in alts {
 						// Ignore errors. Errors should just be UNIQUE constraint failed
-						if let Err(e) = db.add_person_alt(&table::TagPersonAltModel {
+						if let Err(e) = db.add_person_alt(&TagPersonAltModel {
 							person_id,
 							name,
 						}) {

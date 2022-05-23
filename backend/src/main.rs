@@ -16,6 +16,7 @@ pub mod error;
 pub mod http;
 pub mod image;
 pub mod metadata;
+pub mod model;
 
 pub use self::image::store_image;
 pub use error::{Result, WebResult, WebError, Error, InternalError};

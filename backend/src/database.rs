@@ -6,9 +6,7 @@ use librarian_common::TagType;
 use rusqlite::{Connection, params, OptionalExtension};
 // TODO: use tokio::task::spawn_blocking;
 
-pub mod table;
-use table::*;
-
+use crate::model::*;
 
 pub async fn init() -> Result<Database> {
 	let conn = rusqlite::Connection::open("database.db")?;
@@ -288,7 +286,7 @@ impl Database {
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
 
-	pub fn get_book_tags_info(&self, book_id: usize) -> Result<Vec<BookTagInfo>> {
+	pub fn get_book_tags_info(&self, book_id: usize) -> Result<Vec<BookTagWithTagModel>> {
 		let this = self.lock()?;
 
 		let mut conn = this.prepare(
@@ -298,19 +296,19 @@ impl Database {
 			WHERE book_id = ?1"#
 		)?;
 
-		let map = conn.query_map([book_id], |v| BookTagInfo::try_from(v))?;
+		let map = conn.query_map([book_id], |v| BookTagWithTagModel::try_from(v))?;
 
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
 
-	pub fn get_book_tag_info_by_bid_tid(&self, book_id: usize, tag_id: usize) -> Result<Option<BookTagInfo>> {
+	pub fn get_book_tag_info_by_bid_tid(&self, book_id: usize, tag_id: usize) -> Result<Option<BookTagWithTagModel>> {
 		Ok(self.lock()?.query_row(
 			r#"SELECT book_tags.id, book_tags.book_id, windex, book_tags.created_at, tags.*
 			FROM book_tags
 			JOIN tags ON book_tags.tag_id == tags.id
 			WHERE book_id = ?1 AND tag_id = ?2"#,
 			params![book_id, tag_id],
-			|v| BookTagInfo::try_from(v)
+			|v| BookTagWithTagModel::try_from(v)
 		).optional()?)
 	}
 

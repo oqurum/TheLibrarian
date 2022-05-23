@@ -13,7 +13,8 @@ use serde::{Serialize, Deserialize};
 use crate::Error;
 use crate::WebResult;
 use crate::config::get_config;
-use crate::database::{table, Database};
+use crate::database::Database;
+use crate::model::NewMemberModel;
 
 
 pub static PASSWORD_PATH: &str = "/auth/password";
@@ -54,7 +55,7 @@ pub async fn post_password_oauth(
 	} else {
 		let hash = bcrypt::hash(&password, bcrypt::DEFAULT_COST).map_err(Error::from)?;
 
-		let new_member = table::NewMemberModel {
+		let new_member = NewMemberModel {
 			// TODO: Strip email
 			name: email.clone(),
 			email: Some(email),

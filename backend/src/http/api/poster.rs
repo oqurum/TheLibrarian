@@ -6,7 +6,7 @@ use chrono::Utc;
 use futures::TryStreamExt;
 use librarian_common::{Poster, api, Either};
 
-use crate::{WebResult, Error, store_image, database::{table::NewPosterModel, Database}};
+use crate::{WebResult, Error, store_image, database::Database, model::NewPosterModel};
 
 
 

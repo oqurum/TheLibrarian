@@ -3,8 +3,8 @@ use actix_web::{get, web, HttpResponse, post};
 use chrono::Utc;
 use librarian_common::{api, DisplayItem};
 
-use crate::database::table::{BookModel, self};
 use crate::metadata::MetadataReturned;
+use crate::model::{NewPosterModel, BookPersonModel, BookModel};
 use crate::{WebResult, metadata, Error};
 use crate::database::Database;
 
@@ -36,7 +36,7 @@ pub async fn add_new_book(
 		let db_book = db.add_or_update_book(&meta)?;
 
 		for path in posters_to_add {
-			db.add_poster(&table::NewPosterModel {
+			db.add_poster(&NewPosterModel {
 				link_id: db_book.id,
 				path,
 				created_at: Utc::now(),
@@ -44,7 +44,7 @@ pub async fn add_new_book(
 		}
 
 		for person_id in author_ids {
-			db.add_book_person(&table::BookPersonModel {
+			db.add_book_person(&BookPersonModel {
 				book_id: db_book.id,
 				person_id,
 			})?;
