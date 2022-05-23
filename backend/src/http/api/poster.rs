@@ -4,20 +4,15 @@ use actix_files::NamedFile;
 use actix_web::{get, post, web, HttpResponse, Responder};
 use chrono::Utc;
 use futures::TryStreamExt;
-use librarian_common::{Poster, api, ThumbnailStoreType, Either};
+use librarian_common::{Poster, api, Either};
 
 use crate::{WebResult, Error, store_image, database::{table::NewPosterModel, Database}};
 
 
 
-#[get("/image/{type}/{id}")]
-async fn get_local_image(path: web::Path<(String, String)>) -> impl Responder {
-	let (type_of, id) = path.into_inner();
-
-	let path = crate::image::prefixhash_to_path(
-		ThumbnailStoreType::from(type_of.as_str()),
-		&id
-	);
+#[get("/image/{id}")]
+async fn get_local_image(id: web::Path<String>) -> impl Responder {
+	let path = crate::image::hash_to_path(&id);
 
 	NamedFile::open_async(path).await
 }
@@ -65,7 +60,7 @@ async fn post_change_poster(
 				.bytes()
 				.await.map_err(Error::from)?;
 
-			let hash = store_image(ThumbnailStoreType::Metadata, resp.to_vec()).await?;
+			let hash = store_image(resp.to_vec()).await?;
 
 
 			meta.thumb_path = hash;
@@ -108,7 +103,7 @@ async fn post_upload_poster(
 		file.write_all(&item).map_err(Error::from)?;
 	}
 
-	let hash = store_image(ThumbnailStoreType::Uploaded, file.into_inner()).await?;
+	let hash = store_image(file.into_inner()).await?;
 
 	db.add_poster(&NewPosterModel {
 		link_id: book.id,

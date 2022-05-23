@@ -165,7 +165,7 @@ async fn load_book_thumbnail(path: web::Path<usize>, db: web::Data<Database>) ->
 	let meta = db.get_book_by_id(book_id)?;
 
 	if let Some(loc) = meta.map(|v| v.thumb_path) {
-		let path = crate::image::prefixhash_to_path(loc.as_type(), loc.as_value());
+		let path = crate::image::hash_to_path(loc.as_value());
 
 		Ok(HttpResponse::Ok().body(tokio::fs::read(path).await.map_err(Error::from)?))
 	} else {

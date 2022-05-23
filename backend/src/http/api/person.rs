@@ -62,7 +62,7 @@ async fn load_person_thumbnail(person_id: web::Path<usize>, db: web::Data<Databa
 	let meta = db.get_person_by_id(*person_id)?;
 
 	if let Some(loc) = meta.map(|v| v.thumb_url) {
-		let path = crate::image::prefixhash_to_path(loc.as_type(), loc.as_value());
+		let path = crate::image::hash_to_path(loc.as_value());
 
 		Ok(HttpResponse::Ok().body(std::fs::read(path).map_err(Error::from)?))
 	} else {
