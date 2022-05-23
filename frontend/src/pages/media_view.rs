@@ -412,9 +412,6 @@ impl Component for MediaView {
 														})
 												}
 											</select>
-
-											<span class="sub-title">{"Format"}</span>
-											<input class="title" type="text" />
 										</div>
 									}
 								} else {
