@@ -1,4 +1,4 @@
-use librarian_common::{MetadataItemCached, DisplayMetaItem, Person, Source, ThumbnailStore, TagType, TagFE, BookTag};
+use librarian_common::{MetadataItemCached, DisplayMetaItem, Person, Source, ThumbnailStore, TagType, TagFE, BookTag, search::PublicBook};
 use chrono::{DateTime, TimeZone, Utc};
 use rusqlite::Row;
 use serde::{Serialize, Serializer};
@@ -116,6 +116,28 @@ impl From<DisplayMetaItem> for BookModel {
     }
 }
 
+impl Into<PublicBook> for BookModel {
+	fn into(self) -> PublicBook {
+		PublicBook {
+			id: self.id,
+			title: self.title,
+			clean_title: self.clean_title,
+			description: self.description,
+			rating: self.rating,
+			thumb_url: String::new(),
+			cached: self.cached,
+			isbn_10: self.isbn_10,
+			isbn_13: self.isbn_13,
+			is_public: self.is_public,
+			edition_count: self.edition_count,
+			available_at: self.available_at,
+			language: self.language,
+			created_at: self.created_at,
+			updated_at: self.updated_at,
+			deleted_at: self.deleted_at,
+		}
+	}
+}
 
 // Tag Person Alt
 
