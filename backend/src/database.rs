@@ -273,32 +273,6 @@ impl Database {
 	}
 
 
-	// Verify
-
-	pub fn add_verify(&self, auth: &NewAuthModel) -> Result<usize> {
-		let conn = self.lock()?;
-
-		conn.execute(r#"
-			INSERT INTO auths (oauth_token, oauth_token_secret, created_at)
-			VALUES (?1, ?2, ?3)
-		"#,
-		params![
-			&auth.oauth_token,
-			&auth.oauth_token_secret,
-			auth.created_at.timestamp_millis()
-		])?;
-
-		Ok(conn.last_insert_rowid() as usize)
-	}
-
-	pub fn remove_verify_if_found_by_oauth_token(&self, value: &str) -> Result<bool> {
-		Ok(self.lock()?.execute(
-			r#"DELETE FROM auths WHERE oauth_token = ?1 LIMIT 1"#,
-			params![value],
-		)? != 0)
-	}
-
-
 	// Poster
 
 	pub fn add_poster(&self, poster: &NewPosterModel) -> Result<usize> {
