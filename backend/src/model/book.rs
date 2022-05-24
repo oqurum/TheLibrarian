@@ -246,4 +246,103 @@ impl BookModel {
 
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
+
+
+	fn gen_search_query(query: Option<&str>, only_public: bool, person_id: Option<usize>) -> Option<String> {
+		let mut sql = String::from("SELECT * FROM book WHERE ");
+		let orig_len = sql.len();
+
+		// Only Public
+
+		if only_public {
+			sql += "is_public = true ";
+		}
+
+
+		// Query
+
+		if let Some(query) = query.as_ref() {
+			if only_public {
+				sql += "AND ";
+			}
+
+			let mut escape_char = '\\';
+			// Change our escape character if it's in the query.
+			if query.contains(escape_char) {
+				for car in [ '!', '@', '#', '$', '^', '&', '*', '-', '=', '+', '|', '~', '`', '/', '?', '>', '<', ',' ] {
+					if !query.contains(car) {
+						escape_char = car;
+						break;
+					}
+				}
+			}
+
+			// TODO: Utilize title > clean_title > description, and sort
+			sql += &format!(
+				"title LIKE '%{}%' ESCAPE '{}' ",
+				query.replace('%', &format!("{}%", escape_char)).replace('_', &format!("{}_", escape_char)),
+				escape_char
+			);
+		}
+
+
+		// Search with specific person
+
+		if let Some(pid) = person_id {
+			if only_public || query.is_some() {
+				sql += "AND ";
+			}
+
+			sql += &format!(
+				r#"id = (SELECT book_id FROM book_person WHERE person_id = {}) "#,
+				pid
+			);
+		}
+
+
+		if sql.len() == orig_len {
+			// If sql is still unmodified
+			None
+		} else {
+			Some(sql)
+		}
+	}
+
+	pub fn search_book_list(
+		query: Option<&str>,
+		offset: usize,
+		limit: usize,
+		only_public: bool,
+		person_id: Option<usize>,
+		db: &Database
+	) -> Result<Vec<Self>> {
+		let mut sql = match Self::gen_search_query(query, only_public, person_id) {
+			Some(v) => v,
+			None => return Ok(Vec::new())
+		};
+
+		sql += "LIMIT ?1 OFFSET ?2";
+
+		let this = db.lock()?;
+
+		let mut conn = this.prepare(&sql)?;
+
+		let map = conn.query_map(params![limit, offset], |v| Self::try_from(v))?;
+
+		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+	}
+
+	pub fn count_search_book(
+		query: Option<&str>,
+		only_public: bool,
+		person_id: Option<usize>,
+		db: &Database
+	) -> Result<usize> {
+		let sql = match Self::gen_search_query(query, only_public, person_id) {
+			Some(v) => v.replace("SELECT *", "SELECT COUNT(*)"),
+			None => return Ok(0)
+		};
+
+		Ok(db.lock()?.query_row(&sql, [], |v| v.get(0))?)
+	}
 }

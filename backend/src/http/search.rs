@@ -1,7 +1,7 @@
 use actix_web::{get, web, HttpRequest};
 use librarian_common::search::{self, BookSearchResponse, PublicBook};
 
-use crate::{WebResult, database::Database};
+use crate::{WebResult, database::Database, model::BookModel};
 
 
 // TODO: Author Search
@@ -16,18 +16,20 @@ pub async fn public_search(
 	let offset = query.offset.unwrap_or(0);
 	let limit = query.limit.unwrap_or(25);
 
-	let total = db.count_search_book(
+	let total = BookModel::count_search_book(
 		Some(&query.query),
 		!query.view_private,
-		None
+		None,
+		&db,
 	)?;
 
-	let items = db.search_book_list(
+	let items = BookModel::search_book_list(
 		Some(&query.query),
 		offset,
 		limit,
 		!query.view_private,
-		None
+		None,
+		&db,
 	)?;
 
 	let host = format!(
