@@ -1,7 +1,6 @@
 use std::sync::{Mutex, MutexGuard};
 
 use crate::Result;
-use chrono::Utc;
 use rusqlite::{Connection, params, OptionalExtension};
 // TODO: use tokio::task::spawn_blocking;
 
@@ -184,98 +183,6 @@ impl Database {
 	pub fn lock(&self) -> Result<MutexGuard<Connection>> {
 		Ok(self.0.lock()?)
 	}
-
-	// Book Tag
-
-	pub fn get_book_tag_by_id(&self, id: usize) -> Result<Option<BookTagModel>> {
-		Ok(self.lock()?.query_row(
-			r#"SELECT * FROM book_tags WHERE id = ?1"#,
-			params![id],
-			|v| BookTagModel::try_from(v)
-		).optional()?)
-	}
-
-	pub fn add_book_tag(&self, book_id: usize, tag_id: usize, index: Option<usize>) -> Result<usize> {
-		let index = if let Some(index) = index {
-			self.lock()?.execute(
-				r#"UPDATE book_tags
-				SET windex = windex + 1
-				WHERE book_id = ?1 AND tag_id = ?2 AND windex >= ?3"#,
-				[book_id, tag_id, index],
-			)?;
-
-			index
-		} else {
-			self.count_book_tags_by_bid_tid(book_id, tag_id)?
-		};
-
-		let conn = self.lock()?;
-
-		conn.execute(r#"
-			INSERT INTO book_tags (book_id, tag_id, windex, created_at)
-			VALUES (?1, ?2, ?3, ?4)
-		"#,
-		params![
-			book_id,
-			tag_id,
-			index,
-			Utc::now().timestamp_millis(),
-		])?;
-
-		Ok(conn.last_insert_rowid() as usize)
-	}
-
-	pub fn count_book_tags_by_bid_tid(&self, book_id: usize, tag_id: usize) -> Result<usize> {
-		Ok(self.lock()?.query_row(
-			r#"SELECT COUNT(*) FROM book_tags WHERE book_id = ?1 AND tag_id = ?2"#,
-			[book_id, tag_id],
-			|v| v.get(0)
-		)?)
-	}
-
-	pub fn get_book_tags(&self, book_id: usize) -> Result<Vec<BookTagModel>> {
-		let this = self.lock()?;
-
-		let mut conn = this.prepare("SELECT * FROM book_tags WHERE book_id = ?1")?;
-
-		let map = conn.query_map([book_id], |v| BookTagModel::try_from(v))?;
-
-		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
-	}
-
-	pub fn get_book_tags_info(&self, book_id: usize) -> Result<Vec<BookTagWithTagModel>> {
-		let this = self.lock()?;
-
-		let mut conn = this.prepare(
-			r#"SELECT book_tags.id, book_tags.book_id, windex, book_tags.created_at, tags.*
-			FROM book_tags
-			JOIN tags ON book_tags.tag_id == tags.id
-			WHERE book_id = ?1"#
-		)?;
-
-		let map = conn.query_map([book_id], |v| BookTagWithTagModel::try_from(v))?;
-
-		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
-	}
-
-	pub fn get_book_tag_info_by_bid_tid(&self, book_id: usize, tag_id: usize) -> Result<Option<BookTagWithTagModel>> {
-		Ok(self.lock()?.query_row(
-			r#"SELECT book_tags.id, book_tags.book_id, windex, book_tags.created_at, tags.*
-			FROM book_tags
-			JOIN tags ON book_tags.tag_id == tags.id
-			WHERE book_id = ?1 AND tag_id = ?2"#,
-			params![book_id, tag_id],
-			|v| BookTagWithTagModel::try_from(v)
-		).optional()?)
-	}
-
-	pub fn remove_book_tag(&self, book_id: usize, tag_id: usize) -> Result<usize> {
-		Ok(self.lock()?.execute(
-			r#"DELETE FROM book_tags WHERE book_id = ?1 AND tag_id = ?2"#,
-			[book_id, tag_id],
-		)?)
-	}
-
 
 	// Book
 

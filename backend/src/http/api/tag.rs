@@ -1,7 +1,7 @@
 use actix_web::{get, web, post, delete};
 use librarian_common::api::{self, NewTagBody};
 
-use crate::{database::Database, WebResult, model::{TagModel, NewTagModel}};
+use crate::{database::Database, WebResult, model::{TagModel, NewTagModel, BookTagWithTagModel, BookTagModel}};
 
 
 
@@ -52,7 +52,7 @@ async fn get_book_tag(
 	db: web::Data<Database>
 ) -> WebResult<web::Json<api::GetBookTagResponse>> {
 	Ok(web::Json(api::GetBookTagResponse {
-		value: db.get_book_tag_info_by_bid_tid(id.1, id.0)?.map(|v| v.into()),
+		value: BookTagWithTagModel::get_by_book_id_and_tag_id(id.1, id.0, &db)?.map(|v| v.into()),
 	}))
 }
 
@@ -62,7 +62,7 @@ async fn delete_book_tag(
 	db: web::Data<Database>
 ) -> WebResult<web::Json<api::DeletionResponse>> {
 	Ok(web::Json(api::DeletionResponse {
-		amount: db.remove_book_tag(id.1, id.0)?,
+		amount: BookTagModel::remove(id.1, id.0, &db)?,
 	}))
 }
 
@@ -73,7 +73,7 @@ async fn get_tags_for_book_id(
 	db: web::Data<Database>
 ) -> WebResult<web::Json<api::GetBookTagsResponse>> {
 	Ok(web::Json(api::GetBookTagsResponse {
-		items: db.get_book_tags_info(*book_id)?
+		items: BookTagWithTagModel::get_by_book_id(*book_id, &db)?
 			.into_iter()
 			.map(|v| v.into())
 			.collect(),
@@ -88,6 +88,6 @@ async fn add_book_tag(
 	db: web::Data<Database>
 ) -> WebResult<web::Json<api::NewBookTagResponse>> {
 	Ok(web::Json(api::NewBookTagResponse {
-		id: db.add_book_tag(*book_id, body.tag_id, body.index)?,
+		id: BookTagModel::insert(*book_id, body.tag_id, body.index, &db)?.id,
 	}))
 }

@@ -1,6 +1,8 @@
 use librarian_common::{TagType, BookTag};
 use chrono::{DateTime, TimeZone, Utc};
-use rusqlite::Row;
+use rusqlite::{Row, OptionalExtension, params};
+
+use crate::{Database, Result};
 
 use super::TagModel;
 
@@ -81,5 +83,109 @@ impl From<BookTagWithTagModel> for BookTag {
 			created_at: val.created_at,
 			tag: val.tag.into(),
 		}
+	}
+}
+
+
+
+impl BookTagModel {
+	pub fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
+		Ok(db.lock()?.query_row(
+			r#"SELECT * FROM book_tags WHERE id = ?1"#,
+			params![id],
+			|v| Self::try_from(v)
+		).optional()?)
+	}
+
+	pub fn remove(book_id: usize, tag_id: usize, db: &Database) -> Result<usize> {
+		Ok(db.lock()?.execute(
+			r#"DELETE FROM book_tags WHERE book_id = ?1 AND tag_id = ?2"#,
+			[book_id, tag_id],
+		)?)
+	}
+
+	pub fn insert(book_id: usize, tag_id: usize, index: Option<usize>, db: &Database) -> Result<Self> {
+		let index = if let Some(index) = index {
+			db.lock()?.execute(
+				r#"UPDATE book_tags
+				SET windex = windex + 1
+				WHERE book_id = ?1 AND tag_id = ?2 AND windex >= ?3"#,
+				[book_id, tag_id, index],
+			)?;
+
+			index
+		} else {
+			Self::count_book_tags_by_bid_tid(book_id, tag_id, db)?
+		};
+
+		let conn = db.lock()?;
+
+		let created_at = Utc::now();
+
+		conn.execute(r#"
+			INSERT INTO book_tags (book_id, tag_id, windex, created_at)
+			VALUES (?1, ?2, ?3, ?4)
+		"#,
+		params![
+			book_id,
+			tag_id,
+			index,
+			created_at.timestamp_millis(),
+		])?;
+
+		Ok(Self {
+			id: conn.last_insert_rowid() as usize,
+			book_id,
+			tag_id,
+			index,
+			created_at,
+		})
+	}
+
+	pub fn count_book_tags_by_bid_tid(book_id: usize, tag_id: usize, db: &Database) -> Result<usize> {
+		Ok(db.lock()?.query_row(
+			r#"SELECT COUNT(*) FROM book_tags WHERE book_id = ?1 AND tag_id = ?2"#,
+			[book_id, tag_id],
+			|v| v.get(0)
+		)?)
+	}
+
+	pub fn get_books_by_book_id(book_id: usize, db: &Database) -> Result<Vec<Self>> {
+		let this = db.lock()?;
+
+		let mut conn = this.prepare("SELECT * FROM book_tags WHERE book_id = ?1")?;
+
+		let map = conn.query_map([book_id], |v| Self::try_from(v))?;
+
+		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+	}
+}
+
+
+impl BookTagWithTagModel {
+	pub fn get_by_book_id(book_id: usize, db: &Database) -> Result<Vec<Self>> {
+		let this = db.lock()?;
+
+		let mut conn = this.prepare(
+			r#"SELECT book_tags.id, book_tags.book_id, windex, book_tags.created_at, tags.*
+			FROM book_tags
+			JOIN tags ON book_tags.tag_id == tags.id
+			WHERE book_id = ?1"#
+		)?;
+
+		let map = conn.query_map([book_id], |v| Self::try_from(v))?;
+
+		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+	}
+
+	pub fn get_by_book_id_and_tag_id(book_id: usize, tag_id: usize, db: &Database) -> Result<Option<Self>> {
+		Ok(db.lock()?.query_row(
+			r#"SELECT book_tags.id, book_tags.book_id, windex, book_tags.created_at, tags.*
+			FROM book_tags
+			JOIN tags ON book_tags.tag_id == tags.id
+			WHERE book_id = ?1 AND tag_id = ?2"#,
+			params![book_id, tag_id],
+			|v| Self::try_from(v)
+		).optional()?)
 	}
 }
