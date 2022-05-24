@@ -1,7 +1,9 @@
 use librarian_common::util::serialize_datetime;
 use chrono::{DateTime, TimeZone, Utc};
-use rusqlite::Row;
+use rusqlite::{Row, params, OptionalExtension};
 use serde::Serialize;
+
+use crate::{Database, Result};
 
 
 // TODO: type_of 0 = web page, 1 = local passwordless 2 = local password
@@ -18,21 +20,6 @@ pub struct NewMemberModel {
 
 	pub created_at: DateTime<Utc>,
 	pub updated_at: DateTime<Utc>,
-}
-
-impl NewMemberModel {
-	pub fn into_member(self, id: usize) -> MemberModel {
-		MemberModel {
-			id,
-			name: self.name,
-			email: self.email,
-			password: self.password,
-			type_of: self.type_of,
-			config: self.config,
-			created_at: self.created_at,
-			updated_at: self.updated_at,
-		}
-	}
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -86,3 +73,48 @@ impl From<MemberModel> for librarian_common::Member {
 	}
 }
 
+
+
+impl NewMemberModel {
+	pub fn insert(self, db: &Database) -> Result<MemberModel> {
+		let conn = db.lock()?;
+
+		conn.execute(r#"
+			INSERT INTO members (name, email, password, is_local, config, created_at, updated_at)
+			VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+		"#,
+		params![
+			&self.name, self.email.as_ref(), self.password.as_ref(), self.type_of, self.config.as_ref(),
+			self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
+		])?;
+
+		Ok(MemberModel {
+			id: conn.last_insert_rowid() as usize,
+			name: self.name,
+			email: self.email,
+			password: self.password,
+			type_of: self.type_of,
+			config: self.config,
+			created_at: self.created_at,
+			updated_at: self.updated_at,
+		})
+	}
+}
+
+impl MemberModel {
+	pub fn get_by_email(value: &str, db: &Database) -> Result<Option<Self>> {
+		Ok(db.lock()?.query_row(
+			r#"SELECT * FROM members WHERE email = ?1 LIMIT 1"#,
+			params![value],
+			|v| Self::try_from(v)
+		).optional()?)
+	}
+
+	pub fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
+		Ok(db.lock()?.query_row(
+			r#"SELECT * FROM members WHERE id = ?1 LIMIT 1"#,
+			params![id],
+			|v| Self::try_from(v)
+		).optional()?)
+	}
+}

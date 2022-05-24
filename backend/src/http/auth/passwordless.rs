@@ -8,7 +8,7 @@ use actix_web::{http::header, HttpResponse};
 use actix_web::web;
 
 use crate::config::get_config;
-use crate::model::{NewAuthModel, NewMemberModel};
+use crate::model::{NewAuthModel, NewMemberModel, MemberModel};
 use crate::{Result, WebResult, Error};
 use chrono::Utc;
 use lettre::message::header::ContentType;
@@ -50,7 +50,7 @@ pub async fn post_passwordless_oauth(
 		smtp_relay: String::from(""),
 	};
 
-	if !get_config().auth.new_users && db.get_member_by_email(query.0.email.trim())?.is_none() {
+	if !get_config().auth.new_users && MemberModel::get_by_email(query.0.email.trim(), &db)?.is_none() {
 		return Ok(HttpResponse::Forbidden().finish());
 	}
 
@@ -110,7 +110,7 @@ pub async fn get_passwordless_oauth_callback(
 
 	if db.remove_verify_if_found_by_oauth_token(&oauth_token)? {
 		// Create or Update User.
-		let member = if let Some(value) = db.get_member_by_email(&email)? {
+		let member = if let Some(value) = MemberModel::get_by_email(&email, &db)? {
 			value
 		} else {
 			let new_member = NewMemberModel {
@@ -124,9 +124,7 @@ pub async fn get_passwordless_oauth_callback(
 				updated_at: Utc::now(),
 			};
 
-			let inserted_id = db.add_member(&new_member)?;
-
-			new_member.into_member(inserted_id)
+			new_member.insert(&db)?
 		};
 
 		super::remember_member_auth(member.id, &identity)?;

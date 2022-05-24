@@ -273,40 +273,6 @@ impl Database {
 	}
 
 
-	// Members
-
-	pub fn add_member(&self, member: &NewMemberModel) -> Result<usize> {
-		let conn = self.lock()?;
-
-		conn.execute(r#"
-			INSERT INTO members (name, email, password, is_local, config, created_at, updated_at)
-			VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
-		"#,
-		params![
-			&member.name, member.email.as_ref(), member.password.as_ref(), member.type_of, member.config.as_ref(),
-			member.created_at.timestamp_millis(), member.updated_at.timestamp_millis()
-		])?;
-
-		Ok(conn.last_insert_rowid() as usize)
-	}
-
-	pub fn get_member_by_email(&self, value: &str) -> Result<Option<MemberModel>> {
-		Ok(self.lock()?.query_row(
-			r#"SELECT * FROM members WHERE email = ?1 LIMIT 1"#,
-			params![value],
-			|v| MemberModel::try_from(v)
-		).optional()?)
-	}
-
-	pub fn get_member_by_id(&self, id: usize) -> Result<Option<MemberModel>> {
-		Ok(self.lock()?.query_row(
-			r#"SELECT * FROM members WHERE id = ?1 LIMIT 1"#,
-			params![id],
-			|v| MemberModel::try_from(v)
-		).optional()?)
-	}
-
-
 	// Verify
 
 	pub fn add_verify(&self, auth: &NewAuthModel) -> Result<usize> {
