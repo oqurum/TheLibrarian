@@ -273,65 +273,6 @@ impl Database {
 	}
 
 
-	// Book Person
-
-	pub fn add_book_person(&self, person: &BookPersonModel) -> Result<()> {
-		self.lock()?.execute(r#"INSERT OR IGNORE INTO book_person (book_id, person_id) VALUES (?1, ?2)"#,
-		params![
-			&person.book_id,
-			&person.person_id
-		])?;
-
-		Ok(())
-	}
-
-	pub fn remove_book_person(&self, person: &BookPersonModel) -> Result<()> {
-		self.lock()?.execute(r#"DELETE FROM book_person WHERE book_id = ?1 AND person_id = ?2"#,
-		params![
-			&person.book_id,
-			&person.person_id
-		])?;
-
-		Ok(())
-	}
-
-	pub fn remove_persons_by_book_id(&self, id: usize) -> Result<()> {
-		self.lock()?.execute(r#"DELETE FROM book_person WHERE book_id = ?1"#,
-		params![
-			id
-		])?;
-
-		Ok(())
-	}
-
-	pub fn remove_book_person_by_person_id(&self, id: usize) -> Result<()> {
-		self.lock()?.execute(r#"DELETE FROM book_person WHERE person_id = ?1"#,
-		params![
-			id
-		])?;
-
-		Ok(())
-	}
-
-	pub fn transfer_book_person(&self, from_id: usize, to_id: usize) -> Result<usize> {
-		Ok(self.lock()?.execute(r#"UPDATE book_person SET person_id = ?2 WHERE person_id = ?1"#,
-		params![
-			from_id,
-			to_id
-		])?)
-	}
-
-	pub fn get_book_person_list(&self, id: usize) -> Result<Vec<BookPersonModel>> {
-		let this = self.lock()?;
-
-		let mut conn = this.prepare(r#"SELECT * FROM book_person WHERE book_id = ?1"#)?;
-
-		let map = conn.query_map([id], |v| BookPersonModel::try_from(v))?;
-
-		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
-	}
-
-
 	// Person
 
 	pub fn add_person(&self, person: &NewPersonModel) -> Result<usize> {

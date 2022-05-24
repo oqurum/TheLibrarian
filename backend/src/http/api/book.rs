@@ -44,10 +44,12 @@ pub async fn add_new_book(
 		}
 
 		for person_id in author_ids {
-			db.add_book_person(&BookPersonModel {
+			let model = BookPersonModel {
 				book_id: db_book.id,
 				person_id,
-			})?;
+			};
+
+			model.insert(&db)?;
 		}
 	}
 
