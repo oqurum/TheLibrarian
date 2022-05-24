@@ -20,7 +20,7 @@ pub mod model;
 
 pub use self::image::store_image;
 pub use error::{Result, WebResult, WebError, Error, InternalError};
-
+pub use database::Database;
 
 #[actix_web::main]
 async fn main() -> Result<()> {

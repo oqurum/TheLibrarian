@@ -41,10 +41,7 @@ pub struct NewTagBody {
 	pub type_of: TagType,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct NewTagResponse {
-	pub id: usize,
-}
+pub type NewTagResponse = TagFE;
 
 
 

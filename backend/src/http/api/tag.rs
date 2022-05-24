@@ -1,7 +1,7 @@
 use actix_web::{get, web, post, delete};
-use librarian_common::api;
+use librarian_common::api::{self, NewTagBody};
 
-use crate::{database::Database, WebResult};
+use crate::{database::Database, WebResult, model::{TagModel, NewTagModel}};
 
 
 
@@ -14,7 +14,7 @@ async fn get_tag_by_id(
 	db: web::Data<Database>
 ) -> WebResult<web::Json<api::GetTagResponse>> {
 	Ok(web::Json(api::GetTagResponse {
-		value: db.get_tag_by_id(*tag_id)?.map(|v| v.into()),
+		value: TagModel::get_by_id(*tag_id, &db)?.map(|v| v.into()),
 	}))
 }
 
@@ -23,17 +23,17 @@ async fn create_new_tag(
 	body: web::Json<api::NewTagBody>,
 	db: web::Data<Database>
 ) -> WebResult<web::Json<api::NewTagResponse>> {
-	let body = body.into_inner();
+	let NewTagBody { name, type_of } = body.into_inner();
 
-	Ok(web::Json(api::NewTagResponse {
-		id: db.add_tag(&body.name, body.type_of)?,
-	}))
+	let model = NewTagModel { name, type_of };
+
+	Ok(web::Json(model.insert(&db)?.into()))
 }
 
 #[get("/tags")]
 async fn get_tags(db: web::Data<Database>) -> WebResult<web::Json<api::GetTagsResponse>> {
 	Ok(web::Json(api::GetTagsResponse {
-		items: db.get_tags()?
+		items: TagModel::get_all(&db)?
 			.into_iter()
 			.map(|v| v.into())
 			.collect(),

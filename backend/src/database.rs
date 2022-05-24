@@ -2,7 +2,6 @@ use std::sync::{Mutex, MutexGuard};
 
 use crate::Result;
 use chrono::Utc;
-use librarian_common::TagType;
 use rusqlite::{Connection, params, OptionalExtension};
 // TODO: use tokio::task::spawn_blocking;
 
@@ -178,55 +177,13 @@ pub async fn init() -> Result<Database> {
 	Ok(Database(Mutex::new(conn)))
 }
 
-// TODO: Replace with tokio Mutex?
 pub struct Database(Mutex<Connection>);
 
 
 impl Database {
-	fn lock(&self) -> Result<MutexGuard<Connection>> {
+	pub fn lock(&self) -> Result<MutexGuard<Connection>> {
 		Ok(self.0.lock()?)
 	}
-
-	// Tag
-
-	pub fn get_tag_by_id(&self, id: usize) -> Result<Option<TagModel>> {
-		Ok(self.lock()?.query_row(
-			r#"SELECT * FROM tags WHERE id = ?1"#,
-			params![id],
-			|v| TagModel::try_from(v)
-		).optional()?)
-	}
-
-	pub fn add_tag(&self, name: &str, type_of: TagType) -> Result<usize> {
-		let conn = self.lock()?;
-
-		let (type_of, data) = type_of.split();
-
-		conn.execute(r#"
-			INSERT INTO tags (name, type_of, data, created_at, updated_at)
-			VALUES (?1, ?2, ?3, ?4, ?5)
-		"#,
-		params![
-			name,
-			type_of,
-			data,
-			Utc::now().timestamp_millis(),
-			Utc::now().timestamp_millis()
-		])?;
-
-		Ok(conn.last_insert_rowid() as usize)
-	}
-
-	pub fn get_tags(&self) -> Result<Vec<TagModel>> {
-		let this = self.lock()?;
-
-		let mut conn = this.prepare("SELECT * FROM tags")?;
-
-		let map = conn.query_map([], |v| TagModel::try_from(v))?;
-
-		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
-	}
-
 
 	// Book Tag
 

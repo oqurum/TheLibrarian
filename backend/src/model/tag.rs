@@ -1,6 +1,13 @@
 use librarian_common::{TagType, TagFE};
 use chrono::{DateTime, TimeZone, Utc};
-use rusqlite::Row;
+use rusqlite::{Row, params, OptionalExtension};
+
+use crate::{Database, Result};
+
+pub struct NewTagModel {
+	pub name: String,
+	pub type_of: TagType,
+}
 
 
 pub struct TagModel {
@@ -37,5 +44,61 @@ impl From<TagModel> for TagFE {
 			created_at: val.created_at,
 			updated_at: val.updated_at
 		}
+	}
+}
+
+
+impl TagModel {
+	pub fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
+		Ok(db.lock()?.query_row(
+			r#"SELECT * FROM tags WHERE id = ?1"#,
+			params![id],
+			|v| Self::try_from(v)
+		).optional()?)
+	}
+
+	pub fn get_all(db: &Database) -> Result<Vec<Self>> {
+		let this = db.lock()?;
+
+		let mut conn = this.prepare("SELECT * FROM tags")?;
+
+		let map = conn.query_map([], |v| Self::try_from(v))?;
+
+		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+	}
+
+
+}
+
+
+impl NewTagModel {
+	pub fn insert(self, db: &Database) -> Result<TagModel> {
+		let conn = db.lock()?;
+
+		let now = Utc::now();
+
+		let (type_of, data) = self.type_of.clone().split();
+
+		conn.execute(r#"
+			INSERT INTO tags (name, type_of, data, created_at, updated_at)
+			VALUES (?1, ?2, ?3, ?4, ?5)
+		"#,
+		params![
+			&self.name,
+			type_of,
+			data,
+			now.timestamp_millis(),
+			now.timestamp_millis()
+		])?;
+
+		Ok(TagModel {
+			id: conn.last_insert_rowid() as usize,
+
+			name: self.name,
+			type_of: self.type_of,
+
+			created_at: now,
+			updated_at: now,
+		})
 	}
 }

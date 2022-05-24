@@ -34,7 +34,7 @@ pub async fn new_tag(name: String, type_of: TagType) -> NewTagResponse {
 			name,
 			type_of
 		})
-	).await.unwrap_or_default()
+	).await.unwrap()
 }
 
 
