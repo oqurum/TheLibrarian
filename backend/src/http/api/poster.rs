@@ -6,7 +6,7 @@ use chrono::Utc;
 use futures::TryStreamExt;
 use librarian_common::{Poster, api, Either};
 
-use crate::{WebResult, Error, store_image, database::Database, model::{NewPosterModel, BookModel}};
+use crate::{WebResult, Error, store_image, database::Database, model::{NewImageModel, BookModel, ImageModel}};
 
 
 
@@ -26,7 +26,7 @@ async fn get_poster_list(
 ) -> WebResult<web::Json<api::GetPostersResponse>> {
 	let meta = BookModel::get_by_id(*path, &db)?.unwrap();
 
-	let items: Vec<Poster> = db.get_posters_by_linked_id(*path)?
+	let items: Vec<Poster> = ImageModel::get_by_linked_id(*path, &db)?
 		.into_iter()
 		.map(|poster| Poster {
 			id: Some(poster.id),
@@ -65,15 +65,15 @@ async fn post_change_poster(
 
 			meta.thumb_path = hash;
 
-			db.add_poster(&NewPosterModel {
+			(NewImageModel {
 				link_id: meta.id,
 				path: meta.thumb_path.clone(),
 				created_at: Utc::now(),
-			})?;
+			}).insert(&db)?;
 		}
 
 		Either::Right(id) => {
-			let poster = db.get_poster_by_id(id)?.unwrap();
+			let poster = ImageModel::get_by_id(id, &db)?.unwrap();
 
 			if meta.thumb_path == poster.path {
 				return Ok(HttpResponse::Ok().finish());
@@ -105,11 +105,11 @@ async fn post_upload_poster(
 
 	let hash = store_image(file.into_inner()).await?;
 
-	db.add_poster(&NewPosterModel {
+	(NewImageModel {
 		link_id: book.id,
 		path: hash,
 		created_at: Utc::now(),
-	})?;
+	}).insert(&db)?;
 
 	Ok(HttpResponse::Ok().finish())
 }

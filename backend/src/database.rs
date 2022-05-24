@@ -1,7 +1,7 @@
 use std::sync::{Mutex, MutexGuard};
 
 use crate::Result;
-use rusqlite::{Connection, params, OptionalExtension};
+use rusqlite::{Connection, params};
 // TODO: use tokio::task::spawn_blocking;
 
 use crate::model::*;
@@ -270,46 +270,5 @@ impl Database {
 		};
 
 		Ok(self.lock()?.query_row(&sql, [], |v| v.get(0))?)
-	}
-
-
-	// Poster
-
-	pub fn add_poster(&self, poster: &NewPosterModel) -> Result<usize> {
-		if poster.path.is_none() {
-			return Ok(0);
-		}
-
-		let conn = self.lock()?;
-
-		conn.execute(r#"
-			INSERT OR IGNORE INTO uploaded_images (link_id, path, created_at)
-			VALUES (?1, ?2, ?3)
-		"#,
-		params![
-			poster.link_id,
-			poster.path.to_string(),
-			poster.created_at.timestamp_millis()
-		])?;
-
-		Ok(conn.last_insert_rowid() as usize)
-	}
-
-	pub fn get_posters_by_linked_id(&self, id: usize) -> Result<Vec<PosterModel>> {
-		let this = self.lock()?;
-
-		let mut conn = this.prepare(r#"SELECT * FROM uploaded_images WHERE link_id = ?1"#)?;
-
-		let map = conn.query_map([id], |v| PosterModel::try_from(v))?;
-
-		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
-	}
-
-	pub fn get_poster_by_id(&self, id: usize) -> Result<Option<PosterModel>> {
-		Ok(self.lock()?.query_row(
-			r#"SELECT * FROM uploaded_images WHERE id = ?1 LIMIT 1"#,
-			params![id],
-			|v| PosterModel::try_from(v)
-		).optional()?)
 	}
 }

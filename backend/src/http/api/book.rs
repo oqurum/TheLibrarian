@@ -4,7 +4,7 @@ use chrono::Utc;
 use librarian_common::{api, DisplayItem};
 
 use crate::metadata::MetadataReturned;
-use crate::model::{NewPosterModel, BookPersonModel, BookModel, BookTagWithTagModel, PersonModel};
+use crate::model::{NewImageModel, BookPersonModel, BookModel, BookTagWithTagModel, PersonModel};
 use crate::{WebResult, metadata, Error};
 use crate::database::Database;
 
@@ -36,11 +36,11 @@ pub async fn add_new_book(
 		db_book.add_or_update_book(&db)?;
 
 		for path in posters_to_add {
-			db.add_poster(&NewPosterModel {
+			(NewImageModel {
 				link_id: db_book.id,
 				path,
 				created_at: Utc::now(),
-			})?;
+			}).insert(&db)?;
 		}
 
 		for person_id in author_ids {

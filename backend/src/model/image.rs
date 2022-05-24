@@ -1,11 +1,13 @@
 use librarian_common::{ThumbnailStore, util::serialize_datetime};
 use chrono::{DateTime, TimeZone, Utc};
-use rusqlite::Row;
+use rusqlite::{Row, params, OptionalExtension};
 use serde::Serialize;
+
+use crate::{Result, Database};
 
 
 #[derive(Serialize)]
-pub struct NewPosterModel {
+pub struct NewImageModel {
 	pub link_id: usize,
 
 	pub path: ThumbnailStore,
@@ -16,7 +18,7 @@ pub struct NewPosterModel {
 
 
 #[derive(Debug, Serialize)]
-pub struct PosterModel {
+pub struct ImageModel {
 	pub id: usize,
 
 	pub link_id: usize,
@@ -27,7 +29,7 @@ pub struct PosterModel {
 	pub created_at: DateTime<Utc>,
 }
 
-impl<'a> TryFrom<&Row<'a>> for PosterModel {
+impl<'a> TryFrom<&Row<'a>> for ImageModel {
 	type Error = rusqlite::Error;
 
 	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
@@ -40,3 +42,47 @@ impl<'a> TryFrom<&Row<'a>> for PosterModel {
 	}
 }
 
+
+impl NewImageModel {
+	pub fn insert(self, db: &Database) -> Result<ImageModel> {
+		let conn = db.lock()?;
+
+		conn.execute(r#"
+			INSERT OR IGNORE INTO uploaded_images (link_id, path, created_at)
+			VALUES (?1, ?2, ?3)
+		"#,
+		params![
+			self.link_id,
+			self.path.to_string(),
+			self.created_at.timestamp_millis()
+		])?;
+
+		Ok(ImageModel {
+			id: conn.last_insert_rowid() as usize,
+			link_id: self.link_id,
+			path: self.path,
+			created_at: self.created_at,
+		})
+	}
+}
+
+
+impl ImageModel {
+	pub fn get_by_linked_id(id: usize, db: &Database) -> Result<Vec<Self>> {
+		let this = db.lock()?;
+
+		let mut conn = this.prepare(r#"SELECT * FROM uploaded_images WHERE link_id = ?1"#)?;
+
+		let map = conn.query_map([id], |v| Self::try_from(v))?;
+
+		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+	}
+
+	pub fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
+		Ok(db.lock()?.query_row(
+			r#"SELECT * FROM uploaded_images WHERE id = ?1 LIMIT 1"#,
+			[id],
+			|v| Self::try_from(v)
+		).optional()?)
+	}
+}
