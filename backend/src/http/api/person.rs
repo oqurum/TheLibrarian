@@ -1,7 +1,7 @@
 use actix_web::{web, get, HttpResponse};
 use librarian_common::api;
 
-use crate::{database::{Database}, WebResult, Error};
+use crate::{database::{Database}, WebResult, Error, model::PersonModel};
 
 
 // Get List Of People and Search For People
@@ -15,7 +15,7 @@ pub async fn load_author_list(
 
 	// Return Searched People
 	if let Some(query) = query.query.as_deref() {
-		let items = db.search_person_list(query, offset, limit)?
+		let items = PersonModel::search(query, offset, limit, &db)?
 			.into_iter()
 			.map(|v| v.into())
 			.collect();
@@ -30,7 +30,7 @@ pub async fn load_author_list(
 
 	// Return All People
 	else {
-		let items = db.get_person_list(offset, limit)?
+		let items = PersonModel::get_all(offset, limit, &db)?
 			.into_iter()
 			.map(|v| v.into())
 			.collect();
@@ -38,7 +38,7 @@ pub async fn load_author_list(
 		Ok(web::Json(api::GetPeopleResponse {
 			offset,
 			limit,
-			total: db.get_person_count()?,
+			total: PersonModel::get_count(&db)?,
 			items
 		}))
 	}
@@ -48,7 +48,7 @@ pub async fn load_author_list(
 // Person
 #[get("/person/{id}")]
 async fn load_person(person_id: web::Path<usize>, db: web::Data<Database>) -> WebResult<web::Json<api::GetPersonResponse>> {
-	let person = db.get_person_by_id(*person_id)?.unwrap();
+	let person = PersonModel::get_by_id(*person_id, &db)?.unwrap();
 
 	Ok(web::Json(api::GetPersonResponse {
 		person: person.into()
@@ -59,7 +59,7 @@ async fn load_person(person_id: web::Path<usize>, db: web::Data<Database>) -> We
 // Person Thumbnail
 #[get("/person/{id}/thumbnail")]
 async fn load_person_thumbnail(person_id: web::Path<usize>, db: web::Data<Database>) -> WebResult<HttpResponse> {
-	let meta = db.get_person_by_id(*person_id)?;
+	let meta = PersonModel::get_by_id(*person_id, &db)?;
 
 	if let Some(loc) = meta.map(|v| v.thumb_url) {
 		let path = crate::image::hash_to_path(loc.as_value());

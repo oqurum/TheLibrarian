@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use librarian_common::{SearchFor, Source, MetadataItemCached, ThumbnailStore};
 use chrono::Utc;
 
-use crate::{Result, database::Database, model::{NewPersonModel, TagPersonAltModel, BookModel}};
+use crate::{Result, database::Database, model::{NewPersonModel, PersonAltModel, BookModel, PersonModel}};
 
 use self::{
 	google_books::GoogleBooksMetadata,
@@ -201,7 +201,7 @@ impl MetadataReturned {
 		if let Some(authors_with_alts) = self.authors.take() {
 			for author_info in authors_with_alts {
 				// Check if we already have a person by that name anywhere in the two database tables.
-				if let Some(person) = db.get_person_by_name(&author_info.name)? {
+				if let Some(person) = PersonModel::get_by_name(&author_info.name, db)? {
 					person_ids.push(person.id);
 
 					if main_author.is_none() {
@@ -232,7 +232,7 @@ impl MetadataReturned {
 					}
 				}
 
-				let author = NewPersonModel {
+				let new_person = NewPersonModel {
 					source: author_info.source,
 					name: author_info.name,
 					description: author_info.description,
@@ -243,24 +243,21 @@ impl MetadataReturned {
 					created_at: Utc::now(),
 				};
 
-				let person_id = db.add_person(&author)?;
+				let person = new_person.insert(db)?;
 
 				if let Some(alts) = author_info.other_names {
 					for name in alts {
 						// Ignore errors. Errors should just be UNIQUE constraint failed
-						if let Err(e) = db.add_person_alt(&TagPersonAltModel {
-							person_id,
-							name,
-						}) {
+						if let Err(e) = (PersonAltModel { person_id: person.id, name, }).insert(db) {
 							eprintln!("[OL]: Add Alt Name Error: {e}");
 						}
 					}
 				}
 
-				person_ids.push(person_id);
+				person_ids.push(person.id);
 
 				if main_author.is_none() {
-					main_author = Some(author.name);
+					main_author = Some(person.name);
 				}
 			}
 		}

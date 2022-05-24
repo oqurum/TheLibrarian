@@ -4,7 +4,7 @@ use chrono::Utc;
 use librarian_common::{api, DisplayItem};
 
 use crate::metadata::MetadataReturned;
-use crate::model::{NewPosterModel, BookPersonModel, BookModel, BookTagWithTagModel};
+use crate::model::{NewPosterModel, BookPersonModel, BookModel, BookTagWithTagModel, PersonModel};
 use crate::{WebResult, metadata, Error};
 use crate::database::Database;
 
@@ -126,7 +126,7 @@ pub async fn load_book_list(
 #[get("/book/{id}")]
 pub async fn get_book_info(book_id: web::Path<usize>, db: web::Data<Database>) -> WebResult<web::Json<api::MediaViewResponse>> {
 	let book = BookModel::get_by_id(*book_id, &db)?.unwrap();
-	let people = db.get_person_list_by_meta_id(book.id)?;
+	let people = PersonModel::get_all_by_book_id(book.id, &db)?;
 	let tags = BookTagWithTagModel::get_by_book_id(book.id, &db)?;
 
 	Ok(web::Json(api::MediaViewResponse {
