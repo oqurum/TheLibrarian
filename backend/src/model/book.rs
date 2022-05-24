@@ -1,7 +1,9 @@
 use librarian_common::{MetadataItemCached, DisplayMetaItem, ThumbnailStore, util::{serialize_datetime, serialize_datetime_opt}, search::PublicBook};
 use chrono::{DateTime, TimeZone, Utc};
-use rusqlite::Row;
+use rusqlite::{Row, params, OptionalExtension};
 use serde::Serialize;
+
+use crate::{Database, Result};
 
 
 #[derive(Debug, Clone, Serialize)]
@@ -138,3 +140,110 @@ impl Into<PublicBook> for BookModel {
 	}
 }
 
+
+impl BookModel {
+	pub fn get_book_count(db: &Database) -> Result<usize> {
+		Ok(db.lock()?.query_row(r#"SELECT COUNT(*) FROM book"#, [], |v| v.get(0))?)
+	}
+
+	pub fn add_or_update_book(&mut self, db: &Database) -> Result<()> {
+		let does_book_exist = if self.id != 0 {
+			// TODO: Make sure we don't for some use a non-existent id and remove this block.
+			Self::get_by_id(self.id, db)?.is_some()
+		} else {
+			false
+		};
+
+		if does_book_exist {
+			self.update_book(db)?;
+
+			Ok(())
+		} else {
+			let lock = db.lock()?;
+
+			lock.execute(r#"
+				INSERT INTO book (
+					title, clean_title, description, rating, thumb_url,
+					cached, is_public,
+					isbn_10, isbn_13,
+					available_at, language,
+					created_at, updated_at, deleted_at
+				)
+				VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)"#,
+				params![
+					&self.title, &self.clean_title, &self.description, self.rating, self.thumb_path.to_optional_string(),
+					&self.cached.as_string_optional(), self.is_public,
+					&self.isbn_10, &self.isbn_13,
+					&self.available_at, self.language,
+					self.created_at.timestamp_millis(), self.updated_at.timestamp_millis(),
+					self.deleted_at.as_ref().map(|v| v.timestamp_millis()),
+				]
+			)?;
+
+			self.id = lock.last_insert_rowid() as usize;
+
+			drop(lock);
+
+			Ok(())
+		}
+	}
+
+	pub fn update_book(&mut self, db: &Database) -> Result<()> {
+		self.updated_at = Utc::now();
+
+		db.lock()?
+		.execute(r#"
+			UPDATE book SET
+				title = ?2, clean_title = ?3, description = ?4, rating = ?5, thumb_url = ?6,
+				cached = ?7, is_public = ?8,
+				isbn_10 = ?9, isbn_13 = ?10,
+				available_at = ?11, language = ?12,
+				updated_at = ?15, deleted_at = ?16
+			WHERE id = ?1"#,
+			params![
+				self.id,
+				&self.title, &self.clean_title, &self.description, &self.rating, self.thumb_path.to_optional_string(),
+				&self.cached.as_string_optional(), self.is_public,
+				&self.isbn_10, &self.isbn_13,
+				&self.available_at, &self.language,
+				&self.updated_at.timestamp_millis(), self.deleted_at.as_ref().map(|v| v.timestamp_millis()),
+			]
+		)?;
+
+		Ok(())
+	}
+
+	pub fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
+		Ok(db.lock()?.query_row(
+			r#"SELECT * FROM book WHERE id = ?1 LIMIT 1"#,
+			params![id],
+			|v| Self::try_from(v)
+		).optional()?)
+	}
+
+	pub fn remove_by_id(&self, id: usize, db: &Database) -> Result<usize> {
+		Ok(db.lock()?.execute(
+			r#"DELETE FROM book WHERE id = ?1"#,
+			params![id]
+		)?)
+	}
+
+	pub fn get_book_by(offset: usize, limit: usize, only_public: bool, person_id: Option<usize>, db: &Database) -> Result<Vec<Self>> {
+		let this = db.lock()?;
+
+		let inner_query = if let Some(pid) = person_id {
+			format!(
+				r#"WHERE id = (SELECT book_id FROM book_person WHERE person_id = {})"#,
+				pid
+			)
+		} else {
+			String::new()
+		};
+
+		let mut conn = this.prepare(&format!("SELECT * FROM book {} LIMIT ?1 OFFSET ?2", inner_query))?;
+
+		let map = conn.query_map([limit, offset], |v| Self::try_from(v))?;
+
+		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+	}
+}

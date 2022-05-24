@@ -29,11 +29,11 @@ pub async fn add_new_book(
 			}
 		}
 
-		let mut meta: BookModel = meta.into();
+		let mut db_book: BookModel = meta.into();
 
-		meta.cached = meta.cached.publisher_optional(publisher).author_optional(main_author);
+		db_book.cached = db_book.cached.publisher_optional(publisher).author_optional(main_author);
 
-		let db_book = db.add_or_update_book(&meta)?;
+		db_book.add_or_update_book(&db)?;
 
 		for path in posters_to_add {
 			db.add_poster(&NewPosterModel {
@@ -90,13 +90,14 @@ pub async fn load_book_list(
 
 		(items, count)
 	} else {
-		let count = db.get_book_count()?;
+		let count = BookModel::get_book_count(&db)?;
 
-		let items = db.get_book_by(
+		let items = BookModel::get_book_by(
 			query.offset.unwrap_or(0),
 			query.limit.unwrap_or(50),
 			false,
 			query.person_id,
+			&db,
 		)?
 			.into_iter()
 			.map(|meta| {
@@ -122,7 +123,7 @@ pub async fn load_book_list(
 
 #[get("/book/{id}")]
 pub async fn get_book_info(book_id: web::Path<usize>, db: web::Data<Database>) -> WebResult<web::Json<api::MediaViewResponse>> {
-	let book = db.get_book_by_id(*book_id)?.unwrap();
+	let book = BookModel::get_by_id(*book_id, &db)?.unwrap();
 	let people = db.get_person_list_by_meta_id(book.id)?;
 	let tags = BookTagWithTagModel::get_by_book_id(book.id, &db)?;
 
@@ -149,7 +150,8 @@ pub async fn update_book_id(
 	if let Some(mut book) = body.metadata {
 		book.updated_at = Utc::now();
 
-		db.update_book(&book.into())?;
+		let mut book: BookModel = book.into();
+		book.update_book(&db)?;
 	}
 
 	Ok(HttpResponse::Ok().finish())
@@ -162,7 +164,7 @@ pub async fn update_book_id(
 async fn load_book_thumbnail(path: web::Path<usize>, db: web::Data<Database>) -> WebResult<HttpResponse> {
 	let book_id = path.into_inner();
 
-	let meta = db.get_book_by_id(book_id)?;
+	let meta = BookModel::get_by_id(book_id, &db)?;
 
 	if let Some(loc) = meta.map(|v| v.thumb_path) {
 		let path = crate::image::hash_to_path(loc.as_value());

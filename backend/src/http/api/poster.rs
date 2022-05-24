@@ -6,7 +6,7 @@ use chrono::Utc;
 use futures::TryStreamExt;
 use librarian_common::{Poster, api, Either};
 
-use crate::{WebResult, Error, store_image, database::Database, model::NewPosterModel};
+use crate::{WebResult, Error, store_image, database::Database, model::{NewPosterModel, BookModel}};
 
 
 
@@ -24,7 +24,7 @@ async fn get_poster_list(
 	path: web::Path<usize>,
 	db: web::Data<Database>
 ) -> WebResult<web::Json<api::GetPostersResponse>> {
-	let meta = db.get_book_by_id(*path)?.unwrap();
+	let meta = BookModel::get_by_id(*path, &db)?.unwrap();
 
 	let items: Vec<Poster> = db.get_posters_by_linked_id(*path)?
 		.into_iter()
@@ -51,7 +51,7 @@ async fn post_change_poster(
 	body: web::Json<api::ChangePosterBody>,
 	db: web::Data<Database>
 ) -> WebResult<HttpResponse> {
-	let mut meta = db.get_book_by_id(*metadata_id)?.unwrap();
+	let mut meta = BookModel::get_by_id(*metadata_id, &db)?.unwrap();
 
 	match body.into_inner().url_or_id {
 		Either::Left(url) => {
@@ -83,7 +83,7 @@ async fn post_change_poster(
 		}
 	}
 
-	db.update_book(&meta)?;
+	meta.update_book(&db)?;
 
 	Ok(HttpResponse::Ok().finish())
 }
@@ -95,7 +95,7 @@ async fn post_upload_poster(
 	mut body: web::Payload,
 	db: web::Data<Database>,
 ) -> WebResult<HttpResponse> {
-	let book = db.get_book_by_id(*book_id)?.unwrap();
+	let book = BookModel::get_by_id(*book_id, &db)?.unwrap();
 
 	let mut file = std::io::Cursor::new(Vec::new());
 
