@@ -44,8 +44,8 @@ impl<'a> TryFrom<&Row<'a>> for ImageModel {
 
 
 impl NewImageModel {
-	pub fn insert(self, db: &Database) -> Result<ImageModel> {
-		let conn = db.lock()?;
+	pub async fn insert(self, db: &Database) -> Result<ImageModel> {
+		let conn = db.write().await;
 
 		conn.execute(r#"
 			INSERT OR IGNORE INTO uploaded_images (link_id, path, created_at)
@@ -68,8 +68,8 @@ impl NewImageModel {
 
 
 impl ImageModel {
-	pub fn get_by_linked_id(id: usize, db: &Database) -> Result<Vec<Self>> {
-		let this = db.lock()?;
+	pub async fn get_by_linked_id(id: usize, db: &Database) -> Result<Vec<Self>> {
+		let this = db.read().await;
 
 		let mut conn = this.prepare(r#"SELECT * FROM uploaded_images WHERE link_id = ?1"#)?;
 
@@ -78,8 +78,8 @@ impl ImageModel {
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
 
-	pub fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
-		Ok(db.lock()?.query_row(
+	pub async fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
+		Ok(db.read().await.query_row(
 			r#"SELECT * FROM uploaded_images WHERE id = ?1 LIMIT 1"#,
 			[id],
 			|v| Self::try_from(v)

@@ -142,24 +142,24 @@ impl Into<PublicBook> for BookModel {
 
 
 impl BookModel {
-	pub fn get_book_count(db: &Database) -> Result<usize> {
-		Ok(db.lock()?.query_row(r#"SELECT COUNT(*) FROM book"#, [], |v| v.get(0))?)
+	pub async fn get_book_count(db: &Database) -> Result<usize> {
+		Ok(db.read().await.query_row(r#"SELECT COUNT(*) FROM book"#, [], |v| v.get(0))?)
 	}
 
-	pub fn add_or_update_book(&mut self, db: &Database) -> Result<()> {
+	pub async fn add_or_update_book(&mut self, db: &Database) -> Result<()> {
 		let does_book_exist = if self.id != 0 {
 			// TODO: Make sure we don't for some use a non-existent id and remove this block.
-			Self::get_by_id(self.id, db)?.is_some()
+			Self::get_by_id(self.id, db).await?.is_some()
 		} else {
 			false
 		};
 
 		if does_book_exist {
-			self.update_book(db)?;
+			self.update_book(db).await?;
 
 			Ok(())
 		} else {
-			let lock = db.lock()?;
+			let lock = db.write().await;
 
 			lock.execute(r#"
 				INSERT INTO book (
@@ -188,10 +188,10 @@ impl BookModel {
 		}
 	}
 
-	pub fn update_book(&mut self, db: &Database) -> Result<()> {
+	pub async fn update_book(&mut self, db: &Database) -> Result<()> {
 		self.updated_at = Utc::now();
 
-		db.lock()?
+		db.write().await
 		.execute(r#"
 			UPDATE book SET
 				title = ?2, clean_title = ?3, description = ?4, rating = ?5, thumb_url = ?6,
@@ -213,23 +213,23 @@ impl BookModel {
 		Ok(())
 	}
 
-	pub fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
-		Ok(db.lock()?.query_row(
+	pub async fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
+		Ok(db.read().await.query_row(
 			r#"SELECT * FROM book WHERE id = ?1 LIMIT 1"#,
 			params![id],
 			|v| Self::try_from(v)
 		).optional()?)
 	}
 
-	pub fn remove_by_id(&self, id: usize, db: &Database) -> Result<usize> {
-		Ok(db.lock()?.execute(
+	pub async fn remove_by_id(id: usize, db: &Database) -> Result<usize> {
+		Ok(db.write().await.execute(
 			r#"DELETE FROM book WHERE id = ?1"#,
 			params![id]
 		)?)
 	}
 
-	pub fn get_book_by(offset: usize, limit: usize, only_public: bool, person_id: Option<usize>, db: &Database) -> Result<Vec<Self>> {
-		let this = db.lock()?;
+	pub async fn get_book_by(offset: usize, limit: usize, only_public: bool, person_id: Option<usize>, db: &Database) -> Result<Vec<Self>> {
+		let this = db.read().await;
 
 		let inner_query = if let Some(pid) = person_id {
 			format!(
@@ -308,7 +308,7 @@ impl BookModel {
 		}
 	}
 
-	pub fn search_book_list(
+	pub async fn search_book_list(
 		query: Option<&str>,
 		offset: usize,
 		limit: usize,
@@ -323,7 +323,7 @@ impl BookModel {
 
 		sql += "LIMIT ?1 OFFSET ?2";
 
-		let this = db.lock()?;
+		let this = db.read().await;
 
 		let mut conn = this.prepare(&sql)?;
 
@@ -332,7 +332,7 @@ impl BookModel {
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
 
-	pub fn count_search_book(
+	pub async fn count_search_book(
 		query: Option<&str>,
 		only_public: bool,
 		person_id: Option<usize>,
@@ -343,6 +343,6 @@ impl BookModel {
 			None => return Ok(0)
 		};
 
-		Ok(db.lock()?.query_row(&sql, [], |v| v.get(0))?)
+		Ok(db.read().await.query_row(&sql, [], |v| v.get(0))?)
 	}
 }

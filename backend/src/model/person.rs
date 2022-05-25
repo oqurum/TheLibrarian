@@ -79,8 +79,8 @@ impl From<PersonModel> for Person {
 
 
 impl NewPersonModel {
-	pub fn insert(self, db: &Database) -> Result<PersonModel> {
-		let conn = db.lock()?;
+	pub async fn insert(self, db: &Database) -> Result<PersonModel> {
+		let conn = db.write().await;
 
 		conn.execute(r#"
 			INSERT INTO person (source, name, description, birth_date, thumb_url, updated_at, created_at)
@@ -106,8 +106,8 @@ impl NewPersonModel {
 
 
 impl PersonModel {
-	pub fn get_all(offset: usize, limit: usize, db: &Database) -> Result<Vec<Self>> {
-		let this = db.lock()?;
+	pub async fn get_all(offset: usize, limit: usize, db: &Database) -> Result<Vec<Self>> {
+		let this = db.read().await;
 
 		let mut conn = this.prepare(r#"SELECT * FROM person LIMIT ?1 OFFSET ?2"#)?;
 
@@ -116,8 +116,8 @@ impl PersonModel {
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
 
-	pub fn get_all_by_book_id(book_id: usize, db: &Database) -> Result<Vec<Self>> {
-		let this = db.lock()?;
+	pub async fn get_all_by_book_id(book_id: usize, db: &Database) -> Result<Vec<Self>> {
+		let this = db.read().await;
 
 		let mut conn = this.prepare(r#"
 			SELECT person.* FROM book_person
@@ -131,7 +131,7 @@ impl PersonModel {
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
 
-	pub fn search(query: &str, offset: usize, limit: usize, db: &Database) -> Result<Vec<Self>> {
+	pub async fn search(query: &str, offset: usize, limit: usize, db: &Database) -> Result<Vec<Self>> {
 		let mut escape_char = '\\';
 
 		// Change our escape character if it's in the query.
@@ -151,7 +151,7 @@ impl PersonModel {
 		);
 
 
-		let this = db.lock()?;
+		let this = db.read().await;
 
 		let mut conn = this.prepare(&sql)?;
 
@@ -160,8 +160,8 @@ impl PersonModel {
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
 
-	pub fn get_by_name(value: &str, db: &Database) -> Result<Option<Self>> {
-		let person = db.lock()?.query_row(
+	pub async fn get_by_name(value: &str, db: &Database) -> Result<Option<Self>> {
+		let person = db.read().await.query_row(
 			r#"SELECT * FROM person WHERE name = ?1 LIMIT 1"#,
 			params![value],
 			|v| Self::try_from(v)
@@ -169,35 +169,35 @@ impl PersonModel {
 
 		if let Some(person) = person {
 			Ok(Some(person))
-		} else if let Some(alt) = PersonAltModel::get_by_name(value, db)? {
-			Self::get_by_id(alt.person_id, db)
+		} else if let Some(alt) = PersonAltModel::get_by_name(value, db).await? {
+			Self::get_by_id(alt.person_id, db).await
 		} else {
 			Ok(None)
 		}
 	}
 
-	pub fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
-		Ok(db.lock()?.query_row(
+	pub async fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
+		Ok(db.read().await.query_row(
 			r#"SELECT * FROM person WHERE id = ?1 LIMIT 1"#,
 			params![id],
 			|v| Self::try_from(v)
 		).optional()?)
 	}
 
-	pub fn get_by_source(value: &str, db: &Database) -> Result<Option<Self>> {
-		Ok(db.lock()?.query_row(
+	pub async fn get_by_source(value: &str, db: &Database) -> Result<Option<Self>> {
+		Ok(db.read().await.query_row(
 			r#"SELECT * FROM person WHERE source = ?1 LIMIT 1"#,
 			params![value],
 			|v| Self::try_from(v)
 		).optional()?)
 	}
 
-	pub fn get_count(db: &Database) -> Result<usize> {
-		Ok(db.lock()?.query_row(r#"SELECT COUNT(*) FROM person"#, [], |v| v.get(0))?)
+	pub async fn get_count(db: &Database) -> Result<usize> {
+		Ok(db.read().await.query_row(r#"SELECT COUNT(*) FROM person"#, [], |v| v.get(0))?)
 	}
 
-	pub fn update(&self, db: &Database) -> Result<()> {
-		db.lock()?
+	pub async fn update(&self, db: &Database) -> Result<()> {
+		db.write().await
 		.execute(r#"
 			UPDATE person SET
 				source = ?2,
@@ -218,8 +218,8 @@ impl PersonModel {
 		Ok(())
 	}
 
-	pub fn remove_by_id(id: usize, db: &Database) -> Result<usize> {
-		Ok(db.lock()?.execute(
+	pub async fn remove_by_id(id: usize, db: &Database) -> Result<usize> {
+		Ok(db.write().await.execute(
 			r#"DELETE FROM person WHERE id = ?1"#,
 			params![id]
 		)?)

@@ -24,9 +24,9 @@ async fn get_poster_list(
 	path: web::Path<usize>,
 	db: web::Data<Database>
 ) -> WebResult<web::Json<api::GetPostersResponse>> {
-	let meta = BookModel::get_by_id(*path, &db)?.unwrap();
+	let meta = BookModel::get_by_id(*path, &db).await?.unwrap();
 
-	let items: Vec<Poster> = ImageModel::get_by_linked_id(*path, &db)?
+	let items: Vec<Poster> = ImageModel::get_by_linked_id(*path, &db).await?
 		.into_iter()
 		.map(|poster| Poster {
 			id: Some(poster.id),
@@ -51,7 +51,7 @@ async fn post_change_poster(
 	body: web::Json<api::ChangePosterBody>,
 	db: web::Data<Database>
 ) -> WebResult<HttpResponse> {
-	let mut meta = BookModel::get_by_id(*metadata_id, &db)?.unwrap();
+	let mut meta = BookModel::get_by_id(*metadata_id, &db).await?.unwrap();
 
 	match body.into_inner().url_or_id {
 		Either::Left(url) => {
@@ -69,11 +69,11 @@ async fn post_change_poster(
 				link_id: meta.id,
 				path: meta.thumb_path.clone(),
 				created_at: Utc::now(),
-			}).insert(&db)?;
+			}).insert(&db).await?;
 		}
 
 		Either::Right(id) => {
-			let poster = ImageModel::get_by_id(id, &db)?.unwrap();
+			let poster = ImageModel::get_by_id(id, &db).await?.unwrap();
 
 			if meta.thumb_path == poster.path {
 				return Ok(HttpResponse::Ok().finish());
@@ -83,7 +83,7 @@ async fn post_change_poster(
 		}
 	}
 
-	meta.update_book(&db)?;
+	meta.update_book(&db).await?;
 
 	Ok(HttpResponse::Ok().finish())
 }
@@ -95,7 +95,7 @@ async fn post_upload_poster(
 	mut body: web::Payload,
 	db: web::Data<Database>,
 ) -> WebResult<HttpResponse> {
-	let book = BookModel::get_by_id(*book_id, &db)?.unwrap();
+	let book = BookModel::get_by_id(*book_id, &db).await?.unwrap();
 
 	let mut file = std::io::Cursor::new(Vec::new());
 
@@ -109,7 +109,7 @@ async fn post_upload_poster(
 		link_id: book.id,
 		path: hash,
 		created_at: Utc::now(),
-	}).insert(&db)?;
+	}).insert(&db).await?;
 
 	Ok(HttpResponse::Ok().finish())
 }

@@ -14,7 +14,7 @@ async fn get_tag_by_id(
 	db: web::Data<Database>
 ) -> WebResult<web::Json<api::GetTagResponse>> {
 	Ok(web::Json(api::GetTagResponse {
-		value: TagModel::get_by_id(*tag_id, &db)?.map(|v| v.into()),
+		value: TagModel::get_by_id(*tag_id, &db).await?.map(|v| v.into()),
 	}))
 }
 
@@ -27,13 +27,13 @@ async fn create_new_tag(
 
 	let model = NewTagModel { name, type_of };
 
-	Ok(web::Json(model.insert(&db)?.into()))
+	Ok(web::Json(model.insert(&db).await?.into()))
 }
 
 #[get("/tags")]
 async fn get_tags(db: web::Data<Database>) -> WebResult<web::Json<api::GetTagsResponse>> {
 	Ok(web::Json(api::GetTagsResponse {
-		items: TagModel::get_all(&db)?
+		items: TagModel::get_all(&db).await?
 			.into_iter()
 			.map(|v| v.into())
 			.collect(),
@@ -52,7 +52,7 @@ async fn get_book_tag(
 	db: web::Data<Database>
 ) -> WebResult<web::Json<api::GetBookTagResponse>> {
 	Ok(web::Json(api::GetBookTagResponse {
-		value: BookTagWithTagModel::get_by_book_id_and_tag_id(id.1, id.0, &db)?.map(|v| v.into()),
+		value: BookTagWithTagModel::get_by_book_id_and_tag_id(id.1, id.0, &db).await?.map(|v| v.into()),
 	}))
 }
 
@@ -62,7 +62,7 @@ async fn delete_book_tag(
 	db: web::Data<Database>
 ) -> WebResult<web::Json<api::DeletionResponse>> {
 	Ok(web::Json(api::DeletionResponse {
-		amount: BookTagModel::remove(id.1, id.0, &db)?,
+		amount: BookTagModel::remove(id.1, id.0, &db).await?,
 	}))
 }
 
@@ -73,7 +73,7 @@ async fn get_tags_for_book_id(
 	db: web::Data<Database>
 ) -> WebResult<web::Json<api::GetBookTagsResponse>> {
 	Ok(web::Json(api::GetBookTagsResponse {
-		items: BookTagWithTagModel::get_by_book_id(*book_id, &db)?
+		items: BookTagWithTagModel::get_by_book_id(*book_id, &db).await?
 			.into_iter()
 			.map(|v| v.into())
 			.collect(),
@@ -88,6 +88,6 @@ async fn add_book_tag(
 	db: web::Data<Database>
 ) -> WebResult<web::Json<api::NewBookTagResponse>> {
 	Ok(web::Json(api::NewBookTagResponse {
-		id: BookTagModel::insert(*book_id, body.tag_id, body.index, &db)?.id,
+		id: BookTagModel::insert(*book_id, body.tag_id, body.index, &db).await?.id,
 	}))
 }

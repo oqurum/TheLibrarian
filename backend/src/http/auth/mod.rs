@@ -6,7 +6,7 @@ use chrono::Utc;
 use futures::{future::LocalBoxFuture, FutureExt};
 use serde::{Deserialize, Serialize};
 
-use crate::{Result, database::Database, model::MemberModel};
+use crate::Result;
 
 pub mod password;
 pub mod passwordless;
@@ -22,11 +22,6 @@ pub struct CookieAuth {
 pub fn get_auth_value(identity: &Identity) -> Option<CookieAuth> {
 	let ident = identity.identity()?;
 	serde_json::from_str(&ident).ok()
-}
-
-pub fn get_auth_member(identity: &Identity, db: &Database) -> Option<MemberModel> {
-	let store = get_auth_value(identity)?;
-	MemberModel::get_by_id(store.member_id, db).ok().flatten()
 }
 
 pub fn remember_member_auth(member_id: usize, identity: &Identity) -> Result<()> {

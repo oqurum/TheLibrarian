@@ -21,7 +21,7 @@ pub async fn public_search(
 		!query.view_private,
 		None,
 		&db,
-	)?;
+	).await?;
 
 	let items = BookModel::search_book_list(
 		Some(&query.query),
@@ -30,7 +30,7 @@ pub async fn public_search(
 		!query.view_private,
 		None,
 		&db,
-	)?;
+	).await?;
 
 	let host = format!(
 		"//{}",

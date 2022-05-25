@@ -1,4 +1,6 @@
-use std::sync::{Mutex, MutexGuard};
+use std::sync::Arc;
+
+use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::Result;
 use rusqlite::Connection;
@@ -172,14 +174,22 @@ pub async fn init() -> Result<Database> {
 		[]
 	)?;
 
-	Ok(Database(Mutex::new(conn)))
+	Ok(Database(Arc::new(RwLock::new(conn))))
 }
 
-pub struct Database(Mutex<Connection>);
+pub struct Database(Arc<RwLock<Connection>>);
+
+// TODO: Why did Mutex<Connection> work without this but Arc<tokio::RwLock<Connection>> doesn't.
+unsafe impl Send for Database {}
+unsafe impl Sync for Database {}
 
 
 impl Database {
-	pub fn lock(&self) -> Result<MutexGuard<Connection>> {
-		Ok(self.0.lock()?)
+	pub async fn read(&self) -> RwLockReadGuard<'_, Connection> {
+		self.0.read().await
+	}
+
+	pub async fn write(&self) -> RwLockWriteGuard<'_, Connection> {
+		self.0.write().await
 	}
 }

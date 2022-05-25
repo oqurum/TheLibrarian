@@ -49,16 +49,16 @@ impl From<TagModel> for TagFE {
 
 
 impl TagModel {
-	pub fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
-		Ok(db.lock()?.query_row(
+	pub async fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
+		Ok(db.read().await.query_row(
 			r#"SELECT * FROM tags WHERE id = ?1"#,
 			params![id],
 			|v| Self::try_from(v)
 		).optional()?)
 	}
 
-	pub fn get_all(db: &Database) -> Result<Vec<Self>> {
-		let this = db.lock()?;
+	pub async fn get_all(db: &Database) -> Result<Vec<Self>> {
+		let this = db.read().await;
 
 		let mut conn = this.prepare("SELECT * FROM tags")?;
 
@@ -66,14 +66,12 @@ impl TagModel {
 
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
-
-
 }
 
 
 impl NewTagModel {
-	pub fn insert(self, db: &Database) -> Result<TagModel> {
-		let conn = db.lock()?;
+	pub async fn insert(self, db: &Database) -> Result<TagModel> {
+		let conn = db.write().await;
 
 		let now = Utc::now();
 

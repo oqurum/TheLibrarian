@@ -89,24 +89,24 @@ impl From<BookTagWithTagModel> for BookTag {
 
 
 impl BookTagModel {
-	pub fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
-		Ok(db.lock()?.query_row(
+	pub async fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
+		Ok(db.read().await.query_row(
 			r#"SELECT * FROM book_tags WHERE id = ?1"#,
 			params![id],
 			|v| Self::try_from(v)
 		).optional()?)
 	}
 
-	pub fn remove(book_id: usize, tag_id: usize, db: &Database) -> Result<usize> {
-		Ok(db.lock()?.execute(
+	pub async fn remove(book_id: usize, tag_id: usize, db: &Database) -> Result<usize> {
+		Ok(db.write().await.execute(
 			r#"DELETE FROM book_tags WHERE book_id = ?1 AND tag_id = ?2"#,
 			[book_id, tag_id],
 		)?)
 	}
 
-	pub fn insert(book_id: usize, tag_id: usize, index: Option<usize>, db: &Database) -> Result<Self> {
+	pub async fn insert(book_id: usize, tag_id: usize, index: Option<usize>, db: &Database) -> Result<Self> {
 		let index = if let Some(index) = index {
-			db.lock()?.execute(
+			db.write().await.execute(
 				r#"UPDATE book_tags
 				SET windex = windex + 1
 				WHERE book_id = ?1 AND tag_id = ?2 AND windex >= ?3"#,
@@ -115,10 +115,10 @@ impl BookTagModel {
 
 			index
 		} else {
-			Self::count_book_tags_by_bid_tid(book_id, tag_id, db)?
+			Self::count_book_tags_by_bid_tid(book_id, tag_id, db).await?
 		};
 
-		let conn = db.lock()?;
+		let conn = db.write().await;
 
 		let created_at = Utc::now();
 
@@ -142,16 +142,16 @@ impl BookTagModel {
 		})
 	}
 
-	pub fn count_book_tags_by_bid_tid(book_id: usize, tag_id: usize, db: &Database) -> Result<usize> {
-		Ok(db.lock()?.query_row(
+	pub async fn count_book_tags_by_bid_tid(book_id: usize, tag_id: usize, db: &Database) -> Result<usize> {
+		Ok(db.read().await.query_row(
 			r#"SELECT COUNT(*) FROM book_tags WHERE book_id = ?1 AND tag_id = ?2"#,
 			[book_id, tag_id],
 			|v| v.get(0)
 		)?)
 	}
 
-	pub fn get_books_by_book_id(book_id: usize, db: &Database) -> Result<Vec<Self>> {
-		let this = db.lock()?;
+	pub async fn get_books_by_book_id(book_id: usize, db: &Database) -> Result<Vec<Self>> {
+		let this = db.read().await;
 
 		let mut conn = this.prepare("SELECT * FROM book_tags WHERE book_id = ?1")?;
 
@@ -163,8 +163,8 @@ impl BookTagModel {
 
 
 impl BookTagWithTagModel {
-	pub fn get_by_book_id(book_id: usize, db: &Database) -> Result<Vec<Self>> {
-		let this = db.lock()?;
+	pub async fn get_by_book_id(book_id: usize, db: &Database) -> Result<Vec<Self>> {
+		let this = db.read().await;
 
 		let mut conn = this.prepare(
 			r#"SELECT book_tags.id, book_tags.book_id, windex, book_tags.created_at, tags.*
@@ -178,8 +178,8 @@ impl BookTagWithTagModel {
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
 
-	pub fn get_by_book_id_and_tag_id(book_id: usize, tag_id: usize, db: &Database) -> Result<Option<Self>> {
-		Ok(db.lock()?.query_row(
+	pub async fn get_by_book_id_and_tag_id(book_id: usize, tag_id: usize, db: &Database) -> Result<Option<Self>> {
+		Ok(db.read().await.query_row(
 			r#"SELECT book_tags.id, book_tags.book_id, windex, book_tags.created_at, tags.*
 			FROM book_tags
 			JOIN tags ON book_tags.tag_id == tags.id

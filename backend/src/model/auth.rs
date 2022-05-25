@@ -11,8 +11,8 @@ pub struct AuthModel {
 }
 
 impl AuthModel {
-	pub fn insert(&self, db: &Database) -> Result<()> {
-		let conn = db.lock()?;
+	pub async fn insert(&self, db: &Database) -> Result<()> {
+		let conn = db.write().await;
 
 		conn.execute(r#"
 			INSERT INTO auths (oauth_token, oauth_token_secret, created_at)
@@ -27,8 +27,8 @@ impl AuthModel {
 		Ok(())
 	}
 
-	pub fn remove_by_oauth_token(value: &str, db: &Database) -> Result<bool> {
-		Ok(db.lock()?.execute(
+	pub async fn remove_by_oauth_token(value: &str, db: &Database) -> Result<bool> {
+		Ok(db.write().await.execute(
 			r#"DELETE FROM auths WHERE oauth_token = ?1 LIMIT 1"#,
 			params![value],
 		)? != 0)

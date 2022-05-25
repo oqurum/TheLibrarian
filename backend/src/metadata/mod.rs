@@ -201,7 +201,7 @@ impl MetadataReturned {
 		if let Some(authors_with_alts) = self.authors.take() {
 			for author_info in authors_with_alts {
 				// Check if we already have a person by that name anywhere in the two database tables.
-				if let Some(person) = PersonModel::get_by_name(&author_info.name, db)? {
+				if let Some(person) = PersonModel::get_by_name(&author_info.name, db).await? {
 					person_ids.push(person.id);
 
 					if main_author.is_none() {
@@ -243,12 +243,12 @@ impl MetadataReturned {
 					created_at: Utc::now(),
 				};
 
-				let person = new_person.insert(db)?;
+				let person = new_person.insert(db).await?;
 
 				if let Some(alts) = author_info.other_names {
 					for name in alts {
 						// Ignore errors. Errors should just be UNIQUE constraint failed
-						if let Err(e) = (PersonAltModel { person_id: person.id, name, }).insert(db) {
+						if let Err(e) = (PersonAltModel { person_id: person.id, name, }).insert(db).await {
 							eprintln!("[OL]: Add Alt Name Error: {e}");
 						}
 					}

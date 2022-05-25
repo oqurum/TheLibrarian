@@ -76,8 +76,8 @@ impl From<MemberModel> for librarian_common::Member {
 
 
 impl NewMemberModel {
-	pub fn insert(self, db: &Database) -> Result<MemberModel> {
-		let conn = db.lock()?;
+	pub async fn insert(self, db: &Database) -> Result<MemberModel> {
+		let conn = db.write().await;
 
 		conn.execute(r#"
 			INSERT INTO members (name, email, password, is_local, config, created_at, updated_at)
@@ -102,16 +102,16 @@ impl NewMemberModel {
 }
 
 impl MemberModel {
-	pub fn get_by_email(value: &str, db: &Database) -> Result<Option<Self>> {
-		Ok(db.lock()?.query_row(
+	pub async fn get_by_email(value: &str, db: &Database) -> Result<Option<Self>> {
+		Ok(db.read().await.query_row(
 			r#"SELECT * FROM members WHERE email = ?1 LIMIT 1"#,
 			params![value],
 			|v| Self::try_from(v)
 		).optional()?)
 	}
 
-	pub fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
-		Ok(db.lock()?.query_row(
+	pub async fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
+		Ok(db.read().await.query_row(
 			r#"SELECT * FROM members WHERE id = ?1 LIMIT 1"#,
 			params![id],
 			|v| Self::try_from(v)
