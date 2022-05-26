@@ -1,4 +1,4 @@
-use librarian_common::{Person, Source, ThumbnailStore, util::serialize_datetime};
+use librarian_common::{BookId, PersonId, Person, Source, ThumbnailStore, util::serialize_datetime};
 use chrono::{DateTime, TimeZone, Utc};
 use rusqlite::{Row, params, OptionalExtension};
 use serde::Serialize;
@@ -25,7 +25,7 @@ pub struct NewPersonModel {
 
 #[derive(Debug, Serialize)]
 pub struct PersonModel {
-	pub id: usize,
+	pub id: PersonId,
 
 	pub source: Source,
 
@@ -65,7 +65,7 @@ impl<'a> TryFrom<&Row<'a>> for PersonModel {
 impl From<PersonModel> for Person {
 	fn from(val: PersonModel) -> Self {
 		Person {
-			id: val.id,
+			id: *val.id,
 			source: val.source,
 			name: val.name,
 			description: val.description,
@@ -92,7 +92,7 @@ impl NewPersonModel {
 		])?;
 
 		Ok(PersonModel {
-			id: conn.last_insert_rowid() as usize,
+			id: PersonId::from(conn.last_insert_rowid() as usize),
 			source: self.source,
 			name: self.name,
 			description: self.description,
@@ -116,7 +116,7 @@ impl PersonModel {
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
 
-	pub async fn get_all_by_book_id(book_id: usize, db: &Database) -> Result<Vec<Self>> {
+	pub async fn get_all_by_book_id(book_id: BookId, db: &Database) -> Result<Vec<Self>> {
 		let this = db.read().await;
 
 		let mut conn = this.prepare(r#"
@@ -176,7 +176,7 @@ impl PersonModel {
 		}
 	}
 
-	pub async fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
+	pub async fn get_by_id(id: PersonId, db: &Database) -> Result<Option<Self>> {
 		Ok(db.read().await.query_row(
 			r#"SELECT * FROM person WHERE id = ?1 LIMIT 1"#,
 			params![id],

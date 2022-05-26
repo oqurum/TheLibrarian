@@ -1,6 +1,6 @@
 use gloo_file::{FileList, Blob};
 use gloo_utils::window;
-use librarian_common::Id;
+use librarian_common::{Either, BookId};
 use wasm_bindgen::{JsCast, prelude::Closure, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{HtmlElement, RequestInit};
@@ -18,7 +18,7 @@ pub struct Property {
 
 	pub children: Children,
 
-	pub id: Id,
+	pub id: Either<BookId, usize>,
 
 	pub on_upload: Option<Callback<()>>
 }
@@ -73,7 +73,7 @@ impl Component for UploadModule {
 				.send_future(async move {
 					for file in files.iter() {
 						match id {
-							Id::Book(id) => {
+							Either::Left(id) => {
 								let mut opts = RequestInit::new();
 								opts.method("POST");
 								opts.body(Some(&JsValue::from((file as &Blob).clone())));
@@ -84,7 +84,7 @@ impl Component for UploadModule {
 								)).await;
 							}
 
-							Id::Author(_id) => {
+							Either::Right(_id) => {
 								//
 							}
 						}

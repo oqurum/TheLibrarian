@@ -15,7 +15,7 @@ pub use ids::*;
 
 
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
 pub enum Either<A, B> {
 	Left(A),
 	Right(B),

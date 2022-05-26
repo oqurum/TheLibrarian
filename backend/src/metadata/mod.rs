@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::{Deref, DerefMut}};
 
 use async_trait::async_trait;
-use librarian_common::{SearchFor, Source, MetadataItemCached, ThumbnailStore};
+use librarian_common::{PersonId, BookId, SearchFor, Source, MetadataItemCached, ThumbnailStore};
 use chrono::Utc;
 
 use crate::{Result, database::Database, model::{NewPersonModel, PersonAltModel, BookModel, PersonModel}};
@@ -194,7 +194,7 @@ pub struct MetadataReturned {
 
 impl MetadataReturned {
 	/// Returns (Main Author, Person IDs)
-	pub async fn add_or_ignore_authors_into_database(&mut self, db: &Database) -> Result<(Option<String>, Vec<usize>)> {
+	pub async fn add_or_ignore_authors_into_database(&mut self, db: &Database) -> Result<(Option<String>, Vec<PersonId>)> {
 		let mut main_author = None;
 		let mut person_ids = Vec::new();
 
@@ -289,7 +289,7 @@ pub struct FoundItem {
 impl From<FoundItem> for BookModel {
 	fn from(val: FoundItem) -> Self {
 		BookModel {
-			id: 0,
+			id: BookId::none(),
 			title: val.title.clone(),
 			clean_title: val.title,
 			description: val.description,

@@ -1,7 +1,7 @@
 use actix_web::{get, web, HttpResponse, post};
 
 use chrono::Utc;
-use librarian_common::{api, DisplayItem};
+use librarian_common::{api, DisplayItem, BookId, PersonId};
 
 use crate::metadata::MetadataReturned;
 use crate::model::{NewImageModel, BookPersonModel, BookModel, BookTagWithTagModel, PersonModel};
@@ -66,7 +66,7 @@ pub async fn load_book_list(
 	let (items, count) = if let Some(search) = query.search_query() {
 		let search = search?;
 
-		let count = BookModel::count_search_book(search.query.as_deref(), false, query.person_id, &db).await?;
+		let count = BookModel::count_search_book(search.query.as_deref(), false, query.person_id.map(PersonId::from), &db).await?;
 
 		let items = if count == 0 {
 			Vec::new()
@@ -76,13 +76,13 @@ pub async fn load_book_list(
 				query.offset.unwrap_or(0),
 				query.limit.unwrap_or(50),
 				false,
-				query.person_id,
+				query.person_id.map(PersonId::from),
 				&db
 			).await?
 				.into_iter()
 				.map(|meta| {
 					DisplayItem {
-						id: meta.id,
+						id: *meta.id,
 						title: meta.title.or(meta.clean_title).unwrap_or_default(),
 						cached: meta.cached,
 						has_thumbnail: meta.thumb_path.is_some()
@@ -99,13 +99,13 @@ pub async fn load_book_list(
 			query.offset.unwrap_or(0),
 			query.limit.unwrap_or(50),
 			false,
-			query.person_id,
+			query.person_id.map(PersonId::from),
 			&db,
 		).await?
 			.into_iter()
 			.map(|meta| {
 				DisplayItem {
-					id: meta.id,
+					id: *meta.id,
 					title: meta.title.or(meta.clean_title).unwrap_or_default(),
 					cached: meta.cached,
 					has_thumbnail: meta.thumb_path.is_some()
@@ -125,7 +125,7 @@ pub async fn load_book_list(
 
 
 #[get("/book/{id}")]
-pub async fn get_book_info(book_id: web::Path<usize>, db: web::Data<Database>) -> WebResult<web::Json<api::MediaViewResponse>> {
+pub async fn get_book_info(book_id: web::Path<BookId>, db: web::Data<Database>) -> WebResult<web::Json<api::MediaViewResponse>> {
 	let book = BookModel::get_by_id(*book_id, &db).await?.unwrap();
 	let people = PersonModel::get_all_by_book_id(book.id, &db).await?;
 	let tags = BookTagWithTagModel::get_by_book_id(book.id, &db).await?;
@@ -164,7 +164,7 @@ pub async fn update_book_id(
 
 
 #[get("/book/{id}/thumbnail")]
-async fn load_book_thumbnail(path: web::Path<usize>, db: web::Data<Database>) -> WebResult<HttpResponse> {
+async fn load_book_thumbnail(path: web::Path<BookId>, db: web::Data<Database>) -> WebResult<HttpResponse> {
 	let book_id = path.into_inner();
 
 	let meta = BookModel::get_by_id(book_id, &db).await?;

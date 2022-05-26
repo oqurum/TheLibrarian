@@ -1,4 +1,4 @@
-use librarian_common::{TagType, TagFE};
+use librarian_common::{TagId, TagType, TagFE};
 use chrono::{DateTime, TimeZone, Utc};
 use rusqlite::{Row, params, OptionalExtension};
 
@@ -11,7 +11,7 @@ pub struct NewTagModel {
 
 
 pub struct TagModel {
-	pub id: usize,
+	pub id: TagId,
 
 	pub name: String,
 	pub type_of: TagType,
@@ -38,7 +38,7 @@ impl<'a> TryFrom<&Row<'a>> for TagModel {
 impl From<TagModel> for TagFE {
 	fn from(val: TagModel) -> Self {
 		TagFE {
-			id: val.id,
+			id: *val.id,
 			name: val.name,
 			type_of: val.type_of,
 			created_at: val.created_at,
@@ -49,7 +49,7 @@ impl From<TagModel> for TagFE {
 
 
 impl TagModel {
-	pub async fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
+	pub async fn get_by_id(id: TagId, db: &Database) -> Result<Option<Self>> {
 		Ok(db.read().await.query_row(
 			r#"SELECT * FROM tags WHERE id = ?1"#,
 			params![id],
@@ -90,7 +90,7 @@ impl NewTagModel {
 		])?;
 
 		Ok(TagModel {
-			id: conn.last_insert_rowid() as usize,
+			id: TagId::from(conn.last_insert_rowid() as usize),
 
 			name: self.name,
 			type_of: self.type_of,

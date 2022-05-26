@@ -1,4 +1,4 @@
-use librarian_common::{ThumbnailStore, util::serialize_datetime};
+use librarian_common::{ThumbnailStore, ImageId, BookId, util::serialize_datetime};
 use chrono::{DateTime, TimeZone, Utc};
 use rusqlite::{Row, params, OptionalExtension};
 use serde::Serialize;
@@ -8,7 +8,7 @@ use crate::{Result, Database};
 
 #[derive(Serialize)]
 pub struct NewImageModel {
-	pub link_id: usize,
+	pub link_id: BookId, // TODO: Fix
 
 	pub path: ThumbnailStore,
 
@@ -19,9 +19,9 @@ pub struct NewImageModel {
 
 #[derive(Debug, Serialize)]
 pub struct ImageModel {
-	pub id: usize,
+	pub id: ImageId,
 
-	pub link_id: usize,
+	pub link_id: BookId, // TODO: Fix
 
 	pub path: ThumbnailStore,
 
@@ -58,7 +58,7 @@ impl NewImageModel {
 		])?;
 
 		Ok(ImageModel {
-			id: conn.last_insert_rowid() as usize,
+			id: ImageId::from(conn.last_insert_rowid() as usize),
 			link_id: self.link_id,
 			path: self.path,
 			created_at: self.created_at,
@@ -68,7 +68,7 @@ impl NewImageModel {
 
 
 impl ImageModel {
-	pub async fn get_by_linked_id(id: usize, db: &Database) -> Result<Vec<Self>> {
+	pub async fn get_by_linked_id(id: BookId, db: &Database) -> Result<Vec<Self>> {
 		let this = db.read().await;
 
 		let mut conn = this.prepare(r#"SELECT * FROM uploaded_images WHERE link_id = ?1"#)?;
@@ -78,7 +78,7 @@ impl ImageModel {
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
 
-	pub async fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
+	pub async fn get_by_id(id: ImageId, db: &Database) -> Result<Option<Self>> {
 		Ok(db.read().await.query_row(
 			r#"SELECT * FROM uploaded_images WHERE id = ?1 LIMIT 1"#,
 			[id],

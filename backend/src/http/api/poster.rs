@@ -4,7 +4,7 @@ use actix_files::NamedFile;
 use actix_web::{get, post, web, HttpResponse, Responder};
 use chrono::Utc;
 use futures::TryStreamExt;
-use librarian_common::{Poster, api, Either};
+use librarian_common::{Poster, api, Either, BookId, ImageId};
 
 use crate::{WebResult, Error, store_image, database::Database, model::{NewImageModel, BookModel, ImageModel}};
 
@@ -21,7 +21,7 @@ async fn get_local_image(id: web::Path<String>) -> impl Responder {
 
 #[get("/posters/{meta_id}")]
 async fn get_poster_list(
-	path: web::Path<usize>,
+	path: web::Path<BookId>,
 	db: web::Data<Database>
 ) -> WebResult<web::Json<api::GetPostersResponse>> {
 	let meta = BookModel::get_by_id(*path, &db).await?.unwrap();
@@ -29,7 +29,7 @@ async fn get_poster_list(
 	let items: Vec<Poster> = ImageModel::get_by_linked_id(*path, &db).await?
 		.into_iter()
 		.map(|poster| Poster {
-			id: Some(poster.id),
+			id: Some(*poster.id),
 
 			selected: poster.path == meta.thumb_path,
 
@@ -47,11 +47,11 @@ async fn get_poster_list(
 
 #[post("/posters/{meta_id}")]
 async fn post_change_poster(
-	metadata_id: web::Path<usize>,
+	book_id: web::Path<BookId>,
 	body: web::Json<api::ChangePosterBody>,
 	db: web::Data<Database>
 ) -> WebResult<HttpResponse> {
-	let mut meta = BookModel::get_by_id(*metadata_id, &db).await?.unwrap();
+	let mut meta = BookModel::get_by_id(*book_id, &db).await?.unwrap();
 
 	match body.into_inner().url_or_id {
 		Either::Left(url) => {
@@ -73,7 +73,7 @@ async fn post_change_poster(
 		}
 
 		Either::Right(id) => {
-			let poster = ImageModel::get_by_id(id, &db).await?.unwrap();
+			let poster = ImageModel::get_by_id(ImageId::from(id), &db).await?.unwrap();
 
 			if meta.thumb_path == poster.path {
 				return Ok(HttpResponse::Ok().finish());
@@ -91,7 +91,7 @@ async fn post_change_poster(
 
 #[post("/posters/{book_id}/upload")]
 async fn post_upload_poster(
-	book_id: web::Path<usize>,
+	book_id: web::Path<BookId>,
 	mut body: web::Payload,
 	db: web::Data<Database>,
 ) -> WebResult<HttpResponse> {

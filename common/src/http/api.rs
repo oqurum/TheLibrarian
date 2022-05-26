@@ -7,7 +7,7 @@ use crate::{
 	BasicLibrary, BasicDirectory, Chapter,
 	DisplayItem, DisplayMetaItem, Person,
 	SearchType, Source, Member, Poster,
-	Result, TagFE, BookTag, TagType
+	Result, TagFE, BookTag, TagType,
 };
 
 

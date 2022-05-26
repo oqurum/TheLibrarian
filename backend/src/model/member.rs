@@ -1,4 +1,4 @@
-use librarian_common::util::serialize_datetime;
+use librarian_common::{MemberId, util::serialize_datetime};
 use chrono::{DateTime, TimeZone, Utc};
 use rusqlite::{Row, params, OptionalExtension};
 use serde::Serialize;
@@ -24,7 +24,7 @@ pub struct NewMemberModel {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct MemberModel {
-	pub id: usize,
+	pub id: MemberId,
 
 	pub name: String,
 	pub email: Option<String>,
@@ -62,7 +62,7 @@ impl<'a> TryFrom<&Row<'a>> for MemberModel {
 impl From<MemberModel> for librarian_common::Member {
 	fn from(value: MemberModel) -> librarian_common::Member {
 		librarian_common::Member {
-			id: value.id,
+			id: *value.id,
 			name: value.name,
 			email: value.email,
 			type_of: value.type_of,
@@ -89,7 +89,7 @@ impl NewMemberModel {
 		])?;
 
 		Ok(MemberModel {
-			id: conn.last_insert_rowid() as usize,
+			id: MemberId::from(conn.last_insert_rowid() as usize),
 			name: self.name,
 			email: self.email,
 			password: self.password,
@@ -110,7 +110,7 @@ impl MemberModel {
 		).optional()?)
 	}
 
-	pub async fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
+	pub async fn get_by_id(id: MemberId, db: &Database) -> Result<Option<Self>> {
 		Ok(db.read().await.query_row(
 			r#"SELECT * FROM members WHERE id = ?1 LIMIT 1"#,
 			params![id],

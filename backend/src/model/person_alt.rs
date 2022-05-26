@@ -2,11 +2,13 @@ use rusqlite::{Row, params, OptionalExtension};
 
 use serde::Serialize;
 
+use librarian_common::PersonId;
+
 use crate::{Database, Result};
 
 #[derive(Debug, Serialize)]
 pub struct PersonAltModel {
-	pub person_id: usize,
+	pub person_id: PersonId,
 	pub name: String,
 }
 
@@ -52,14 +54,14 @@ impl PersonAltModel {
 		).optional()?)
 	}
 
-	pub async fn remove_by_person_id(id: usize, db: &Database) -> Result<usize> {
+	pub async fn remove_by_person_id(id: PersonId, db: &Database) -> Result<usize> {
 		Ok(db.write().await.execute(
 			r#"DELETE FROM person_alt WHERE person_id = ?1"#,
 			params![id]
 		)?)
 	}
 
-	pub async fn transfer_by_person_id(&self, from_id: usize, to_id: usize, db: &Database) -> Result<usize> {
+	pub async fn transfer_by_person_id(&self, from_id: PersonId, to_id: PersonId, db: &Database) -> Result<usize> {
 		Ok(db.write().await.execute(r#"UPDATE OR IGNORE person_alt SET person_id = ?2 WHERE person_id = ?1"#,
 		params![
 			from_id,

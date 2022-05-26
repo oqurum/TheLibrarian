@@ -1,4 +1,4 @@
-use librarian_common::{MetadataItemCached, DisplayMetaItem, ThumbnailStore, util::{serialize_datetime, serialize_datetime_opt}, search::PublicBook};
+use librarian_common::{MetadataItemCached, DisplayMetaItem, ThumbnailStore, BookId, PersonId, util::{serialize_datetime, serialize_datetime_opt}, search::PublicBook};
 use chrono::{DateTime, TimeZone, Utc};
 use rusqlite::{Row, params, OptionalExtension};
 use serde::Serialize;
@@ -8,7 +8,7 @@ use crate::{Database, Result};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct BookModel {
-	pub id: usize,
+	pub id: BookId,
 
 	pub title: Option<String>,
 	pub clean_title: Option<String>,
@@ -71,7 +71,7 @@ impl<'a> TryFrom<&Row<'a>> for BookModel {
 impl From<BookModel> for DisplayMetaItem {
 	fn from(val: BookModel) -> Self {
 		DisplayMetaItem {
-			id: val.id,
+			id: *val.id,
 			title: val.title,
 			clean_title: val.clean_title,
 			description: val.description,
@@ -94,7 +94,7 @@ impl From<BookModel> for DisplayMetaItem {
 impl From<DisplayMetaItem> for BookModel {
 	fn from(val: DisplayMetaItem) -> Self {
 		BookModel {
-			id: val.id,
+			id: BookId::from(val.id),
 			title: val.title,
 			clean_title: val.clean_title,
 			description: val.description,
@@ -119,7 +119,7 @@ impl From<DisplayMetaItem> for BookModel {
 impl Into<PublicBook> for BookModel {
 	fn into(self) -> PublicBook {
 		PublicBook {
-			id: self.id,
+			id: *self.id,
 			title: self.title,
 			clean_title: self.clean_title,
 			description: self.description,
@@ -180,7 +180,7 @@ impl BookModel {
 				]
 			)?;
 
-			self.id = lock.last_insert_rowid() as usize;
+			self.id = BookId::from(lock.last_insert_rowid() as usize);
 
 			drop(lock);
 
@@ -213,7 +213,7 @@ impl BookModel {
 		Ok(())
 	}
 
-	pub async fn get_by_id(id: usize, db: &Database) -> Result<Option<Self>> {
+	pub async fn get_by_id(id: BookId, db: &Database) -> Result<Option<Self>> {
 		Ok(db.read().await.query_row(
 			r#"SELECT * FROM book WHERE id = ?1 LIMIT 1"#,
 			params![id],
@@ -221,14 +221,14 @@ impl BookModel {
 		).optional()?)
 	}
 
-	pub async fn remove_by_id(id: usize, db: &Database) -> Result<usize> {
+	pub async fn remove_by_id(id: BookId, db: &Database) -> Result<usize> {
 		Ok(db.write().await.execute(
 			r#"DELETE FROM book WHERE id = ?1"#,
 			params![id]
 		)?)
 	}
 
-	pub async fn get_book_by(offset: usize, limit: usize, only_public: bool, person_id: Option<usize>, db: &Database) -> Result<Vec<Self>> {
+	pub async fn get_book_by(offset: usize, limit: usize, only_public: bool, person_id: Option<PersonId>, db: &Database) -> Result<Vec<Self>> {
 		let this = db.read().await;
 
 		let inner_query = if let Some(pid) = person_id {
@@ -248,7 +248,7 @@ impl BookModel {
 	}
 
 
-	fn gen_search_query(query: Option<&str>, only_public: bool, person_id: Option<usize>) -> Option<String> {
+	fn gen_search_query(query: Option<&str>, only_public: bool, person_id: Option<PersonId>) -> Option<String> {
 		let mut sql = String::from("SELECT * FROM book WHERE ");
 		let orig_len = sql.len();
 
@@ -313,7 +313,7 @@ impl BookModel {
 		offset: usize,
 		limit: usize,
 		only_public: bool,
-		person_id: Option<usize>,
+		person_id: Option<PersonId>,
 		db: &Database
 	) -> Result<Vec<Self>> {
 		let mut sql = match Self::gen_search_query(query, only_public, person_id) {
@@ -335,7 +335,7 @@ impl BookModel {
 	pub async fn count_search_book(
 		query: Option<&str>,
 		only_public: bool,
-		person_id: Option<usize>,
+		person_id: Option<PersonId>,
 		db: &Database
 	) -> Result<usize> {
 		let sql = match Self::gen_search_query(query, only_public, person_id) {
