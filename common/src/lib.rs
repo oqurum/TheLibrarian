@@ -23,7 +23,7 @@ pub use error::{Result, Error};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct TagFE {
-	pub id: usize,
+	pub id: TagId,
 
 	pub name: String,
 	pub type_of: TagType,
@@ -116,9 +116,9 @@ impl TagType {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct BookTag {
-	pub id: usize,
+	pub id: BookTagId,
 
-	pub book_id: usize,
+	pub book_id: BookId,
 
 	pub index: usize,
 
@@ -136,7 +136,7 @@ pub struct BookTag {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Member {
-	pub id: usize,
+	pub id: MemberId,
 
 	pub name: String,
 	pub email: Option<String>,
@@ -158,7 +158,7 @@ pub struct Member {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Person {
-	pub id: usize,
+	pub id: PersonId,
 
 	pub source: Source,
 
@@ -195,7 +195,7 @@ impl PartialEq for Person {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DisplayItem {
-	pub id: usize,
+	pub id: BookId,
 
 	pub title: String,
 	pub cached: MetadataItemCached,
@@ -235,7 +235,7 @@ impl From<DisplayMetaItem> for DisplayItem {
 /// Clone of Model.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct DisplayMetaItem {
-	pub id: usize,
+	pub id: BookId,
 
 	pub title: Option<String>,
 	pub clean_title: Option<String>,
@@ -306,7 +306,7 @@ impl Default for DisplayMetaItem {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MediaItem {
-	pub id: usize,
+	pub id: BookId,
 
 	pub path: String,
 
@@ -465,7 +465,7 @@ pub enum SearchForBooksBy {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Poster {
-	pub id: Option<usize>,
+	pub id: Option<ImageId>,
 
 	pub selected: bool,
 

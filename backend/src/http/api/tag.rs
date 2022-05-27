@@ -88,6 +88,6 @@ async fn add_book_tag(
 	db: web::Data<Database>
 ) -> WebResult<web::Json<api::NewBookTagResponse>> {
 	Ok(web::Json(api::NewBookTagResponse {
-		id: BookTagModel::insert(*book_id, TagId::from(body.tag_id), body.index, &db).await?.id,
+		id: BookTagModel::insert(*book_id, body.tag_id, body.index, &db).await?.id,
 	}))
 }

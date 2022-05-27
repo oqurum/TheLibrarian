@@ -1,6 +1,6 @@
 use std::{rc::Rc, sync::Mutex};
 
-use librarian_common::{api, DisplayItem};
+use librarian_common::{api, DisplayItem, BookId};
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{HtmlElement, UrlSearchParams, HtmlInputElement};
 use yew::{prelude::*, html::Scope};
@@ -24,7 +24,7 @@ pub enum Msg {
 
 	InitEventListenerAfterMediaItems,
 
-	AddOrRemoveItemFromEditing(usize, bool),
+	AddOrRemoveItemFromEditing(BookId, bool),
 	DeselectAllEditing,
 
 	Ignore
@@ -42,7 +42,7 @@ pub struct HomePage {
 
 	library_list_ref: NodeRef,
 
-	editing_items: Rc<Mutex<Vec<usize>>>,
+	editing_items: Rc<Mutex<Vec<usize>>>, // TODO: Change to BookId
 }
 
 impl Component for HomePage {
@@ -84,10 +84,10 @@ impl Component for HomePage {
 				let mut items = self.editing_items.lock().unwrap();
 
 				if value {
-					if !items.iter().any(|v| *v == id) {
-						items.push(id);
+					if !items.iter().any(|v| id == *v) {
+						items.push(*id);
 					}
-				} else if let Some(index) = items.iter().position(|v| *v == id) {
+				} else if let Some(index) = items.iter().position(|v| id == *v) {
 					items.swap_remove(index);
 				}
 			}

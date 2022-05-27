@@ -38,7 +38,7 @@ impl<'a> TryFrom<&Row<'a>> for TagModel {
 impl From<TagModel> for TagFE {
 	fn from(val: TagModel) -> Self {
 		TagFE {
-			id: *val.id,
+			id: val.id,
 			name: val.name,
 			type_of: val.type_of,
 			created_at: val.created_at,

@@ -1,5 +1,5 @@
 use js_sys::Date;
-use librarian_common::{api::{MediaViewResponse, self, GetPostersResponse, GetTagsResponse}, Either, TagType, BookTag, LANGUAGES, util::string_to_upper_case, BookId};
+use librarian_common::{api::{MediaViewResponse, self, GetPostersResponse, GetTagsResponse}, Either, TagType, BookTag, LANGUAGES, util::string_to_upper_case, BookId, TagId};
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{HtmlInputElement, HtmlTextAreaElement, HtmlSelectElement};
 use yew::{prelude::*, html::Scope};
@@ -14,7 +14,7 @@ pub enum Msg {
 	RetrieveMediaView(Box<MediaViewResponse>),
 	RetrievePosters(GetPostersResponse),
 
-	MultiselectToggle(bool, usize),
+	MultiselectToggle(bool, TagId),
 	MultiselectCreate(TagType, MultiselectNewItem),
 	MultiCreateResponse(BookTag),
 	AllTagsResponse(GetTagsResponse),
@@ -35,7 +35,7 @@ pub enum Msg {
 
 #[derive(Properties, PartialEq)]
 pub struct Property {
-	pub id: usize
+	pub id: BookId
 }
 
 pub struct MediaView {
@@ -129,7 +129,7 @@ impl Component for MediaView {
 
 							let book_tag_resp = request::get_book_tag(book_id, tag_resp.id).await;
 
-							item.register.emit(tag_resp.id);
+							item.register.emit(*tag_resp.id);
 
 							Msg::MultiCreateResponse(book_tag_resp.value.unwrap())
 						});
@@ -439,14 +439,15 @@ impl Component for MediaView {
 											<span class="sub-title">{ "Genre" }</span>
 											<MultiselectModule
 												on_create_item={ctx.link().callback(|v| Msg::MultiselectCreate(TagType::Genre, v))}
-												on_toggle_item={ctx.link().callback(|(a, b)| Msg::MultiselectToggle(a, b))}
+												on_toggle_item={ctx.link().callback(|(a, b)| Msg::MultiselectToggle(a, TagId::from(b)))}
 											>
 												{
 													for self.cached_tags
 														.iter()
 														.filter(|v| v.type_of.into_u8() == TagType::Genre.into_u8())
 														.map(|tag| html_nested! {
-															<MultiselectItem name={tag.name.clone()} id={tag.id} selected={tags.iter().any(|bt| bt.tag.id == tag.id)} />
+															// TODO: Remove deref
+															<MultiselectItem name={tag.name.clone()} id={*tag.id} selected={tags.iter().any(|bt| bt.tag.id == tag.id)} />
 														})
 												}
 											</MultiselectModule>
@@ -454,14 +455,15 @@ impl Component for MediaView {
 											<span class="sub-title">{ "Subject" }</span>
 											<MultiselectModule
 												on_create_item={ctx.link().callback(|v| Msg::MultiselectCreate(TagType::Subject, v))}
-												on_toggle_item={ctx.link().callback(|(a, b)| Msg::MultiselectToggle(a, b))}
+												on_toggle_item={ctx.link().callback(|(a, b)| Msg::MultiselectToggle(a, TagId::from(b)))}
 											>
 												{
 													for self.cached_tags
 														.iter()
 														.filter(|v| v.type_of.into_u8() == TagType::Subject.into_u8())
 														.map(|tag| html_nested! {
-															<MultiselectItem name={tag.name.clone()} id={tag.id} selected={tags.iter().any(|bt| bt.tag.id == tag.id)} />
+															// TODO: Remove deref
+															<MultiselectItem name={tag.name.clone()} id={*tag.id} selected={tags.iter().any(|bt| bt.tag.id == tag.id)} />
 														})
 												}
 											</MultiselectModule>
@@ -642,7 +644,7 @@ impl MediaView {
 #[derive(Debug, Clone)]
 pub struct CachedTag {
 	type_of: TagType,
-	id: usize,
+	id: TagId,
 	name: String,
 }
 

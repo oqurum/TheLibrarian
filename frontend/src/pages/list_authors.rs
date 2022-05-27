@@ -1,4 +1,4 @@
-use librarian_common::{api, Person, SearchType};
+use librarian_common::{api, Person, SearchType, PersonId};
 use gloo_utils::document;
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::{HtmlElement, HtmlInputElement};
@@ -476,29 +476,29 @@ pub enum PosterItem {
 	ShowPopup(DisplayOverlay),
 
 	// Popup Events
-	UpdatePerson(usize),
+	UpdatePerson(PersonId),
 }
 
 
 #[derive(Clone)]
 pub enum DisplayOverlay {
 	Info {
-		person_id: usize
+		person_id: PersonId
 	},
 
 	More {
-		person_id: usize,
+		person_id: PersonId,
 		mouse_pos: (i32, i32)
 	},
 
 	SearchForPerson {
-		person_id: usize,
+		person_id: PersonId,
 		input_value: Option<String>,
 		response: Option<api::ExternalSearchResponse>
 	},
 
 	CombinePersonWith {
-		person_id: usize,
+		person_id: PersonId,
 		input_value: Option<String>,
 		response: Option<Vec<Person>>
 	},

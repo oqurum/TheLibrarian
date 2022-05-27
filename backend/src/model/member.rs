@@ -62,7 +62,7 @@ impl<'a> TryFrom<&Row<'a>> for MemberModel {
 impl From<MemberModel> for librarian_common::Member {
 	fn from(value: MemberModel) -> librarian_common::Member {
 		librarian_common::Member {
-			id: *value.id,
+			id: value.id,
 			name: value.name,
 			email: value.email,
 			type_of: value.type_of,

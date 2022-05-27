@@ -16,7 +16,7 @@ pub struct Property {
 
 	pub editing_container: NodeRef,
 
-	pub editing_items: Rc<Mutex<Vec<usize>>>,
+	pub editing_items: Rc<Mutex<Vec<usize>>>, // TODO: Remove usize
 }
 
 impl PartialEq for Property {

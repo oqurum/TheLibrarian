@@ -1,6 +1,6 @@
 use gloo_file::{FileList, Blob};
 use gloo_utils::window;
-use librarian_common::{Either, BookId};
+use librarian_common::{Either, BookId, PersonId};
 use wasm_bindgen::{JsCast, prelude::Closure, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{HtmlElement, RequestInit};
@@ -18,7 +18,7 @@ pub struct Property {
 
 	pub children: Children,
 
-	pub id: Either<BookId, usize>,
+	pub id: Either<BookId, PersonId>,
 
 	pub on_upload: Option<Callback<()>>
 }

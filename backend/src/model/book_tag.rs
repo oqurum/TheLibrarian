@@ -9,7 +9,7 @@ use crate::{Database, Result};
 use super::{TagModel};
 
 pub struct BookTagModel {
-	pub id: usize,
+	pub id: BookTagId,
 
 	pub book_id: BookId,
 	pub tag_id: TagId,
@@ -40,7 +40,7 @@ impl<'a> TryFrom<&Row<'a>> for BookTagModel {
 
 
 pub struct BookTagWithTagModel {
-	pub id: usize,
+	pub id: BookTagId,
 
 	pub book_id: BookId,
 
@@ -79,7 +79,7 @@ impl From<BookTagWithTagModel> for BookTag {
 	fn from(val: BookTagWithTagModel) -> Self {
 		BookTag {
 			id: val.id,
-			book_id: *val.book_id,
+			book_id: val.book_id,
 			index: val.index,
 			created_at: val.created_at,
 			tag: val.tag.into(),
@@ -135,7 +135,7 @@ impl BookTagModel {
 		])?;
 
 		Ok(Self {
-			id: conn.last_insert_rowid() as usize,
+			id: BookTagId::from(conn.last_insert_rowid() as usize),
 			book_id,
 			tag_id,
 			index,

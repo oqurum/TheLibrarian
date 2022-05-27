@@ -4,7 +4,7 @@ use actix_files::NamedFile;
 use actix_web::{get, post, web, HttpResponse, Responder};
 use chrono::Utc;
 use futures::TryStreamExt;
-use librarian_common::{Poster, api, Either, BookId, ImageId};
+use librarian_common::{Poster, api, Either, BookId};
 
 use crate::{WebResult, Error, store_image, database::Database, model::{NewImageModel, BookModel, ImageModel}};
 
@@ -29,7 +29,7 @@ async fn get_poster_list(
 	let items: Vec<Poster> = ImageModel::get_by_linked_id(*path, &db).await?
 		.into_iter()
 		.map(|poster| Poster {
-			id: Some(*poster.id),
+			id: Some(poster.id),
 
 			selected: poster.path == meta.thumb_path,
 
@@ -73,7 +73,7 @@ async fn post_change_poster(
 		}
 
 		Either::Right(id) => {
-			let poster = ImageModel::get_by_id(ImageId::from(id), &db).await?.unwrap();
+			let poster = ImageModel::get_by_id(id, &db).await?.unwrap();
 
 			if meta.thumb_path == poster.path {
 				return Ok(HttpResponse::Ok().finish());

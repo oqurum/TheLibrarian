@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use librarian_common::{api, Member};
+use librarian_common::{api, Member, PersonId, BookId};
 use lazy_static::lazy_static;
 use yew::prelude::*;
 use yew_router::prelude::*;
@@ -89,13 +89,13 @@ pub enum Route {
 	Login,
 
 	#[at("/book/:meta_id")]
-	ViewMeta { meta_id: usize },
+	ViewMeta { meta_id: BookId },
 
 	#[at("/people")]
 	People,
 
 	#[at("/person/:id")]
-	Person { id: usize },
+	Person { id: PersonId },
 
 	#[at("/options")]
 	Options,

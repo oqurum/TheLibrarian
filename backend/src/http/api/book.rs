@@ -82,7 +82,7 @@ pub async fn load_book_list(
 				.into_iter()
 				.map(|meta| {
 					DisplayItem {
-						id: *meta.id,
+						id: meta.id,
 						title: meta.title.or(meta.clean_title).unwrap_or_default(),
 						cached: meta.cached,
 						has_thumbnail: meta.thumb_path.is_some()
@@ -105,7 +105,7 @@ pub async fn load_book_list(
 			.into_iter()
 			.map(|meta| {
 				DisplayItem {
-					id: *meta.id,
+					id: meta.id,
 					title: meta.title.or(meta.clean_title).unwrap_or_default(),
 					cached: meta.cached,
 					has_thumbnail: meta.thumb_path.is_some()

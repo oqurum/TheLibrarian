@@ -7,7 +7,7 @@ use crate::{
 	BasicLibrary, BasicDirectory, Chapter,
 	DisplayItem, DisplayMetaItem, Person,
 	SearchType, Source, Member, Poster,
-	Result, TagFE, BookTag, TagType,
+	Result, TagFE, BookTag, TagType, PersonId, TagId, ImageId, BookTagId
 };
 
 
@@ -55,13 +55,13 @@ pub struct GetBookTagsResponse {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NewBookTagBody {
-	pub tag_id: usize,
+	pub tag_id: TagId,
 	pub index: Option<usize>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NewBookTagResponse {
-	pub id: usize,
+	pub id: BookTagId,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -81,7 +81,7 @@ pub struct GetPostersResponse {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ChangePosterBody {
-	pub url_or_id: Either<String, usize>,
+	pub url_or_id: Either<String, ImageId>,
 }
 
 
@@ -144,7 +144,7 @@ pub struct BookListQuery {
 	pub limit: Option<usize>,
 	/// `SearchQuery`
 	pub search: Option<String>,
-	pub person_id: Option<usize>,
+	pub person_id: Option<PersonId>,
 }
 
 impl BookListQuery {
@@ -152,7 +152,7 @@ impl BookListQuery {
 		offset: Option<usize>,
 		limit: Option<usize>,
 		search: Option<SearchQuery>,
-		person_id: Option<usize>,
+		person_id: Option<PersonId>,
 	) -> Result<Self> {
 		let search = search.map(serde_urlencoded::to_string)
 			.transpose()?;
@@ -194,7 +194,7 @@ pub enum PostPersonBody {
 
 	UpdateBySource(Source),
 
-	CombinePersonWith(usize),
+	CombinePersonWith(PersonId),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

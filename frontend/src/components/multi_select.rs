@@ -343,7 +343,7 @@ pub struct MultiselectNewItem {
 
 #[derive(Clone, Properties)]
 pub struct MultiselectItemProps {
-	pub id: usize,
+	pub id: usize, // TODO: Change to allow PartialEq
 	pub name: String,
 
 	pub callback: Option<Scope<MultiselectModule>>,

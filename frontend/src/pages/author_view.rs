@@ -1,4 +1,4 @@
-use librarian_common::{api::{self, GetPostersResponse, GetPersonResponse}, Either, TagType};
+use librarian_common::{api::{self, GetPostersResponse, GetPersonResponse}, Either, TagType, PersonId};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::{prelude::*, html::Scope};
@@ -31,7 +31,7 @@ pub enum Msg {
 
 #[derive(Properties, PartialEq)]
 pub struct Property {
-	pub id: usize
+	pub id: PersonId,
 }
 
 pub struct AuthorView {

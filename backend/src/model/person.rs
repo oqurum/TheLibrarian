@@ -65,7 +65,7 @@ impl<'a> TryFrom<&Row<'a>> for PersonModel {
 impl From<PersonModel> for Person {
 	fn from(val: PersonModel) -> Self {
 		Person {
-			id: *val.id,
+			id: val.id,
 			source: val.source,
 			name: val.name,
 			description: val.description,

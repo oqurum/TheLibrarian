@@ -3,7 +3,7 @@ use wasm_bindgen::{JsValue, JsCast};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, Request, RequestMode, Response, Headers, FormData};
 
-use librarian_common::{api::*, SearchType, Either, Source, TagType};
+use librarian_common::{api::*, SearchType, Either, Source, TagType, PersonId, BookId, TagId, ImageId};
 
 // TODO: Manage Errors.
 
@@ -18,7 +18,7 @@ pub async fn get_tags() -> GetTagsResponse {
 	).await.unwrap()
 }
 
-pub async fn get_tag(id: usize) -> GetTagResponse {
+pub async fn get_tag(id: TagId) -> GetTagResponse {
 	fetch(
 		"GET",
 		&format!("/api/v1/tag/{}", id),
@@ -40,7 +40,7 @@ pub async fn new_tag(name: String, type_of: TagType) -> NewTagResponse {
 
 // Book Tag
 
-pub async fn new_book_tag(book_id: usize, tag_id: usize, index: Option<usize>) -> NewBookTagResponse {
+pub async fn new_book_tag(book_id: BookId, tag_id: TagId, index: Option<usize>) -> NewBookTagResponse {
 	fetch(
 		"POST",
 		&format!("/api/v1/tag/book/{book_id}"),
@@ -51,7 +51,7 @@ pub async fn new_book_tag(book_id: usize, tag_id: usize, index: Option<usize>) -
 	).await.unwrap()
 }
 
-pub async fn get_book_tag(book_id: usize, tag_id: usize) -> GetBookTagResponse {
+pub async fn get_book_tag(book_id: BookId, tag_id: TagId) -> GetBookTagResponse {
 	fetch(
 		"GET",
 		&format!("/api/v1/tag/{tag_id}/book/{book_id}"),
@@ -59,7 +59,7 @@ pub async fn get_book_tag(book_id: usize, tag_id: usize) -> GetBookTagResponse {
 	).await.unwrap()
 }
 
-pub async fn delete_book_tag(book_id: usize, tag_id: usize) -> DeletionResponse {
+pub async fn delete_book_tag(book_id: BookId, tag_id: TagId) -> DeletionResponse {
 	fetch(
 		"DELETE",
 		&format!("/api/v1/tag/{tag_id}/book/{book_id}"),
@@ -70,7 +70,7 @@ pub async fn delete_book_tag(book_id: usize, tag_id: usize) -> DeletionResponse 
 
 // Image
 
-pub async fn get_posters_for_meta(metadata_id: usize) -> GetPostersResponse {
+pub async fn get_posters_for_meta(metadata_id: BookId) -> GetPostersResponse {
 	fetch(
 		"GET",
 		&format!("/api/v1/posters/{}", metadata_id),
@@ -78,7 +78,7 @@ pub async fn get_posters_for_meta(metadata_id: usize) -> GetPostersResponse {
 	).await.unwrap()
 }
 
-pub async fn change_poster_for_meta(metadata_id: usize, url_or_id: Either<String, usize>) {
+pub async fn change_poster_for_meta(metadata_id: BookId, url_or_id: Either<String, ImageId>) {
 	let _: Option<String> = fetch(
 		"POST",
 		&format!("/api/v1/posters/{}", metadata_id),
@@ -98,7 +98,7 @@ pub async fn get_member_self() -> GetMemberSelfResponse {
 
 // Metadata
 
-pub async fn update_book(id: usize, value: &UpdateBookBody) {
+pub async fn update_book(id: BookId, value: &UpdateBookBody) {
 	let _: Option<String> = fetch(
 		"POST",
 		&format!("/api/v1/book/{}", id),
@@ -106,7 +106,7 @@ pub async fn update_book(id: usize, value: &UpdateBookBody) {
 	).await.ok();
 }
 
-pub async fn get_media_view(metadata_id: usize) -> MediaViewResponse {
+pub async fn get_media_view(metadata_id: BookId) -> MediaViewResponse {
 	fetch(
 		"GET",
 		&format!("/api/v1/book/{}", metadata_id),
@@ -133,11 +133,11 @@ pub async fn external_search_for(search: &str, search_for: SearchType) -> Extern
 // People
 
 
-pub async fn update_person(id: usize, value: &PostPersonBody) {
+pub async fn update_person(id: PersonId, body: &PostPersonBody) {
 	let _: Option<String> = fetch(
 		"POST",
 		&format!("/api/v1/person/{}", id),
-		Some(value)
+		Some(body)
 	).await.ok();
 }
 
@@ -168,7 +168,7 @@ pub async fn get_people(query: Option<&str>, offset: Option<usize>, limit: Optio
 	).await.unwrap()
 }
 
-pub async fn get_person(id: usize) -> GetPersonResponse {
+pub async fn get_person(id: PersonId) -> GetPersonResponse {
 	fetch(
 		"GET",
 		&format!("/api/v1/person/{}", id),
@@ -193,7 +193,7 @@ pub async fn get_books(
 	offset: Option<usize>,
 	limit: Option<usize>,
 	search: Option<SearchQuery>,
-	person_id: Option<usize>,
+	person_id: Option<PersonId>,
 ) -> GetBookListResponse {
 	let url = format!(
 		"/api/v1/books?{}",
@@ -203,7 +203,7 @@ pub async fn get_books(
 	fetch("GET", &url, Option::<&()>::None).await.unwrap()
 }
 
-pub async fn get_book_info(id: usize) -> GetBookIdResponse {
+pub async fn get_book_info(id: BookId) -> GetBookIdResponse {
 	fetch("GET", &format!("/api/v1/book/{}", id), Option::<&()>::None).await.unwrap()
 }
 

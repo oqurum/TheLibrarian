@@ -1,4 +1,4 @@
-use std::{ops::Deref, fmt::{Display, self}};
+use std::{ops::Deref, fmt::{Display, self}, num::ParseIntError, str::FromStr};
 
 #[cfg(feature = "backend")]
 use rusqlite::{Result, types::{FromSql, FromSqlResult, ValueRef, ToSql, ToSqlOutput}};
@@ -64,6 +64,12 @@ macro_rules! create_id {
 			}
 		}
 
+		impl Default for $name {
+			fn default() -> Self {
+				Self::none()
+			}
+		}
+
 		impl PartialEq<usize> for $name {
 			fn eq(&self, other: &usize) -> bool {
 				self.0 == *other
@@ -75,9 +81,16 @@ macro_rules! create_id {
 				Self(value)
 			}
 		}
+
+		impl FromStr for $name {
+			type Err = ParseIntError;
+
+			fn from_str(s: &str) -> Result<Self, Self::Err> {
+				usize::from_str(s).map(Self)
+			}
+		}
 	};
 }
-
 
 create_id!(BookPersonId);
 create_id!(BookTagId);

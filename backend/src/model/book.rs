@@ -71,7 +71,7 @@ impl<'a> TryFrom<&Row<'a>> for BookModel {
 impl From<BookModel> for DisplayMetaItem {
 	fn from(val: BookModel) -> Self {
 		DisplayMetaItem {
-			id: *val.id,
+			id: val.id,
 			title: val.title,
 			clean_title: val.clean_title,
 			description: val.description,
@@ -94,7 +94,7 @@ impl From<BookModel> for DisplayMetaItem {
 impl From<DisplayMetaItem> for BookModel {
 	fn from(val: DisplayMetaItem) -> Self {
 		BookModel {
-			id: BookId::from(val.id),
+			id: val.id,
 			title: val.title,
 			clean_title: val.clean_title,
 			description: val.description,
