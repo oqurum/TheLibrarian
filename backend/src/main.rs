@@ -10,17 +10,16 @@
 
 use actix_web::web;
 
-pub mod config;
 pub mod database;
 pub mod error;
 pub mod http;
-pub mod image;
 pub mod metadata;
 pub mod model;
+mod util;
 
-pub use self::image::store_image;
-pub use error::{Result, WebResult, WebError, Error, InternalError};
 pub use database::Database;
+pub use error::{Result, WebResult, WebError, Error, InternalError};
+pub use util::*;
 
 #[actix_web::main]
 async fn main() -> Result<()> {
