@@ -95,7 +95,14 @@ macro_rules! create_id {
 create_id!(BookPersonId);
 create_id!(BookTagId);
 create_id!(BookId);
+
 create_id!(ImageId);
+
 create_id!(MemberId);
+
 create_id!(PersonId);
+
 create_id!(TagId);
+
+create_id!(EditId);
+create_id!(EditCommentId);

@@ -1,5 +1,6 @@
 use serde::{Serialize, Deserialize};
 
+pub mod edit;
 mod language;
 mod thumbnail;
 mod source;

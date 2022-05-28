@@ -14,6 +14,6 @@ serde_urlencoded = "0.7"
 
 thiserror = "1.0"
 chrono = "0.4"
-
+num_enum = "0.5"
 
 rusqlite = { version = "0.27", optional = true }
