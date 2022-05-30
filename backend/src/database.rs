@@ -174,6 +174,35 @@ pub async fn init() -> Result<Database> {
 		[]
 	)?;
 
+
+	// Edit
+	conn.execute(
+		r#"CREATE TABLE IF NOT EXISTS "edit" (
+			"id"			INTEGER NOT NULL,
+
+			"type_of"		INTEGER NOT NULL,
+			"operation"		INTEGER NOT NULL,
+			"status"		INTEGER NOT NULL,
+
+			"member_id"		INTEGER NOT NULL,
+
+			"is_applied"	INTEGER NOT NULL,
+			"vote_count"	INTEGER NOT NULL,
+
+			"data"			TEXT NOT NULL,
+
+			"ended_at"		DATETIME NOT NULL,
+			"expires_at"	DATETIME NOT NULL,
+			"created_at"	DATETIME NOT NULL,
+			"updated_at"	DATETIME NOT NULL,
+
+			PRIMARY KEY("id" AUTOINCREMENT)
+		);"#,
+		[]
+	)?;
+
+
+
 	Ok(Database(Arc::new(RwLock::new(conn))))
 }
 
