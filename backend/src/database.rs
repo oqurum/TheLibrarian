@@ -191,8 +191,8 @@ pub async fn init() -> Result<Database> {
 
 			"data"			TEXT NOT NULL,
 
-			"ended_at"		DATETIME NOT NULL,
-			"expires_at"	DATETIME NOT NULL,
+			"ended_at"		DATETIME,
+			"expires_at"	DATETIME,
 			"created_at"	DATETIME NOT NULL,
 			"updated_at"	DATETIME NOT NULL,
 
