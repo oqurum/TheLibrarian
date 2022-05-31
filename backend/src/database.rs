@@ -185,6 +185,7 @@ pub async fn init() -> Result<Database> {
 			"status"		INTEGER NOT NULL,
 
 			"member_id"		INTEGER NOT NULL,
+			"model_id"		INTEGER,
 
 			"is_applied"	INTEGER NOT NULL,
 			"vote_count"	INTEGER NOT NULL,

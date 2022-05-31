@@ -22,6 +22,8 @@ pub struct NewEditModel {
 	pub status: EditStatus,
 
 	pub member_id: MemberId,
+	/// Unset if Operation is Create, if unset, set after accepted
+	pub model_id: Option<usize>, // TODO: Make ModelIdGroup
 
 	pub is_applied: bool,
 	pub vote_count: usize,
@@ -45,6 +47,9 @@ pub struct EditModel {
 	pub status: EditStatus,
 
 	pub member_id: MemberId,
+	// TODO: Add Model Id AFTER Operation::Create is accepted
+	/// Unset if Operation is Create, if unset, set after accepted
+	pub model_id: Option<usize>, // TODO: Make ModelIdGroup
 
 	pub is_applied: bool,
 	pub vote_count: usize,
@@ -158,18 +163,19 @@ impl<'a> TryFrom<&Row<'a>> for EditModel {
 			status: value.get(3)?,
 
 			member_id: value.get(4)?,
+			model_id: value.get(5)?,
 
-			is_applied: value.get(5)?,
+			is_applied: value.get(6)?,
 
-			vote_count: value.get(6)?,
+			vote_count: value.get(7)?,
 
-			data: value.get(7)?,
+			data: value.get(8)?,
 
-			ended_at: value.get::<_, Option<_>>(8)?.map(|v| Utc.timestamp_millis(v)),
-			expires_at: value.get::<_, Option<_>>(9)?.map(|v| Utc.timestamp_millis(v)),
+			ended_at: value.get::<_, Option<_>>(9)?.map(|v| Utc.timestamp_millis(v)),
+			expires_at: value.get::<_, Option<_>>(10)?.map(|v| Utc.timestamp_millis(v)),
 
-			created_at: Utc.timestamp_millis(value.get(10)?),
-			updated_at: Utc.timestamp_millis(value.get(11)?),
+			created_at: Utc.timestamp_millis(value.get(11)?),
+			updated_at: Utc.timestamp_millis(value.get(12)?),
 		})
 	}
 }
@@ -184,6 +190,7 @@ impl NewEditModel {
 			operation: EditOperation::Modify,
 			status: EditStatus::Pending,
 			member_id,
+			model_id: Some(*current.id),
 			is_applied: false,
 			vote_count: 0,
 			data: convert_data_to_string(EditType::Book, &EditData::from_book(current, updated))?,
@@ -200,13 +207,13 @@ impl NewEditModel {
 		lock.execute(r#"
 			INSERT INTO edit (
 				type_of, operation, status,
-				member_id, is_applied, vote_count, data,
+				member_id, model_id, is_applied, vote_count, data,
 				ended_at, expires_at, created_at, updated_at
 			)
-			VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)"#,
+			VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)"#,
 			params![
 				self.type_of, self.operation, self.status,
-				self.member_id, self.is_applied, self.vote_count, &self.data,
+				self.member_id, self.model_id, self.is_applied, self.vote_count, &self.data,
 				self.ended_at.map(|v| v.timestamp_millis()), self.expires_at.map(|v| v.timestamp_millis()),
 				self.created_at.timestamp_millis(), self.updated_at.timestamp_millis(),
 			]
@@ -220,6 +227,7 @@ impl NewEditModel {
 			status: self.status,
 
 			member_id: self.member_id,
+			model_id: self.model_id,
 
 			is_applied: self.is_applied,
 			vote_count: self.vote_count,
