@@ -7,7 +7,7 @@ use crate::{
 	BasicLibrary, BasicDirectory, Chapter,
 	DisplayItem, DisplayMetaItem, Person,
 	SearchType, Source, Member, Poster,
-	Result, TagFE, BookTag, TagType, PersonId, TagId, ImageId, BookTagId
+	Result, TagFE, BookTag, TagType, PersonId, TagId, ImageId, BookTagId, item::edit::SharedEditModel
 };
 
 
@@ -19,6 +19,17 @@ use crate::{
 pub struct DeletionResponse {
 	pub amount: usize,
 }
+
+
+// Edits
+pub type GetEditListResponse = QueryListResponse<SharedEditModel>;
+
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GetEditResponse {
+	pub model: SharedEditModel,
+}
+
 
 
 // Tags

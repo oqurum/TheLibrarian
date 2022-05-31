@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc, TimeZone, Duration};
-use librarian_common::{edit::*, EditId, MemberId, PersonId, TagId, ImageId};
-use rusqlite::{Row, params};
-use serde::{Serialize, Deserialize};
+use librarian_common::{edit::*, EditId, MemberId, item::edit::*, BookId, PersonId, TagId};
+use rusqlite::{Row, params, OptionalExtension};
 
 
 mod edit_comment;
@@ -63,90 +62,27 @@ pub struct EditModel {
 	pub updated_at: DateTime<Utc>,
 }
 
+impl TryFrom<EditModel> for SharedEditModel {
+	type Error = crate::Error;
 
-#[allow(clippy::large_enum_variant)]
-#[derive(Debug)]
-pub enum EditData {
-	Book(BookEditData),
-	Person,
-	Tag,
-	Collection,
-}
+	fn try_from(value: EditModel) -> Result<Self> {
+		let data = value.parse_data()?;
 
-
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct BookEditData {
-	#[serde(skip_serializing_if = "Option::is_none")]
-	new: Option<BookEdit>,
-	#[serde(skip_serializing_if = "Option::is_none")]
-	old: Option<BookEdit>, // Based off of current Model. If field is different than current Model once it's updating it'll ignore it.
-}
-
-
-// TODO: Move to common. Use as the Book Editing struct.
-#[derive(Debug, Serialize, Deserialize)]
-pub struct BookEdit {
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub title: Option<String>,
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub clean_title: Option<String>,
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub description: Option<String>,
-
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub rating: Option<f64>,
-
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub isbn_10: Option<String>,
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub isbn_13: Option<String>,
-
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub is_public: Option<bool>,
-
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub available_at: Option<String>,
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub language: Option<u16>,
-
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub publisher: Option<String>,
-
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub added_people: Option<Vec<PersonId>>,
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub removed_people: Option<Vec<PersonId>>,
-
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub added_tags: Option<Vec<TagId>>,
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub removed_tags: Option<Vec<TagId>>,
-
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub added_images: Option<Vec<ImageId>>,
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub removed_images: Option<Vec<ImageId>>,
-}
-
-impl BookEdit {
-	pub fn is_empty(&self) -> bool {
-		self.title.is_none() &&
-		self.clean_title.is_none() &&
-		self.description.is_none() &&
-		self.rating.is_none() &&
-		self.isbn_10.is_none() &&
-		self.isbn_13.is_none() &&
-		self.is_public.is_none() &&
-		self.available_at.is_none() &&
-		self.language.is_none() &&
-		self.publisher.is_none() &&
-		self.added_people.is_none() &&
-		self.removed_people.is_none() &&
-		self.added_tags.is_none() &&
-		self.removed_tags.is_none() &&
-		self.added_images.is_none() &&
-		self.removed_images.is_none()
+		Ok(Self {
+			id: value.id,
+			type_of: value.type_of,
+			operation: value.operation,
+			status: value.status,
+			member_id: value.member_id,
+			model_id: value.model_id,
+			is_applied: value.is_applied,
+			vote_count: value.vote_count,
+			data,
+			ended_at: value.ended_at,
+			expires_at: value.expires_at,
+			created_at: value.created_at,
+			updated_at: value.updated_at,
+		})
 	}
 }
 
@@ -193,7 +129,7 @@ impl NewEditModel {
 			model_id: Some(*current.id),
 			is_applied: false,
 			vote_count: 0,
-			data: convert_data_to_string(EditType::Book, &EditData::from_book(current, updated))?,
+			data: convert_data_to_string(EditType::Book, &new_edit_data_from_book(current, updated))?,
 			ended_at: None,
 			expires_at: Some(now + Duration::days(7)),
 			created_at: now,
@@ -244,6 +180,37 @@ impl NewEditModel {
 
 
 impl EditModel {
+	pub async fn get_all(offset: usize, limit: usize, db: &Database) -> Result<Vec<Self>> {
+		let this = db.read().await;
+
+		let mut conn = this.prepare(r#"SELECT * FROM edit LIMIT ?1 OFFSET ?2"#)?;
+
+		let map = conn.query_map([limit, offset], |v| Self::try_from(v))?;
+
+		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+	}
+
+	pub async fn get_by_id(id: EditId, db: &Database) -> Result<Option<Self>> {
+		Ok(db.read().await.query_row(
+			r#"SELECT * FROM edit WHERE id = ?1 LIMIT 1"#,
+			params![id],
+			|v| Self::try_from(v)
+		).optional()?)
+	}
+
+	pub async fn get_count(db: &Database) -> Result<usize> {
+		Ok(db.read().await.query_row(r#"SELECT COUNT(*) FROM edit"#, [], |v| v.get(0))?)
+	}
+
+	pub fn get_model_id(&self) -> Option<ModelIdGroup> {
+		self.model_id.map(|id| match self.type_of {
+			EditType::Book => ModelIdGroup::Book(BookId::from(id)),
+			EditType::Person => ModelIdGroup::Person(PersonId::from(id)),
+			EditType::Tag => ModelIdGroup::Tag(TagId::from(id)),
+			EditType::Collection => todo!(),
+		})
+	}
+
 	pub fn parse_data(&self) -> Result<EditData> {
 		Ok(match self.type_of {
 			EditType::Book => EditData::Book(serde_json::from_str(&self.data)?),
@@ -255,72 +222,71 @@ impl EditModel {
 }
 
 
-impl EditData {
-	pub fn from_book(current: BookModel, updated: BookModel) -> Self {
-		// TODO: Cleaner, less complicated way?
+pub fn new_edit_data_from_book(current: BookModel, updated: BookModel) -> EditData {
+	// TODO: Cleaner, less complicated way?
 
-		let Output { new_value: title, old_value: title_old } = edit_translate::cmp_opt_string(
-			current.title, updated.title);
-		let Output { new_value: clean_title, old_value: clean_title_old } = edit_translate::cmp_opt_string(
-			current.clean_title, updated.clean_title);
-		let Output { new_value: description, old_value: description_old } = edit_translate::cmp_opt_string(
-			current.description, updated.description);
-		let Output { new_value: rating, old_value: rating_old } = edit_translate::cmp_opt_number(
-			Some(current.rating), Some(updated.rating));
-		let Output { new_value: isbn_10, old_value: isbn_10_old } = edit_translate::cmp_opt_string(
-			current.isbn_10, updated.isbn_10);
-		let Output { new_value: isbn_13, old_value: isbn_13_old } = edit_translate::cmp_opt_string(
-			current.isbn_13, updated.isbn_13);
-		let Output { new_value: is_public, old_value: is_public_old } = edit_translate::cmp_opt_bool(
-			Some(current.is_public), Some(updated.is_public));
-		let Output { new_value: available_at, old_value: available_at_old } = edit_translate::cmp_opt_string(
-			current.available_at, updated.available_at);
-		let Output { new_value: language, old_value: language_old } = edit_translate::cmp_opt_number(
-			current.language, updated.language);
+	let Output { new_value: title, old_value: title_old } = edit_translate::cmp_opt_string(
+		current.title, updated.title);
+	let Output { new_value: clean_title, old_value: clean_title_old } = edit_translate::cmp_opt_string(
+		current.clean_title, updated.clean_title);
+	let Output { new_value: description, old_value: description_old } = edit_translate::cmp_opt_string(
+		current.description, updated.description);
+	let Output { new_value: rating, old_value: rating_old } = edit_translate::cmp_opt_number(
+		Some(current.rating), Some(updated.rating));
+	let Output { new_value: isbn_10, old_value: isbn_10_old } = edit_translate::cmp_opt_string(
+		current.isbn_10, updated.isbn_10);
+	let Output { new_value: isbn_13, old_value: isbn_13_old } = edit_translate::cmp_opt_string(
+		current.isbn_13, updated.isbn_13);
+	let Output { new_value: is_public, old_value: is_public_old } = edit_translate::cmp_opt_bool(
+		Some(current.is_public), Some(updated.is_public));
+	let Output { new_value: available_at, old_value: available_at_old } = edit_translate::cmp_opt_string(
+		current.available_at, updated.available_at);
+	let Output { new_value: language, old_value: language_old } = edit_translate::cmp_opt_number(
+		current.language, updated.language);
 
-		let new = BookEdit {
-			title,
-			clean_title,
-			description,
-			rating,
-			isbn_10,
-			isbn_13,
-			is_public,
-			available_at,
-			language,
-			publisher: None, // TODO
-			added_people: None,
-			removed_people: None,
-			added_tags: None,
-			removed_tags: None,
-			added_images: None,
-			removed_images: None,
-		};
+	let new = BookEdit {
+		title,
+		clean_title,
+		description,
+		rating,
+		isbn_10,
+		isbn_13,
+		is_public,
+		available_at,
+		language,
+		publisher: None, // TODO
+		added_people: None,
+		removed_people: None,
+		added_tags: None,
+		removed_tags: None,
+		added_images: None,
+		removed_images: None,
+	};
 
-		let old = BookEdit {
-			title: title_old,
-			clean_title: clean_title_old,
-			description: description_old,
-			rating: rating_old,
-			isbn_10: isbn_10_old,
-			isbn_13: isbn_13_old,
-			is_public: is_public_old,
-			available_at: available_at_old,
-			language: language_old,
-			publisher: None,
-			added_people: None,
-			removed_people: None,
-			added_tags: None,
-			removed_tags: None,
-			added_images: None,
-			removed_images: None,
-		};
+	let old = BookEdit {
+		title: title_old,
+		clean_title: clean_title_old,
+		description: description_old,
+		rating: rating_old,
+		isbn_10: isbn_10_old,
+		isbn_13: isbn_13_old,
+		is_public: is_public_old,
+		available_at: available_at_old,
+		language: language_old,
+		publisher: None,
+		added_people: None,
+		removed_people: None,
+		added_tags: None,
+		removed_tags: None,
+		added_images: None,
+		removed_images: None,
+	};
 
-		Self::Book(BookEditData {
-			new: Some(new).filter(|v| !v.is_empty()),
-			old: Some(old).filter(|v| !v.is_empty()),
-		})
-	}
+	EditData::Book(BookEditData {
+		existing: None,
+		new: Some(new).filter(|v| !v.is_empty()),
+		old: Some(old).filter(|v| !v.is_empty()),
+	})
 }
 
 

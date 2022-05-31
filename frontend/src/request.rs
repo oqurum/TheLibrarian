@@ -8,6 +8,37 @@ use librarian_common::{api::*, SearchType, Either, Source, TagType, PersonId, Bo
 // TODO: Manage Errors.
 
 
+
+// Edits
+
+pub async fn get_edit_list(
+	offset: Option<usize>,
+	limit: Option<usize>
+) -> GetEditListResponse {
+	let mut url = String::from("/api/v1/edits?");
+
+	if let Some(value) = offset {
+		url += "offset=";
+		url += &value.to_string();
+		url += "&";
+	}
+
+	if let Some(value) = limit {
+		url += "limit=";
+		url += &value.to_string();
+		url += "&";
+	}
+
+	fetch(
+		"GET",
+		&url,
+		Option::<&()>::None
+	).await.unwrap()
+}
+
+
+
+
 // Tags
 
 pub async fn get_tags() -> GetTagsResponse {
