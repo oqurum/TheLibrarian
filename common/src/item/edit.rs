@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
 
-use crate::{EditId, edit::*, MemberId, TagId, PersonId, ImageId, serialize_datetime, deserialize_datetime, serialize_datetime_opt, deserialize_datetime_opt, BookId, DisplayMetaItem};
+use crate::{EditId, edit::*, TagId, PersonId, ImageId, serialize_datetime, deserialize_datetime, serialize_datetime_opt, deserialize_datetime_opt, BookId, DisplayMetaItem, Member};
 
 
 
@@ -16,7 +16,7 @@ pub struct SharedEditModel {
 	pub operation: EditOperation,
 	pub status: EditStatus,
 
-	pub member_id: MemberId,
+	pub member: Option<Member>,
 
 	pub model_id: Option<usize>,
 

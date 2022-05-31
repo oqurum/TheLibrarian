@@ -11,7 +11,7 @@ pub use edit_vote::*;
 
 use crate::{Result, Database, edit_translate::{self, Output}};
 
-use super::BookModel;
+use super::{BookModel, MemberModel};
 
 
 #[derive(Debug)]
@@ -60,30 +60,6 @@ pub struct EditModel {
 
 	pub created_at: DateTime<Utc>,
 	pub updated_at: DateTime<Utc>,
-}
-
-impl TryFrom<EditModel> for SharedEditModel {
-	type Error = crate::Error;
-
-	fn try_from(value: EditModel) -> Result<Self> {
-		let data = value.parse_data()?;
-
-		Ok(Self {
-			id: value.id,
-			type_of: value.type_of,
-			operation: value.operation,
-			status: value.status,
-			member_id: value.member_id,
-			model_id: value.model_id,
-			is_applied: value.is_applied,
-			vote_count: value.vote_count,
-			data,
-			ended_at: value.ended_at,
-			expires_at: value.expires_at,
-			created_at: value.created_at,
-			updated_at: value.updated_at,
-		})
-	}
 }
 
 
@@ -217,6 +193,26 @@ impl EditModel {
 			EditType::Person => EditData::Person,
 			EditType::Tag => EditData::Tag,
 			EditType::Collection => EditData::Collection,
+		})
+	}
+
+	pub fn into_shared_edit(self, member: Option<MemberModel>) -> Result<SharedEditModel> {
+		let data = self.parse_data()?;
+
+		Ok(SharedEditModel {
+			id: self.id,
+			type_of: self.type_of,
+			operation: self.operation,
+			status: self.status,
+			member: member.map(|v| v.into()),
+			model_id: self.model_id,
+			is_applied: self.is_applied,
+			vote_count: self.vote_count,
+			data,
+			ended_at: self.ended_at,
+			expires_at: self.expires_at,
+			created_at: self.created_at,
+			updated_at: self.updated_at,
 		})
 	}
 }
