@@ -16,7 +16,7 @@ pub struct NewMemberModel {
 	pub type_of: u8,
 
 	// TODO
-	pub config: Option<String>,
+	pub permissions: usize,
 
 	pub created_at: DateTime<Utc>,
 	pub updated_at: DateTime<Utc>,
@@ -33,7 +33,7 @@ pub struct MemberModel {
 	pub type_of: u8,
 
 	// TODO
-	pub config: Option<String>,
+	pub permissions: usize,
 
 	#[serde(serialize_with = "serialize_datetime")]
 	pub created_at: DateTime<Utc>,
@@ -52,7 +52,7 @@ impl<'a> TryFrom<&Row<'a>> for MemberModel {
 			email: value.get(2)?,
 			password: value.get(3)?,
 			type_of: value.get(4)?,
-			config: value.get(5)?,
+			permissions: value.get(5)?,
 			created_at: Utc.timestamp_millis(value.get(6)?),
 			updated_at: Utc.timestamp_millis(value.get(7)?),
 		})
@@ -66,7 +66,7 @@ impl From<MemberModel> for librarian_common::Member {
 			name: value.name,
 			email: value.email,
 			type_of: value.type_of,
-			config: value.config,
+			permissions: value.permissions,
 			created_at: value.created_at,
 			updated_at: value.updated_at,
 		}
@@ -84,7 +84,7 @@ impl NewMemberModel {
 			VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
 		"#,
 		params![
-			&self.name, self.email.as_ref(), self.password.as_ref(), self.type_of, self.config.as_ref(),
+			&self.name, self.email.as_ref(), self.password.as_ref(), self.type_of, self.permissions,
 			self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
 		])?;
 
@@ -94,7 +94,7 @@ impl NewMemberModel {
 			email: self.email,
 			password: self.password,
 			type_of: self.type_of,
-			config: self.config,
+			permissions: self.permissions,
 			created_at: self.created_at,
 			updated_at: self.updated_at,
 		})

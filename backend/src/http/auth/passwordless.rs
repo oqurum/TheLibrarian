@@ -121,7 +121,7 @@ pub async fn get_passwordless_oauth_callback(
 				email: Some(email),
 				password: None,
 				type_of: 1,
-				config: None,
+				permissions: 0,
 				created_at: Utc::now(),
 				updated_at: Utc::now(),
 			};
