@@ -1477,6 +1477,7 @@ dependencies = [
 name = "librarian-common"
 version = "0.1.0"
 dependencies = [
+ "bitflags",
  "chrono",
  "num_enum",
  "rusqlite",

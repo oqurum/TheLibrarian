@@ -1,4 +1,4 @@
-use librarian_common::{MemberId, util::serialize_datetime};
+use librarian_common::{MemberId, util::serialize_datetime, Permissions};
 use chrono::{DateTime, TimeZone, Utc};
 use rusqlite::{Row, params, OptionalExtension};
 use serde::Serialize;
@@ -15,8 +15,7 @@ pub struct NewMemberModel {
 
 	pub type_of: u8,
 
-	// TODO
-	pub permissions: usize,
+	pub permissions: Permissions,
 
 	pub created_at: DateTime<Utc>,
 	pub updated_at: DateTime<Utc>,
@@ -32,8 +31,7 @@ pub struct MemberModel {
 
 	pub type_of: u8,
 
-	// TODO
-	pub permissions: usize,
+	pub permissions: Permissions,
 
 	#[serde(serialize_with = "serialize_datetime")]
 	pub created_at: DateTime<Utc>,

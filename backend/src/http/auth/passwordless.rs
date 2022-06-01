@@ -6,6 +6,7 @@
 use actix_identity::Identity;
 use actix_web::{http::header, HttpResponse};
 use actix_web::web;
+use librarian_common::Permissions;
 
 use crate::config::get_config;
 use crate::model::{AuthModel, NewMemberModel, MemberModel};
@@ -121,7 +122,7 @@ pub async fn get_passwordless_oauth_callback(
 				email: Some(email),
 				password: None,
 				type_of: 1,
-				permissions: 0,
+				permissions: Permissions::VIEW,
 				created_at: Utc::now(),
 				updated_at: Utc::now(),
 			};

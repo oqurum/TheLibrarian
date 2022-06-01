@@ -2,6 +2,7 @@ use serde::{Serialize, Deserialize};
 
 pub mod edit;
 mod language;
+mod perms;
 mod thumbnail;
 mod source;
 mod isbn;
@@ -9,6 +10,7 @@ mod ids;
 
 pub use language::*;
 pub use thumbnail::*;
+pub use perms::*;
 pub use source::*;
 pub use isbn::*;
 pub use ids::*;

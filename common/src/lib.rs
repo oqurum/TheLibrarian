@@ -151,7 +151,7 @@ pub struct Member {
 
 	pub type_of: u8,
 
-	pub permissions: usize,
+	pub permissions: Permissions,
 
 	#[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]
 	pub created_at: DateTime<Utc>,

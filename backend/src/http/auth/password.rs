@@ -6,6 +6,7 @@ use actix_web::HttpResponse;
 use actix_web::web;
 
 use chrono::Utc;
+use librarian_common::Permissions;
 use rand::Rng;
 use rand::prelude::ThreadRng;
 use serde::{Serialize, Deserialize};
@@ -62,7 +63,7 @@ pub async fn post_password_oauth(
 			email: Some(email),
 			password: Some(hash),
 			type_of: 2,
-			permissions: 0,
+			permissions: Permissions::VIEW,
 			created_at: Utc::now(),
 			updated_at: Utc::now(),
 		};
