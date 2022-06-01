@@ -59,6 +59,7 @@ pub fn api_route() -> Scope<
 		// Edit
 		.service(edit::load_edit_list)
 		.service(edit::load_edit)
+		.service(edit::update_edit)
 
 		// External
 		.service(external::get_external_search)
