@@ -1,5 +1,5 @@
 use actix_web::{web, get, post, HttpResponse};
-use librarian_common::{api, EditId, item::edit::*, Permissions};
+use librarian_common::{api, EditId, item::edit::*, SpecificPermissions, GroupPermissions};
 
 use crate::{database::{Database}, WebResult, model::{EditModel, BookModel, MemberModel}, http::MemberCookie};
 
@@ -87,12 +87,12 @@ async fn update_edit(
 	let member = MemberModel::get_by_id(member.member_id(), &db).await?.unwrap();
 
 	// Only an Admin can change the status.
-	if update.status.is_some() && !member.permissions.contains(Permissions::ADMIN) {
+	if update.status.is_some() && !member.permissions.contains_group(GroupPermissions::ADMIN) {
 		return Ok(HttpResponse::InternalServerError().finish());
 	}
 
 	// Has Voting Or Admin Perms.
-	if update.vote.is_some() && !member.permissions.intersects(Permissions::ADMIN | Permissions::VOTING) {
+	if update.vote.is_some() && !member.permissions.intersects_any(GroupPermissions::ADMIN, SpecificPermissions::VOTING) {
 		return Ok(HttpResponse::InternalServerError().finish());
 	}
 

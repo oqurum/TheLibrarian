@@ -63,7 +63,7 @@ pub async fn post_password_oauth(
 			email: Some(email),
 			password: Some(hash),
 			type_of: 2,
-			permissions: Permissions::VIEW,
+			permissions: Permissions::basic(),
 			created_at: Utc::now(),
 			updated_at: Utc::now(),
 		};
