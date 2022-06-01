@@ -94,7 +94,7 @@ pub async fn init() -> Result<Database> {
 			"email"			TEXT COLLATE NOCASE,
 			"password"		TEXT,
 			"is_local"		INTEGER NOT NULL,
-			"permissions"	INTEGER NOT NULL,
+			"permissions"	TEXT NOT NULL,
 
 			"created_at" 	DATETIME NOT NULL,
 			"updated_at" 	DATETIME NOT NULL,
@@ -207,6 +207,7 @@ pub async fn init() -> Result<Database> {
 	Ok(Database(Arc::new(RwLock::new(conn))))
 }
 
+#[derive(Clone)]
 pub struct Database(Arc<RwLock<Connection>>);
 
 // TODO: Why did Mutex<Connection> work without this but Arc<tokio::RwLock<Connection>> doesn't.
