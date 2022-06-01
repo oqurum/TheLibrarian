@@ -121,7 +121,6 @@ pub async fn get_passwordless_oauth_callback(
 				name: email.clone(),
 				email: Some(email),
 				password: None,
-				type_of: 1,
 				permissions: Permissions::basic(),
 				created_at: Utc::now(),
 				updated_at: Utc::now(),

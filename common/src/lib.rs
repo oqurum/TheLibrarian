@@ -149,8 +149,6 @@ pub struct Member {
 	pub name: String,
 	pub email: Option<String>,
 
-	pub type_of: u8,
-
 	pub permissions: Permissions,
 
 	#[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]

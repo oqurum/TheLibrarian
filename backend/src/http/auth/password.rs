@@ -43,10 +43,6 @@ pub async fn post_password_oauth(
 
 	// Create or Update User.
 	let member = if let Some(value) = MemberModel::get_by_email(&email, &db).await? {
-		if value.type_of != 2 {
-			panic!("Invalid Member. Member does not have a local password associated with it.");
-		}
-
 		if bcrypt::verify(&password, value.password.as_ref().unwrap()).map_err(Error::from)? {
 			value
 		} else {
@@ -62,7 +58,6 @@ pub async fn post_password_oauth(
 			name: email.clone(),
 			email: Some(email),
 			password: Some(hash),
-			type_of: 2,
 			permissions: Permissions::basic(),
 			created_at: Utc::now(),
 			updated_at: Utc::now(),

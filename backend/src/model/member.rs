@@ -6,14 +6,10 @@ use serde::Serialize;
 use crate::{Database, Result};
 
 
-// TODO: type_of 0 = web page, 1 = local passwordless 2 = local password
-// TODO: Enum.
 pub struct NewMemberModel {
 	pub name: String,
 	pub email: Option<String>,
 	pub password: Option<String>,
-
-	pub type_of: u8,
 
 	pub permissions: Permissions,
 
@@ -28,8 +24,6 @@ pub struct MemberModel {
 	pub name: String,
 	pub email: Option<String>,
 	pub password: Option<String>,
-
-	pub type_of: u8,
 
 	pub permissions: Permissions,
 
@@ -49,10 +43,9 @@ impl<'a> TryFrom<&Row<'a>> for MemberModel {
 			name: value.get(1)?,
 			email: value.get(2)?,
 			password: value.get(3)?,
-			type_of: value.get(4)?,
-			permissions: value.get(5)?,
-			created_at: Utc.timestamp_millis(value.get(6)?),
-			updated_at: Utc.timestamp_millis(value.get(7)?),
+			permissions: value.get(4)?,
+			created_at: Utc.timestamp_millis(value.get(5)?),
+			updated_at: Utc.timestamp_millis(value.get(6)?),
 		})
 	}
 }
@@ -63,7 +56,6 @@ impl From<MemberModel> for librarian_common::Member {
 			id: value.id,
 			name: value.name,
 			email: value.email,
-			type_of: value.type_of,
 			permissions: value.permissions,
 			created_at: value.created_at,
 			updated_at: value.updated_at,
@@ -78,11 +70,11 @@ impl NewMemberModel {
 		let conn = db.write().await;
 
 		conn.execute(r#"
-			INSERT INTO members (name, email, password, is_local, config, created_at, updated_at)
-			VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+			INSERT INTO members (name, email, password, permissions, created_at, updated_at)
+			VALUES (?1, ?2, ?3, ?4, ?5, ?6)
 		"#,
 		params![
-			&self.name, self.email.as_ref(), self.password.as_ref(), self.type_of, self.permissions,
+			&self.name, self.email.as_ref(), self.password.as_ref(), self.permissions,
 			self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
 		])?;
 
@@ -91,7 +83,6 @@ impl NewMemberModel {
 			name: self.name,
 			email: self.email,
 			password: self.password,
-			type_of: self.type_of,
 			permissions: self.permissions,
 			created_at: self.created_at,
 			updated_at: self.updated_at,
