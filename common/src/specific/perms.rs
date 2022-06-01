@@ -8,13 +8,16 @@ use rusqlite::{Result, types::{FromSql, FromSqlResult, ValueRef, ToSql, ToSqlOut
 bitflags! {
 	#[derive(Serialize, Deserialize)]
 	pub struct Permissions: u64 {
-		const ADMIN 	= 0b00000001;
-		const VIEW 		= 0b00000010;
-		const VOTING 	= 0b00000100;
-		const COMMENT 	= 0b00001000;
-		const EDIT 		= 0b00010000;
-		const DELETE 	= 0b00100000;
-		const CREATE 	= 0b01000000;
+		const ADMIN 			= 1 << 0;
+
+		const VIEW 				= 1 << 1;
+		const VOTING 			= 1 << 2;
+		const COMMENT 			= 1 << 3;
+		const EDIT 				= 1 << 4;
+		const DELETE 			= 1 << 5;
+		const CREATE 			= 1 << 6;
+		const FORCE_VOTE 		= 1 << 7;
+		const MANAGE_MEMBERS	= 1 << 8;
 	}
 }
 
@@ -26,6 +29,10 @@ impl Permissions {
 
 	pub fn as_editor() -> Self {
 		Self::as_basic() | Self::EDIT | Self::DELETE | Self::CREATE
+	}
+
+	pub fn as_manager() -> Self {
+		Self::as_editor() | Self::FORCE_VOTE | Self::MANAGE_MEMBERS
 	}
 }
 
