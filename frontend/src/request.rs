@@ -3,7 +3,7 @@ use wasm_bindgen::{JsValue, JsCast};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, Request, RequestMode, Response, Headers, FormData};
 
-use librarian_common::{api::*, SearchType, Either, Source, TagType, PersonId, BookId, TagId, ImageId};
+use librarian_common::{api::*, SearchType, Either, Source, TagType, PersonId, BookId, TagId, ImageId, EditId, item::edit::UpdateEditModel};
 
 // TODO: Manage Errors.
 
@@ -36,6 +36,13 @@ pub async fn get_edit_list(
 	).await.unwrap()
 }
 
+pub async fn update_edit_item(id: EditId, value: &UpdateEditModel) {
+	let _: Option<String> = fetch(
+		"POST",
+		&format!("/api/v1/edit/{}", id),
+		Some(value)
+	).await.ok();
+}
 
 
 
