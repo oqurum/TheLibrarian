@@ -186,6 +186,8 @@ impl EditModel {
 		];
 
 		if let Some(value) = edit.vote {
+			let value = if value { 1 } else { -1 };
+
 			items.push("vote_count");
 			values.push(Box::new(format!("vote_count + {value}")) as Box<dyn rusqlite::ToSql>);
 		}

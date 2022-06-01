@@ -43,7 +43,7 @@ pub struct UpdateEditModel {
 
 	pub is_applied: Option<bool>,
 
-	pub vote: Option<i64>,
+	pub vote: Option<bool>,
 
 	#[serde(serialize_with = "serialize_datetime_opt_opt", deserialize_with = "deserialize_datetime_opt_opt")]
 	pub ended_at: Option<Option<DateTime<Utc>>>,
