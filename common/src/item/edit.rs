@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
 
-use crate::{EditId, edit::*, TagId, PersonId, ImageId, serialize_datetime, deserialize_datetime, serialize_datetime_opt, deserialize_datetime_opt, BookId, DisplayMetaItem, Member};
+use crate::{EditId, edit::*, util::*, TagId, PersonId, ImageId, BookId, DisplayMetaItem, Member};
 
 
 
@@ -36,6 +36,18 @@ pub struct SharedEditModel {
 	pub updated_at: DateTime<Utc>,
 }
 
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct UpdateEditModel {
+	pub status: Option<EditStatus>,
+
+	pub is_applied: Option<bool>,
+
+	#[serde(serialize_with = "serialize_datetime_opt_opt", deserialize_with = "deserialize_datetime_opt_opt")]
+	pub ended_at: Option<Option<DateTime<Utc>>>,
+	#[serde(serialize_with = "serialize_datetime_opt_opt", deserialize_with = "deserialize_datetime_opt_opt")]
+	pub expires_at: Option<Option<DateTime<Utc>>>,
+}
 
 
 

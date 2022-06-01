@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc, TimeZone};
-use serde::{Serializer, Deserializer, Deserialize};
+use serde::{Serializer, Deserializer, Deserialize, Serialize};
 
 
 pub const FILE_SIZE_IDENTIFIERS: [&str; 4] = ["B", "KB", "MB", "GB"];
@@ -57,6 +57,10 @@ pub fn serialize_datetime_opt<S>(value: &Option<DateTime<Utc>>, s: S) -> std::re
 	}
 }
 
+pub fn serialize_datetime_opt_opt<S>(value: &Option<Option<DateTime<Utc>>>, s: S) -> std::result::Result<S::Ok, S::Error> where S: Serializer {
+	value.map(|v| v.map(|v| v.timestamp_millis())).serialize(s)
+}
+
 
 pub fn deserialize_datetime<'de, D>(value: D) -> std::result::Result<DateTime<Utc>, D::Error> where D: Deserializer<'de> {
 	Ok(Utc.timestamp_millis(i64::deserialize(value)?))
@@ -65,6 +69,14 @@ pub fn deserialize_datetime<'de, D>(value: D) -> std::result::Result<DateTime<Ut
 pub fn deserialize_datetime_opt<'de, D>(value: D) -> std::result::Result<Option<DateTime<Utc>>, D::Error> where D: Deserializer<'de> {
 	if let Some(v) = Option::<i64>::deserialize(value)? {
 		Ok(Some(Utc.timestamp_millis(v)))
+	} else {
+		Ok(None)
+	}
+}
+
+pub fn deserialize_datetime_opt_opt<'de, D>(value: D) -> std::result::Result<Option<Option<DateTime<Utc>>>, D::Error> where D: Deserializer<'de> {
+	if let Some(v) = Option::<Option<i64>>::deserialize(value)? {
+		Ok(Some(v.map(|v| Utc.timestamp_millis(v))))
 	} else {
 		Ok(None)
 	}

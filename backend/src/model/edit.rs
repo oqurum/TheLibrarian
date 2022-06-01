@@ -178,6 +178,52 @@ impl EditModel {
 		Ok(db.read().await.query_row(r#"SELECT COUNT(*) FROM edit"#, [], |v| v.get(0))?)
 	}
 
+	pub async fn update_by_id(id: EditId, edit: UpdateEditModel, db: &Database) -> Result<usize> {
+		let mut items = Vec::new();
+		// We have to Box because DateTime doesn't return a borrow.
+		let mut values = vec![
+			Box::new(id) as Box<dyn rusqlite::ToSql>
+		];
+
+		if let Some(value) = edit.status {
+			items.push("status");
+			values.push(Box::new(value) as Box<dyn rusqlite::ToSql>);
+		}
+
+		if let Some(value) = edit.is_applied {
+			items.push("is_applied");
+			values.push(Box::new(value) as Box<dyn rusqlite::ToSql>);
+		}
+
+		if let Some(value) = edit.ended_at {
+			items.push("ended_at");
+			values.push(Box::new(value.map(|v| v.timestamp_millis())) as Box<dyn rusqlite::ToSql>);
+		}
+
+		if let Some(value) = edit.expires_at {
+			items.push("expires_at");
+			values.push(Box::new(value.map(|v| v.timestamp_millis())) as Box<dyn rusqlite::ToSql>);
+		}
+
+
+		if items.is_empty() {
+			return Ok(0);
+		}
+
+		Ok(db.write().await
+		.execute(
+			&format!(
+				"UPDATE edit SET {} WHERE id = ?1",
+				items.iter()
+					.enumerate()
+					.map(|(i, v)| format!("{v} = ?{}", 2 + i))
+					.collect::<Vec<_>>()
+					.join(", ")
+			),
+			rusqlite::params_from_iter(values.iter().map(|v| &*v))
+		)?)
+	}
+
 	pub fn get_model_id(&self) -> Option<ModelIdGroup> {
 		self.model_id.map(|id| match self.type_of {
 			EditType::Book => ModelIdGroup::Book(BookId::from(id)),
