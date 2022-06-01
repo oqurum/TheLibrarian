@@ -97,6 +97,9 @@ pub enum Route {
 	#[at("/person/:id")]
 	Person { id: PersonId },
 
+	#[at("/edits")]
+	EditList,
+
 	#[at("/options")]
 	Options,
 
@@ -128,6 +131,10 @@ fn switch(route: &Route) -> Html {
 
 		Route::Person { id } => {
 			html! { <pages::AuthorView id={id} /> }
+		}
+
+		Route::EditList => {
+			html! { <pages::EditListPage /> }
 		}
 
 		Route::Options => {

@@ -23,6 +23,7 @@ gloo-timers = "0.2"
 js-sys = "0.3"
 
 base64 = "0.13"
+chrono = { version = "0.4", features = ["wasmbind"] }
 lazy_static = "1.4"
 urlencoding = "2.1"
 futures = "0.3"

@@ -89,6 +89,7 @@ body {
 }
 
 
+button,
 .button {
 	display: inline-block;
 	white-space: nowrap;
@@ -116,11 +117,17 @@ body {
 		inset-block-start: 2px;
 	}
 
-	// .proceed {}
+	&.green {
+		background-color: var(--green-9);
+	}
 
-	// .info {}
+	&.red {
+		background-color: var(--red-9);
+	}
 
-	// .danger {}
+	&.yellow {
+		background-color: var(--yellow-9);
+	}
 }
 
 form,
@@ -133,6 +140,33 @@ form > .form-container {
 	}
 }
 
+
+hr {
+	margin-block: 5px;
+	height: var(--border-size-1);
+
+	&.transparent {
+		background: rgba(255, 255, 255, 0.43);
+	}
+}
+
+
+.label {
+	padding: 3px;
+	border-radius: var(--radius-2);
+
+	&.green {
+		background-color: var(--green-9);
+	}
+
+	&.red {
+		background-color: var(--red-9);
+	}
+
+	&.yellow {
+		background-color: var(--yellow-9);
+	}
+}
 
 
 // Using --gradient-2
@@ -871,7 +905,8 @@ form > .form-container {
 
 .home-view-container,
 .media-view-container,
-.person-view-container {
+.person-view-container,
+.edit-list-view-container {
 	display: flex;
 	flex-direction: row;
 	flex-grow: 1;
@@ -1050,7 +1085,6 @@ form > .form-container {
 }
 
 
-/* Person List View Page */
 .main-content-view {
 	> .person-list {
 		display: flex;
@@ -1061,6 +1095,64 @@ form > .form-container {
 		max-height: 100%;
 	}
 }
+
+// Edit List Container
+.edit-list-view-container {
+	//
+
+	.list-items {
+		width: 50%;
+		margin: 0 auto;
+	}
+
+	.editing-item-card {
+		background: var(--surface1);
+		border-radius: 4px;
+		padding: 10px;
+
+		.header,
+		.footer {
+			display: flex;
+
+			.aligned-right {
+				margin-left: auto;
+				text-align: right;
+			}
+		}
+
+		.body {
+			margin-top: 1em;
+
+			> .row {
+				display: flex;
+				margin-bottom: 0.5em;
+
+				> .row-title {
+					width: 18%;
+					font-weight: bold;
+					text-align: right;
+					align-self: center;
+				}
+
+				> .row-old,
+				> .row-new {
+					flex-grow: 1;
+					padding: 4px;
+				}
+
+				> .row-old {
+					//
+				}
+
+				> .row-new {
+					//
+				}
+			}
+		}
+	}
+}
+
+
 
 .external-person-search-popup {
 	//

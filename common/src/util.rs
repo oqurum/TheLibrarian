@@ -28,6 +28,7 @@ pub fn file_size_bytes_to_readable_string(value: i64) -> String {
 }
 
 
+// TODO: Rename
 pub fn string_to_upper_case(mut value: String) -> String {
 	// Get the first char
 	if let Some(v) = value.chars().next() {
