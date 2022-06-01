@@ -1,5 +1,5 @@
 use bitflags::bitflags;
-use serde::{Serialize, Deserialize};
+use serde::{Serialize, Deserialize, Deserializer, Serializer};
 
 #[cfg(feature = "backend")]
 use rusqlite::{Result, types::{FromSql, FromSqlResult, ValueRef, ToSql, ToSqlOutput}};
@@ -27,7 +27,7 @@ bitflags! {
 }
 
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Permissions {
 	pub group: GroupPermissions,
 	// TODO: Determine if Specific perms can be removed to update Group perms
@@ -104,6 +104,7 @@ impl FromSql for Permissions {
 	#[inline]
 	fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
 		let val = String::column_result(value)?;
+
 		let (l, r) = val.split_once('-').unwrap();
 
 		Ok(Self {
@@ -118,5 +119,25 @@ impl ToSql for Permissions {
 	#[inline]
 	fn to_sql(&self) -> Result<ToSqlOutput<'_>> {
 		Ok(format!("{}-{}", self.group.bits, self.specific.bits).into())
+	}
+}
+
+
+impl<'de> Deserialize<'de> for Permissions {
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+		let val = String::deserialize(deserializer)?;
+
+		let (l, r) = val.split_once('-').unwrap();
+
+		Ok(Self {
+			group: GroupPermissions { bits: l.parse().unwrap() },
+			specific: SpecificPermissions { bits: r.parse().unwrap() },
+		})
+	}
+}
+
+impl Serialize for Permissions {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+		format!("{}-{}", self.group.bits, self.specific.bits).serialize(serializer)
 	}
 }
