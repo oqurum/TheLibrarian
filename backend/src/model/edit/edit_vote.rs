@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc, TimeZone};
-use librarian_common::{EditId, MemberId};
+use librarian_common::{EditId, MemberId, item::edit::SharedEditVoteModel};
 use rusqlite::{Row, params, OptionalExtension};
 
 use crate::{Result, Database};
@@ -29,6 +29,18 @@ impl<'a> TryFrom<&Row<'a>> for EditVoteModel {
 
 			created_at: Utc.timestamp_millis(value.get(3)?),
 		})
+	}
+}
+
+
+impl From<EditVoteModel> for SharedEditVoteModel {
+	fn from(val: EditVoteModel) -> Self {
+		SharedEditVoteModel {
+			edit_id: val.edit_id,
+			member_id: Some(val.member_id),
+			vote: val.vote,
+			created_at: val.created_at,
+		}
 	}
 }
 

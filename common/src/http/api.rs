@@ -7,7 +7,7 @@ use crate::{
 	BasicLibrary, BasicDirectory, Chapter,
 	DisplayItem, DisplayMetaItem, Person,
 	SearchType, Source, Member, Poster,
-	Result, TagFE, BookTag, TagType, PersonId, TagId, ImageId, BookTagId, item::edit::SharedEditModel
+	Result, TagFE, BookTag, TagType, PersonId, TagId, ImageId, BookTagId, item::edit::{SharedEditModel, SharedEditVoteModel}
 };
 
 
@@ -22,12 +22,20 @@ pub struct DeletionResponse {
 
 
 // Edits
+// GET /edits
 pub type GetEditListResponse = QueryListResponse<SharedEditModel>;
 
 
+// GET /edit/{id}
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetEditResponse {
 	pub model: SharedEditModel,
+}
+
+// POST /edit/{id}
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+pub struct PostEditResponse {
+	pub vote: Option<SharedEditVoteModel>,
 }
 
 

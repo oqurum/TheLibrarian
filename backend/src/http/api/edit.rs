@@ -1,6 +1,6 @@
 use std::ops::Neg;
 
-use actix_web::{web, get, post, HttpResponse};
+use actix_web::{web, get, post};
 use librarian_common::{api, EditId, item::edit::*, SpecificPermissions, GroupPermissions};
 
 use crate::{database::{Database}, WebResult, model::{EditModel, BookModel, MemberModel, EditVoteModel}, http::MemberCookie};
@@ -79,7 +79,7 @@ async fn update_edit(
 	json: web::Json<UpdateEditModel>,
 	member: MemberCookie,
 	db: web::Data<Database>
-) -> WebResult<HttpResponse> {
+) -> WebResult<web::Json<api::PostEditResponse>> {
 	let mut update = json.into_inner();
 
 	update.ended_at = None;
@@ -90,13 +90,15 @@ async fn update_edit(
 
 	// Only an Admin can change the status.
 	if update.status.is_some() && !member.permissions.contains_group(GroupPermissions::ADMIN) {
-		return Ok(HttpResponse::InternalServerError().finish());
+		// TODO: Error.
+		return Ok(web::Json(api::PostEditResponse::default()));
 	}
 
 	// Has Voting Or Admin Perms.
-	if let Some(vote_amount) = update.vote.as_mut() {
+	let vote_model = if let Some(vote_amount) = update.vote.as_mut() {
 		match *vote_amount {
-			0 => return Ok(HttpResponse::InternalServerError().finish()),
+			// TODO: Error.
+			0 => return Ok(web::Json(api::PostEditResponse::default())),
 
 			i32::MIN..=-1 => {
 				*vote_amount = -1;
@@ -108,7 +110,8 @@ async fn update_edit(
 		}
 
 		if !member.permissions.intersects_any(GroupPermissions::ADMIN, SpecificPermissions::VOTING) {
-			return Ok(HttpResponse::InternalServerError().finish());
+			// TODO: Error.
+			return Ok(web::Json(api::PostEditResponse::default()));
 		}
 
 		if let Some(mut vote_model) = EditVoteModel::find_one(*edit_id, member.id, &db).await? {
@@ -133,6 +136,8 @@ async fn update_edit(
 
 				*vote_amount *= 2;
 			}
+
+			Some(vote_model)
 		} else {
 			let vote_model = EditVoteModel::new(
 				*edit_id,
@@ -141,10 +146,16 @@ async fn update_edit(
 			);
 
 			vote_model.insert(&db).await?;
+
+			Some(vote_model)
 		}
-	}
+	} else {
+		None
+	};
 
 	EditModel::update_by_id(*edit_id, update, &db).await?;
 
-	Ok(HttpResponse::Ok().finish())
+	Ok(web::Json(api::PostEditResponse {
+		vote: vote_model.map(|v| v.into()),
+	}))
 }
