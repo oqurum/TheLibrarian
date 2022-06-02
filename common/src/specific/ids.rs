@@ -106,3 +106,4 @@ create_id!(TagId);
 
 create_id!(EditId);
 create_id!(EditCommentId);
+create_id!(EditVoteId);

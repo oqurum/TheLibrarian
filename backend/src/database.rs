@@ -205,6 +205,8 @@ pub async fn init() -> Result<Database> {
 	// Edit Vote
 	conn.execute(
 		r#"CREATE TABLE IF NOT EXISTS "edit_vote" (
+			"id"			INTEGER NOT NULL,
+
 			"edit_id"		INTEGER NOT NULL,
 			"member_id"		INTEGER NOT NULL,
 
@@ -212,7 +214,8 @@ pub async fn init() -> Result<Database> {
 
 			"created_at"	DATETIME NOT NULL,
 
-			UNIQUE("edit_id", "member_id")
+			UNIQUE("edit_id", "member_id"),
+			PRIMARY KEY("id" AUTOINCREMENT)
 		);"#,
 		[]
 	)?;

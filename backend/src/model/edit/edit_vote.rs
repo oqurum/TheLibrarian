@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc, TimeZone};
-use librarian_common::{EditId, MemberId, item::edit::SharedEditVoteModel};
+use librarian_common::{EditId, MemberId, item::edit::SharedEditVoteModel, EditVoteId};
 use rusqlite::{Row, params, OptionalExtension};
 
 use crate::{Result, Database};
@@ -8,6 +8,19 @@ use crate::{Result, Database};
 
 #[derive(Debug, Clone)]
 pub struct EditVoteModel {
+	pub id: EditVoteId,
+
+	pub edit_id: EditId,
+	pub member_id: MemberId,
+
+	pub vote: bool,
+
+	pub created_at: DateTime<Utc>,
+}
+
+
+#[derive(Debug, Clone)]
+pub struct NewEditVoteModel {
 	pub edit_id: EditId,
 	pub member_id: MemberId,
 
@@ -22,12 +35,13 @@ impl<'a> TryFrom<&Row<'a>> for EditVoteModel {
 
 	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
 		Ok(Self {
-			edit_id: value.get(0)?,
-			member_id: value.get(1)?,
+			id: value.get(0)?,
+			edit_id: value.get(1)?,
+			member_id: value.get(2)?,
 
-			vote: value.get(2)?,
+			vote: value.get(3)?,
 
-			created_at: Utc.timestamp_millis(value.get(3)?),
+			created_at: Utc.timestamp_millis(value.get(4)?),
 		})
 	}
 }
@@ -45,8 +59,8 @@ impl From<EditVoteModel> for SharedEditVoteModel {
 }
 
 
-impl EditVoteModel {
-	pub fn new(edit_id: EditId, member_id: MemberId, vote: bool) -> Self {
+impl NewEditVoteModel {
+	pub fn create(edit_id: EditId, member_id: MemberId, vote: bool) -> Self {
 		Self {
 			edit_id,
 			member_id,
@@ -55,10 +69,10 @@ impl EditVoteModel {
 		}
 	}
 
+	pub async fn insert(self, db: &Database) -> Result<EditVoteModel> {
+		let this = db.write().await;
 
-	pub async fn insert(&self, db: &Database) -> Result<()> {
-		db.write().await
-		.execute(
+		this.execute(
 			"INSERT INTO edit_vote (edit_id, member_id, vote, created_at) VALUES (?1, ?2, ?3, ?4)",
 			params![
 				self.edit_id,
@@ -68,9 +82,17 @@ impl EditVoteModel {
 			]
 		)?;
 
-		Ok(())
+		Ok(EditVoteModel {
+			id: EditVoteId::from(this.last_insert_rowid() as usize),
+			edit_id: self.edit_id,
+			member_id: self.member_id,
+			vote: self.vote,
+			created_at: self.created_at,
+		})
 	}
+}
 
+impl EditVoteModel {
 	pub async fn update(&self, db: &Database) -> Result<()> {
 		Self::update_vote(self.edit_id, self.member_id, self.vote, db).await
 	}

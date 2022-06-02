@@ -3,7 +3,7 @@ use std::ops::Neg;
 use actix_web::{web, get, post};
 use librarian_common::{api, EditId, item::edit::*, SpecificPermissions, GroupPermissions};
 
-use crate::{database::{Database}, WebResult, model::{EditModel, BookModel, MemberModel, EditVoteModel}, http::MemberCookie};
+use crate::{database::{Database}, WebResult, model::{EditModel, BookModel, MemberModel, EditVoteModel, NewEditVoteModel}, http::MemberCookie};
 
 
 // Get List Of Edits
@@ -147,15 +147,13 @@ async fn update_edit(
 
 			Some(vote_model)
 		} else {
-			let vote_model = EditVoteModel::new(
+			let vote_model = NewEditVoteModel::create(
 				*edit_id,
 				member.id,
 				*vote_amount == 1,
 			);
 
-			vote_model.insert(&db).await?;
-
-			Some(vote_model)
+			Some(vote_model.insert(&db).await?)
 		}
 	} else {
 		None
