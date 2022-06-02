@@ -50,6 +50,7 @@ impl<'a> TryFrom<&Row<'a>> for EditVoteModel {
 impl From<EditVoteModel> for SharedEditVoteModel {
 	fn from(val: EditVoteModel) -> Self {
 		SharedEditVoteModel {
+			id: val.id,
 			edit_id: val.edit_id,
 			member_id: Some(val.member_id),
 			vote: val.vote,

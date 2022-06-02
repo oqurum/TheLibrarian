@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
 
-use crate::{EditId, edit::*, util::*, TagId, PersonId, ImageId, BookId, DisplayMetaItem, Member, MemberId, api::QueryListResponse};
+use crate::{EditId, edit::*, util::*, TagId, PersonId, ImageId, BookId, DisplayMetaItem, Member, MemberId, api::QueryListResponse, EditVoteId};
 
 
 
@@ -41,6 +41,8 @@ pub struct SharedEditModel {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SharedEditVoteModel {
+	pub id: EditVoteId,
+
 	pub edit_id: EditId,
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub member_id: Option<MemberId>,
