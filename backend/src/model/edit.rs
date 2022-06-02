@@ -186,10 +186,8 @@ impl EditModel {
 		];
 
 		if let Some(value) = edit.vote {
-			let value = if value { 1 } else { -1 };
-
-			items.push("vote_count");
-			values.push(Box::new(format!("vote_count + {value}")) as Box<dyn rusqlite::ToSql>);
+			items.push("vote_count = vote_count +");
+			values.push(Box::new(value) as Box<dyn rusqlite::ToSql>);
 		}
 
 		if let Some(value) = edit.status {
@@ -223,7 +221,7 @@ impl EditModel {
 				"UPDATE edit SET {} WHERE id = ?1",
 				items.iter()
 					.enumerate()
-					.map(|(i, v)| format!("{v} = ?{}", 2 + i))
+					.map(|(i, v)| if v.contains('=') { format!("{v} ?{}", 2 + i) } else { format!("{v} = ?{}", 2 + i) })
 					.collect::<Vec<_>>()
 					.join(", ")
 			),
