@@ -202,6 +202,20 @@ pub async fn init() -> Result<Database> {
 		[]
 	)?;
 
+	// Edit Vote
+	conn.execute(
+		r#"CREATE TABLE IF NOT EXISTS "edit_vote" (
+			"edit_id"		INTEGER NOT NULL,
+			"member_id"		INTEGER NOT NULL,
+
+			"vote"			INTEGER NOT NULL,
+
+			"created_at"	DATETIME NOT NULL,
+
+			UNIQUE("edit_id", "member_id")
+		);"#,
+		[]
+	)?;
 
 
 	Ok(Database(Arc::new(RwLock::new(conn))))
