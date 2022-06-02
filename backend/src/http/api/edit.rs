@@ -1,7 +1,9 @@
+use std::ops::Neg;
+
 use actix_web::{web, get, post, HttpResponse};
 use librarian_common::{api, EditId, item::edit::*, SpecificPermissions, GroupPermissions};
 
-use crate::{database::{Database}, WebResult, model::{EditModel, BookModel, MemberModel}, http::MemberCookie};
+use crate::{database::{Database}, WebResult, model::{EditModel, BookModel, MemberModel, EditVoteModel}, http::MemberCookie};
 
 
 // Get List Of Edits
@@ -92,8 +94,54 @@ async fn update_edit(
 	}
 
 	// Has Voting Or Admin Perms.
-	if update.vote.is_some() && !member.permissions.intersects_any(GroupPermissions::ADMIN, SpecificPermissions::VOTING) {
-		return Ok(HttpResponse::InternalServerError().finish());
+	if let Some(vote_amount) = update.vote.as_mut() {
+		match *vote_amount {
+			0 => return Ok(HttpResponse::InternalServerError().finish()),
+
+			i32::MIN..=-1 => {
+				*vote_amount = -1;
+			}
+
+			1..=i32::MAX => {
+				*vote_amount = 1;
+			}
+		}
+
+		if !member.permissions.intersects_any(GroupPermissions::ADMIN, SpecificPermissions::VOTING) {
+			return Ok(HttpResponse::InternalServerError().finish());
+		}
+
+		if let Some(mut vote_model) = EditVoteModel::find_one(*edit_id, member.id, &db).await? {
+			let model_vote_as_num = if vote_model.vote { 1 } else { -1 };
+
+			// Remove Vote.
+			if model_vote_as_num == *vote_amount {
+				EditVoteModel::remove(
+					*edit_id,
+					member.id,
+					&db
+				).await?;
+
+				// Opposite vote_amount value
+				*vote_amount = vote_amount.neg();
+			}
+
+			// Double the value since we're switching ie: Total Votes = 10, Going from true -> false which means we have to go minus 2 votes.
+			else {
+				vote_model.vote = *vote_amount == 1;
+				vote_model.update(&db).await?;
+
+				*vote_amount *= 2;
+			}
+		} else {
+			let vote_model = EditVoteModel::new(
+				*edit_id,
+				member.id,
+				*vote_amount == 1,
+			);
+
+			vote_model.insert(&db).await?;
+		}
 	}
 
 	EditModel::update_by_id(*edit_id, update, &db).await?;
