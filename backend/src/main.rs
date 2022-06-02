@@ -15,6 +15,7 @@ pub mod error;
 pub mod http;
 pub mod metadata;
 pub mod model;
+mod scheduler;
 mod util;
 
 pub use database::Database;
@@ -27,6 +28,8 @@ async fn main() -> Result<()> {
 	config::save_config().await?;
 
 	let db = database::init().await?;
+
+	scheduler::start(db.clone());
 
 	let db_data = web::Data::new(db);
 

@@ -229,6 +229,33 @@ impl EditModel {
 		)?)
 	}
 
+	pub async fn task_update_pending(db: &Database) -> Result<()> {
+		let now = Utc::now().timestamp_millis();
+		let pending = u8::from(EditStatus::Pending);
+
+		// TODO: It's currently auto-approved after 7 days if no votes.
+		let sql_approve = format!(
+			"UPDATE edit SET status = {}, ended_at = {now}, is_applied = 1 WHERE expires_at < {now} AND status = {pending} AND vote_count >= 0",
+			u8::from(EditStatus::Accepted),
+		);
+
+		let sql_reject = format!(
+			"UPDATE edit SET status = {}, ended_at = {now}, is_applied = 1 WHERE expires_at < {now} AND status = {pending} AND vote_count < 0",
+			u8::from(EditStatus::Rejected),
+		);
+
+		db.write().await
+		.execute_batch(&format!(
+			"BEGIN;
+			{sql_approve};
+			{sql_reject};
+			COMMIT;"
+		))?;
+
+		Ok(())
+	}
+
+
 	pub fn get_model_id(&self) -> Option<ModelIdGroup> {
 		self.model_id.map(|id| match self.type_of {
 			EditType::Book => ModelIdGroup::Book(BookId::from(id)),
