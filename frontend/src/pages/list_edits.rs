@@ -75,6 +75,8 @@ impl Component for EditListPage {
 
 impl EditListPage {
 	fn render_item(&self, item: &SharedEditModel, scope: &Scope<Self>) -> Html {
+		let id = item.id;
+
 		let status_color = match item.status {
 			EditStatus::Accepted |
 			EditStatus::ForceAccepted => "green",
@@ -156,12 +158,60 @@ impl EditListPage {
 
 				<div class="footer">
 					<div class="aligned-left">
-						<button class="red"><span title="Downvote" class="material-icons">{ "keyboard_arrow_down" }</span></button>
-						<button class="green"><span title="Upvote" class="material-icons">{ "keyboard_arrow_up" }</span></button>
+						<button
+							class="red"
+							title="Downvote"
+							onclick={scope.callback_future(move |_| async move {
+								request::update_edit_item(id, &UpdateEditModel {
+									vote: Some(-1),
+									.. UpdateEditModel::default()
+								}).await;
+
+								// TODO: Refresh Item
+								Msg::Ignore
+							})}
+						><span class="material-icons">{ "keyboard_arrow_down" }</span></button>
+
+						<button
+							class="green"
+							title="Upvote"
+							onclick={scope.callback_future(move |_| async move {
+								request::update_edit_item(id, &UpdateEditModel {
+									vote: Some(1),
+									.. UpdateEditModel::default()
+								}).await;
+
+								// TODO: Refresh Item
+								Msg::Ignore
+							})}
+						><span class="material-icons">{ "keyboard_arrow_up" }</span></button>
 					</div>
 					<div class="aligned-right">
-						<button class="red">{ "Force Reject" }</button>
-						<button class="green">{ "Force Accept" }</button>
+						<button
+							class="red"
+							onclick={scope.callback_future(move |_| async move {
+								request::update_edit_item(id, &UpdateEditModel {
+									status: Some(EditStatus::ForceRejected),
+									.. UpdateEditModel::default()
+								}).await;
+
+								// TODO: Refresh Item
+								Msg::Ignore
+							})}
+						>{ "Force Reject" }</button>
+
+						<button
+							class="green"
+							onclick={scope.callback_future(move |_| async move {
+								request::update_edit_item(id, &UpdateEditModel {
+									status: Some(EditStatus::ForceAccepted),
+									.. UpdateEditModel::default()
+								}).await;
+
+								// TODO: Refresh Item
+								Msg::Ignore
+							})}
+						>{ "Force Accept" }</button>
 					</div>
 				</div>
 			</div>
