@@ -283,6 +283,7 @@ impl EditModel {
 			operation: self.operation,
 			status: self.status,
 			member: member.map(|v| v.into()),
+			votes: None,
 			model_id: self.model_id,
 			is_applied: self.is_applied,
 			vote_count: self.vote_count,

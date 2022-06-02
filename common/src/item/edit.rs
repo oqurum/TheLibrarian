@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
 
-use crate::{EditId, edit::*, util::*, TagId, PersonId, ImageId, BookId, DisplayMetaItem, Member, MemberId};
+use crate::{EditId, edit::*, util::*, TagId, PersonId, ImageId, BookId, DisplayMetaItem, Member, MemberId, api::QueryListResponse};
 
 
 
@@ -22,6 +22,8 @@ pub struct SharedEditModel {
 
 	pub is_applied: bool,
 	pub vote_count: usize,
+
+	pub votes: Option<QueryListResponse<SharedEditVoteModel>>,
 
 	pub data: EditData,
 

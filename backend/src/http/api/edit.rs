@@ -31,7 +31,15 @@ pub async fn load_edit_list(
 		};
 
 
-		let mut item: SharedEditModel = item.into_shared_edit(member)?;
+		let mut item = item.into_shared_edit(member)?;
+
+		// Total amount of votes casted.
+		item.votes = Some(api::QueryListResponse {
+			offset: 0,
+			limit: 0,
+			items: Vec::new(),
+			total: EditVoteModel::count_by_edit_id(item.id, &db).await?,
+		});
 
 		// Attempt to get the Book Model ID we're editing.
 		if let Some(ModelIdGroup::Book(book_id)) = item.get_model_id() {

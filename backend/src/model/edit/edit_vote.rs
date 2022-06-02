@@ -111,13 +111,17 @@ impl EditVoteModel {
 		).optional()?)
 	}
 
-	pub async fn find_by_edit_id(edit_id: EditId, db: &Database) -> Result<Vec<Self>> {
+	pub async fn find_by_edit_id(edit_id: EditId, offset: usize, limit: usize, db: &Database) -> Result<Vec<Self>> {
 		let this = db.read().await;
 
-		let mut conn = this.prepare("SELECT * FROM edit_vote WHERE edit_id = ?1")?;
+		let mut conn = this.prepare("SELECT * FROM edit_vote WHERE edit_id = ?1 LIMIT ?2 OFFSET ?3")?;
 
-		let map = conn.query_map([edit_id], |v| Self::try_from(v))?;
+		let map = conn.query_map(params![edit_id, limit, offset], |v| Self::try_from(v))?;
 
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+	}
+
+	pub async fn count_by_edit_id(edit_id: EditId, db: &Database) -> Result<usize> {
+		Ok(db.read().await.query_row("SELECT COUNT(*) FROM edit_vote WHERE edit_id = ?1", [edit_id], |v| v.get(0))?)
 	}
 }
