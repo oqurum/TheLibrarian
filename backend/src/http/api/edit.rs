@@ -156,6 +156,14 @@ async fn update_edit(
 	EditModel::update_by_id(*edit_id, update, &db).await?;
 
 	Ok(web::Json(api::PostEditResponse {
-		vote: vote_model.map(|v| v.into()),
+		vote: vote_model.map(|v| {
+			let mut shared = SharedEditVoteModel::from(v);
+
+			if !member.permissions.contains_group(GroupPermissions::ADMIN) {
+				shared.member_id = None;
+			}
+
+			shared
+		}),
 	}))
 }
