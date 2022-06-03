@@ -10,6 +10,7 @@ use crate::{database::{Database}, WebResult, model::{EditModel, BookModel, Membe
 #[get("/edits")]
 pub async fn load_edit_list(
 	db: web::Data<Database>,
+	this_member: MemberCookie,
 	query: web::Query<api::SimpleListQuery>,
 ) -> WebResult<web::Json<api::GetEditListResponse>> {
 	let offset = query.offset.unwrap_or(0);
@@ -33,11 +34,16 @@ pub async fn load_edit_list(
 
 		let mut item = item.into_shared_edit(member)?;
 
+		// If we've voted, return our vote in there.
+		let my_vote = EditVoteModel::find_one(item.id, this_member.member_id(), &db).await?
+			.map(|v| vec![SharedEditVoteModel::from(v)])
+			.unwrap_or_default();
+
 		// Total amount of votes casted.
 		item.votes = Some(api::QueryListResponse {
 			offset: 0,
-			limit: 0,
-			items: Vec::new(),
+			limit: 1,
+			items: my_vote,
 			total: EditVoteModel::count_by_edit_id(item.id, &db).await?,
 		});
 
