@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Serialize, Deserialize};
 
-use crate::{EditId, edit::*, util::*, TagId, PersonId, ImageId, BookId, DisplayMetaItem, Member, MemberId, api::QueryListResponse, EditVoteId};
+use crate::{EditId, edit::*, util::*, TagId, PersonId, BookId, DisplayMetaItem, Member, MemberId, api::QueryListResponse, EditVoteId, ThumbnailStore};
 
 
 
@@ -135,9 +135,9 @@ pub struct BookEdit {
 	pub removed_tags: Option<Vec<TagId>>,
 
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub added_images: Option<Vec<ImageId>>,
+	pub added_images: Option<Vec<ThumbnailStore>>,
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub removed_images: Option<Vec<ImageId>>,
+	pub removed_images: Option<Vec<ThumbnailStore>>,
 }
 
 #[derive(Debug, Clone, Copy)]
