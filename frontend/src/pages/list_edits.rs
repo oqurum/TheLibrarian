@@ -188,7 +188,8 @@ impl EditListPage {
 							if let Some(is_selected) = my_vote.map(|v| !v).or(Some(false)) {
 								html! {
 									<button
-										class={ if is_selected || my_vote.is_none() { "red" } else { "disabled" }}
+										class="slim red"
+										disabled={!is_selected && my_vote.is_some()}
 										title="Downvote"
 										onclick={scope.callback_future(move |_| async move {
 											let resp = request::update_edit_item(id, &UpdateEditModel {
@@ -209,7 +210,8 @@ impl EditListPage {
 							if let Some(is_selected) = my_vote.or(Some(false)) {
 								html! {
 									<button
-									class={ if is_selected || my_vote.is_none() { "green" } else { "disabled" }}
+										class="slim green"
+										disabled={!is_selected && my_vote.is_some()}
 										title="Upvote"
 										onclick={scope.callback_future(move |_| async move {
 											let resp = request::update_edit_item(id, &UpdateEditModel {
@@ -228,7 +230,7 @@ impl EditListPage {
 					</div>
 					<div class="aligned-right">
 						<button
-							class="red"
+							class="slim red"
 							onclick={scope.callback_future(move |_| async move {
 								let resp = request::update_edit_item(id, &UpdateEditModel {
 									status: Some(EditStatus::ForceRejected),
@@ -240,7 +242,7 @@ impl EditListPage {
 						>{ "Force Reject" }</button>
 
 						<button
-							class="green"
+							class="slim green"
 							onclick={scope.callback_future(move |_| async move {
 								let resp = request::update_edit_item(id, &UpdateEditModel {
 									status: Some(EditStatus::ForceAccepted),
