@@ -36,12 +36,12 @@ pub async fn get_edit_list(
 	).await.unwrap()
 }
 
-pub async fn update_edit_item(id: EditId, value: &UpdateEditModel) {
-	let _: Option<String> = fetch(
+pub async fn update_edit_item(id: EditId, value: &UpdateEditModel) -> PostEditResponse {
+	fetch(
 		"POST",
 		&format!("/api/v1/edit/{}", id),
 		Some(value)
-	).await.ok();
+	).await.unwrap()
 }
 
 
