@@ -87,7 +87,7 @@ pub enum EditData {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BookEditData {
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub existing: Option<DisplayMetaItem>,
+	pub current: Option<DisplayMetaItem>,
 
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub new: Option<BookEdit>,

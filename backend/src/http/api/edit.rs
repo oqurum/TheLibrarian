@@ -52,12 +52,12 @@ pub async fn load_edit_list(
 			if let EditData::Book(book_data) = &mut item.data {
 				// If we've already queried the database for this book id, clone it.
 				if let Some(book_model) = existing_books.iter().find(|v| v.id == book_id).cloned() {
-					book_data.existing = Some(book_model.into());
+					book_data.current = Some(book_model.into());
 				}
 				// Query database for book id.
 				else if let Some(book_model) = BookModel::get_by_id(book_id, &db).await? {
 					existing_books.push(book_model.clone());
-					book_data.existing = Some(book_model.into());
+					book_data.current = Some(book_model.into());
 				}
 			}
 		}

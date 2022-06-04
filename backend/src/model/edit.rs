@@ -432,7 +432,7 @@ pub fn new_edit_data_from_book(current: BookModel, updated: BookModel) -> EditDa
 	};
 
 	EditData::Book(BookEditData {
-		existing: None,
+		current: None,
 		new: Some(new).filter(|v| !v.is_empty()),
 		old: Some(old).filter(|v| !v.is_empty()),
 		updated: None,
