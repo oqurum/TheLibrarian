@@ -52,6 +52,18 @@ impl EditStatus {
 			Self::ForceRejected => "Force Rejected",
 		}
 	}
+
+	pub fn is_accepted(self) -> bool {
+		matches!(self, Self::Accepted | Self::ForceAccepted)
+	}
+
+	pub fn is_rejected(self) -> bool {
+		matches!(self, Self::Rejected | Self::Failed | Self::Cancelled | Self::ForceRejected)
+	}
+
+	pub fn is_pending(self) -> bool {
+		matches!(self, Self::Pending)
+	}
 }
 
 

@@ -11,7 +11,7 @@ pub use edit_vote::*;
 
 use crate::{Result, Database, edit_translate::{self, Output}};
 
-use super::{BookModel, MemberModel};
+use super::{BookModel, MemberModel, BookTagModel, BookPersonModel, NewImageModel, ImageModel};
 
 
 #[derive(Debug)]
@@ -174,6 +174,28 @@ impl EditModel {
 		).optional()?)
 	}
 
+	pub async fn find_by_status(status: EditStatus, is_expired: Option<bool>, db: &Database) -> Result<Vec<Self>> {
+		let mut expired_str = String::new();
+
+		if let Some(expired) = is_expired {
+			let now = Utc::now();
+
+			if expired {
+				expired_str = format!("AND expires_at < {now}");
+			} else {
+				expired_str = format!("AND expires_at > {now}");
+			}
+		}
+
+		let this = db.read().await;
+
+		let mut conn = this.prepare(&format!("SELECT * FROM edit WHERE status = ?1 {expired_str}"))?;
+
+		let map = conn.query_map([status], |v| Self::try_from(v))?;
+
+		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+	}
+
 	pub async fn get_count(db: &Database) -> Result<usize> {
 		Ok(db.read().await.query_row(r#"SELECT COUNT(*) FROM edit"#, [], |v| v.get(0))?)
 	}
@@ -274,6 +296,25 @@ impl EditModel {
 		})
 	}
 
+	pub async fn update_data_and_status(&mut self, value: EditData, db: &Database) -> Result<()> {
+		match (self.type_of, value) {
+			(EditType::Book, EditData::Book(v)) => self.data = serde_json::to_string(&v)?,
+			(EditType::Person, EditData::Person) => (),
+			(EditType::Tag, EditData::Tag) => (),
+			(EditType::Collection, EditData::Collection) => (),
+
+			_ => panic!("save_data"),
+		}
+
+		db.write().await
+		.execute(r#"
+			UPDATE edit SET data = ?2, status = ?3 WHERE id = ?1"#,
+			params![ self.id, &self.data, self.status ]
+		)?;
+
+		Ok(())
+	}
+
 	pub fn into_shared_edit(self, member: Option<MemberModel>) -> Result<SharedEditModel> {
 		let data = self.parse_data()?;
 
@@ -293,6 +334,33 @@ impl EditModel {
 			created_at: self.created_at,
 			updated_at: self.updated_at,
 		})
+	}
+
+
+	pub async fn process_status_change(&mut self, new_status: EditStatus, db: &Database) -> Result<()> {
+		self.status = new_status;
+
+		if new_status.is_accepted() {
+			// Modify Type
+			match self.operation {
+				EditOperation::Modify => {
+					// TODO: Currently only using book right now.
+					if let Some(book_model) = BookModel::get_by_id(BookId::from(self.model_id.unwrap()), db).await? {
+						if let EditData::Book(mut book_data) = self.parse_data()? {
+							accept_register_book_data_overwrites(book_model, &mut book_data, db).await?;
+
+							self.update_data_and_status(EditData::Book(book_data), db).await?;
+						}
+					}
+				}
+
+				EditOperation::Create => (),
+				EditOperation::Delete => (),
+				EditOperation::Merge => (),
+			}
+		}
+
+		Ok(())
 	}
 }
 
@@ -361,6 +429,7 @@ pub fn new_edit_data_from_book(current: BookModel, updated: BookModel) -> EditDa
 		existing: None,
 		new: Some(new).filter(|v| !v.is_empty()),
 		old: Some(old).filter(|v| !v.is_empty()),
+		updated: None,
 	})
 }
 
@@ -373,4 +442,123 @@ pub fn convert_data_to_string(type_of: EditType, value: &EditData) -> Result<Str
 
 		v => todo!("convert_data_to_string: {:?}", v),
 	})
+}
+
+
+
+/// Update: BookModel
+///
+/// Link: Tags, People, Images
+pub async fn accept_register_book_data_overwrites(
+	mut book_model: BookModel,
+	edit: &mut BookEditData,
+	db: &Database
+) -> Result<()> {
+	let (old, new) = match (edit.old.clone(), edit.new.clone()) {
+		(Some(a), Some(b)) => (a, b),
+		_ => return Ok(())
+	};
+
+	let mut book_edits = UpdatedBookEdit::default();
+
+	// Update Book
+	cmp_opt_old_and_new_return(&mut book_edits.title, &mut book_model.title, old.title, new.title);
+	cmp_opt_old_and_new_return(&mut book_edits.clean_title, &mut book_model.clean_title, old.clean_title, new.clean_title);
+	cmp_opt_old_and_new_return(&mut book_edits.description, &mut book_model.description, old.description, new.description);
+	cmp_opt_old_and_new_return(&mut book_edits.isbn_10, &mut book_model.isbn_10, old.isbn_10, new.isbn_10);
+	cmp_opt_old_and_new_return(&mut book_edits.isbn_13, &mut book_model.isbn_13, old.isbn_13, new.isbn_13);
+	cmp_opt_old_and_new_return(&mut book_edits.available_at, &mut book_model.available_at, old.available_at, new.available_at);
+	cmp_opt_old_and_new_return(&mut book_edits.language, &mut book_model.language, old.language, new.language);
+	cmp_old_and_new_return(&mut book_edits.rating, &mut book_model.rating, old.rating, new.rating);
+	cmp_old_and_new_return(&mut book_edits.is_public, &mut book_model.is_public, old.is_public, new.is_public);
+	// TODO: publisher
+
+	edit.updated = Some(book_edits).filter(|v| !v.is_empty());
+
+	book_model.update_book(db).await?;
+
+
+	// Tags
+	if let Some(values) = new.added_tags {
+		for tag_id in values {
+			BookTagModel::insert(book_model.id, tag_id, None, db).await?;
+		}
+	}
+
+	if let Some(values) = new.removed_tags {
+		for tag_id in values {
+			BookTagModel::remove(book_model.id, tag_id, db).await?;
+		}
+	}
+
+
+	// Images
+	if let Some(values) = new.added_images {
+		for thumb_path in values {
+			NewImageModel::new(book_model.id, thumb_path)
+				.insert(db).await?;
+		}
+	}
+
+	if let Some(values) = new.removed_images {
+		for thumb_path in values {
+			ImageModel::remove(book_model.id, thumb_path, db).await?;
+		}
+	}
+
+
+	// People
+	if let Some(values) = new.added_people {
+		for person_id in values {
+			BookPersonModel::new(book_model.id, person_id)
+				.insert(db).await?;
+		}
+	}
+
+	if let Some(values) = new.removed_people {
+		for person_id in values {
+			BookPersonModel::new(book_model.id, person_id)
+				.remove(db).await?;
+		}
+	}
+
+	Ok(())
+}
+
+/// Returns the new value if current and old are equal.
+fn cmp_old_and_new_return<V: PartialEq + Default>(edited: &mut bool, current: &mut V, old: Option<V>, new: Option<V>) {
+	match (old, new) {
+		// If we have an old value and new value.
+		(Some(old), Some(new)) => {
+			if *current == old {
+				*current = new;
+				*edited = true;
+			}
+		}
+
+		// If we are just inserting a new value.
+		(None, Some(new)) => {
+			*current = new;
+			*edited = true;
+		}
+
+		// If we're unsetting a value
+		(Some(old), None) => {
+			if *current == old {
+				// TODO: Determine if we should keep.
+				*current = V::default();
+				*edited = true;
+			}
+		}
+
+		_ => ()
+	}
+}
+
+/// Returns the new value if current and old are equal.
+fn cmp_opt_old_and_new_return<V: PartialEq>(edited: &mut bool, current: &mut Option<V>, old: Option<V>, new: Option<V>) {
+	if (old.is_some() || new.is_some()) && *current == old {
+		*current = new;
+		*edited = true;
+	}
 }

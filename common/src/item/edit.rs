@@ -86,6 +86,7 @@ pub enum EditData {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BookEditData {
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub existing: Option<DisplayMetaItem>,
 
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -93,6 +94,39 @@ pub struct BookEditData {
 
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub old: Option<BookEdit>, // Based off of current Model. If field is different than current Model once it's updating it'll ignore it.
+
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub updated: Option<UpdatedBookEdit>,
+}
+
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct UpdatedBookEdit {
+	#[serde(skip_serializing_if = "is_false")]
+	pub title: bool,
+	#[serde(skip_serializing_if = "is_false")]
+	pub clean_title: bool,
+	#[serde(skip_serializing_if = "is_false")]
+	pub description: bool,
+
+	#[serde(skip_serializing_if = "is_false")]
+	pub rating: bool,
+
+	#[serde(skip_serializing_if = "is_false")]
+	pub isbn_10: bool,
+	#[serde(skip_serializing_if = "is_false")]
+	pub isbn_13: bool,
+
+	#[serde(skip_serializing_if = "is_false")]
+	pub is_public: bool,
+
+	#[serde(skip_serializing_if = "is_false")]
+	pub available_at: bool,
+	#[serde(skip_serializing_if = "is_false")]
+	pub language: bool,
+
+	#[serde(skip_serializing_if = "is_false")]
+	pub publisher: bool,
 }
 
 
@@ -161,6 +195,23 @@ impl SharedEditModel {
 
 
 
+impl UpdatedBookEdit {
+	pub fn is_empty(&self) -> bool {
+		!self.title &&
+		!self.clean_title &&
+		!self.description &&
+		!self.rating &&
+		!self.isbn_10 &&
+		!self.isbn_13 &&
+		!self.is_public &&
+		!self.available_at &&
+		!self.language &&
+		!self.publisher
+	}
+}
+
+
+
 impl BookEdit {
 	pub fn is_empty(&self) -> bool {
 		self.title.is_none() &&
@@ -182,3 +233,6 @@ impl BookEdit {
 	}
 }
 
+fn is_false(value: &bool) -> bool {
+	!*value
+}

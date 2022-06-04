@@ -1,9 +1,9 @@
 use std::ops::Neg;
 
 use actix_web::{web, get, post};
-use librarian_common::{api, EditId, item::edit::*, SpecificPermissions, GroupPermissions};
+use librarian_common::{api, EditId, item::edit::*, SpecificPermissions, GroupPermissions, BookId, edit::EditOperation};
 
-use crate::{database::{Database}, WebResult, model::{EditModel, BookModel, MemberModel, EditVoteModel, NewEditVoteModel}, http::MemberCookie};
+use crate::{database::{Database}, WebResult, model::{EditModel, BookModel, MemberModel, EditVoteModel, NewEditVoteModel, accept_register_book_data_overwrites}, http::MemberCookie};
 
 
 // Get List Of Edits
@@ -103,9 +103,15 @@ async fn update_edit(
 	let member = MemberModel::get_by_id(member.member_id(), &db).await?.unwrap();
 
 	// Only an Admin can change the status.
-	if update.status.is_some() && !member.permissions.contains_group(GroupPermissions::ADMIN) {
-		// TODO: Error.
-		return Ok(web::Json(api::PostEditResponse::default()));
+	if let Some(new_status) = update.status {
+		if !member.permissions.contains_group(GroupPermissions::ADMIN) {
+			// TODO: Error.
+			return Ok(web::Json(api::PostEditResponse::default()));
+		}
+
+		if let Some(mut edit_model) = EditModel::get_by_id(*edit_id, &db).await? {
+			edit_model.process_status_change(new_status, &db).await?;
+		}
 	}
 
 	// Has Voting Or Admin Perms.

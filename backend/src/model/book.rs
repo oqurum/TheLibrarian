@@ -198,7 +198,7 @@ impl BookModel {
 				cached = ?7, is_public = ?8,
 				isbn_10 = ?9, isbn_13 = ?10,
 				available_at = ?11, language = ?12,
-				updated_at = ?15, deleted_at = ?16
+				updated_at = ?13, deleted_at = ?14
 			WHERE id = ?1"#,
 			params![
 				self.id,

@@ -44,6 +44,10 @@ impl<'a> TryFrom<&Row<'a>> for ImageModel {
 
 
 impl NewImageModel {
+	pub fn new(link_id: BookId, path: ThumbnailStore) -> Self {
+		Self { link_id, path, created_at: Utc::now() }
+	}
+
 	pub async fn insert(self, db: &Database) -> Result<ImageModel> {
 		let conn = db.write().await;
 
@@ -84,5 +88,17 @@ impl ImageModel {
 			[id],
 			|v| Self::try_from(v)
 		).optional()?)
+	}
+
+	pub async fn remove(link_id: BookId, path: ThumbnailStore, db: &Database) -> Result<()> {
+		db.write().await
+		.execute(r#"DELETE FROM uploaded_images WHERE link_id = ?1 AND path = ?2"#,
+			params![
+				link_id,
+				path.to_string(),
+			]
+		)?;
+
+		Ok(())
 	}
 }

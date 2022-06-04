@@ -24,6 +24,10 @@ impl<'a> TryFrom<&Row<'a>> for BookPersonModel {
 
 
 impl BookPersonModel {
+	pub fn new(book_id: BookId, person_id: PersonId) -> Self {
+		Self { book_id, person_id }
+	}
+
 	pub async fn insert(&self, db: &Database) -> Result<()> {
 		db.write().await
 		.execute(r#"INSERT OR IGNORE INTO book_person (book_id, person_id) VALUES (?1, ?2)"#,
