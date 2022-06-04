@@ -1,9 +1,9 @@
 use std::ops::Neg;
 
 use actix_web::{web, get, post};
-use librarian_common::{api, EditId, item::edit::*, SpecificPermissions, GroupPermissions, BookId, edit::EditOperation};
+use librarian_common::{api, EditId, item::edit::*, SpecificPermissions, GroupPermissions};
 
-use crate::{database::{Database}, WebResult, model::{EditModel, BookModel, MemberModel, EditVoteModel, NewEditVoteModel, accept_register_book_data_overwrites}, http::MemberCookie};
+use crate::{database::{Database}, WebResult, model::{EditModel, BookModel, MemberModel, EditVoteModel, NewEditVoteModel}, http::MemberCookie};
 
 
 // Get List Of Edits
