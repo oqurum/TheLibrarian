@@ -255,24 +255,30 @@ impl EditModel {
 		let now = Utc::now().timestamp_millis();
 		let pending = u8::from(EditStatus::Pending);
 
-		// TODO: It's currently auto-approved after 7 days if no votes.
-		let sql_approve = format!(
-			"UPDATE edit SET status = {}, ended_at = {now}, is_applied = 1 WHERE expires_at < {now} AND status = {pending} AND vote_count >= 0",
-			u8::from(EditStatus::Accepted),
-		);
-
-		let sql_reject = format!(
-			"UPDATE edit SET status = {}, ended_at = {now}, is_applied = 1 WHERE expires_at < {now} AND status = {pending} AND vote_count < 0",
-			u8::from(EditStatus::Rejected),
-		);
-
+		// Rejections
 		db.write().await
-		.execute_batch(&format!(
-			"BEGIN;
-			{sql_approve};
-			{sql_reject};
-			COMMIT;"
-		))?;
+		.execute(
+			"UPDATE edit SET status = ?1, ended_at = ?2, is_applied = 1 WHERE expires_at < ?2 AND status = ?3 AND vote_count < 0",
+			params![ EditStatus::Rejected, now, pending ],
+		)?;
+
+
+		{ // Get all approved
+			let items = {
+				let this = db.read().await;
+
+				let mut conn = this.prepare("SELECT * FROM edit WHERE expires_at < ?1 AND status = ?2 AND vote_count >= 0")?;
+
+				let map = conn.query_map(params![ now, pending ], |v| Self::try_from(v))?;
+
+				map.collect::<std::result::Result<Vec<_>, _>>()?
+			};
+
+			for mut item in items {
+				println!("{:#?}", item);
+				item.process_status_change(EditStatus::Accepted, db).await?;
+			}
+		}
 
 		Ok(())
 	}
