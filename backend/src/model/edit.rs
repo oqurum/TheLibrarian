@@ -255,12 +255,34 @@ impl EditModel {
 		let now = Utc::now().timestamp_millis();
 		let pending = u8::from(EditStatus::Pending);
 
-		// Rejections
+		let sql_rejected = "UPDATE edit SET status = ?1, ended_at = ?2, is_applied = 1 WHERE expires_at < ?2 AND status = ?3 AND vote_count < 0";
+
+		{ // Get all rejected
+			let items = {
+				let this = db.read().await;
+
+				let mut conn = this.prepare(sql_rejected)?;
+
+				let map = conn.query_map(
+					params![ EditStatus::Rejected, now, pending ],
+					|v| Self::try_from(v)
+				)?;
+
+				map.collect::<std::result::Result<Vec<_>, _>>()?
+			};
+
+			for item in items {
+				NewEditCommentModel::new(
+					item.id,
+					MemberId::from(0),
+					String::from(r#"SYSTEM: Auto denied."#)
+				).insert(db).await?;
+			}
+		}
+
+		// Reject All
 		db.write().await
-		.execute(
-			"UPDATE edit SET status = ?1, ended_at = ?2, is_applied = 1 WHERE expires_at < ?2 AND status = ?3 AND vote_count < 0",
-			params![ EditStatus::Rejected, now, pending ],
-		)?;
+		.execute(sql_rejected, params![ EditStatus::Rejected, now, pending ])?;
 
 
 		{ // Get all approved
@@ -277,6 +299,12 @@ impl EditModel {
 			for mut item in items {
 				println!("{:#?}", item);
 				item.process_status_change(EditStatus::Accepted, db).await?;
+
+				NewEditCommentModel::new(
+					item.id,
+					MemberId::from(0),
+					String::from(r#"SYSTEM: Auto accepted."#)
+				).insert(db).await?;
 			}
 		}
 
