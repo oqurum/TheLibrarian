@@ -220,6 +220,23 @@ pub async fn init() -> Result<Database> {
 		[]
 	)?;
 
+	// Edit Comment
+	conn.execute(
+		r#"CREATE TABLE IF NOT EXISTS "edit_comment" (
+			"id"			INTEGER NOT NULL,
+
+			"edit_id"		INTEGER NOT NULL,
+			"member_id"		INTEGER NOT NULL,
+
+			"text"			TEXT NOT NULL,
+			"deleted"		INTEGER NOT NULL,
+
+			"created_at"	DATETIME NOT NULL,
+
+			PRIMARY KEY("id" AUTOINCREMENT)
+		);"#,
+		[]
+	)?;
 
 	Ok(Database(Arc::new(RwLock::new(conn))))
 }
