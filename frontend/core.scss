@@ -1111,18 +1111,14 @@ hr {
 					align-self: center;
 				}
 
-				> .row-old,
-				> .row-new {
-					flex-grow: 1;
+				> .row-shrink {
+					flex-shrink: 1;
 					padding: 4px;
 				}
 
-				> .row-old {
-					//
-				}
-
-				> .row-new {
-					//
+				> .row-grow {
+					flex-grow: 1;
+					padding: 4px;
 				}
 			}
 		}

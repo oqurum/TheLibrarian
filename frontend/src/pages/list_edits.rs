@@ -1,5 +1,7 @@
+use std::fmt;
+
 use chrono::Utc;
-use librarian_common::{api, item::edit::*, edit::*, get_language_name};
+use librarian_common::{api, item::edit::*, edit::*};
 use yew::{prelude::*, html::Scope};
 
 use crate::{request, get_member_self};
@@ -259,6 +261,8 @@ impl EditListPage {
 	}
 
 	fn generate_book_rows(book_edit_data: &BookEditData, _scope: &Scope<Self>) -> Html {
+		let current = book_edit_data.current.as_ref();
+
 		let (new_data, old_data) = match (&book_edit_data.new, &book_edit_data.old) {
 			(Some(a), Some(b)) => (a, b),
 			_ => return html! {},
@@ -266,145 +270,16 @@ impl EditListPage {
 
 		html! {
 			<>
-				{ // Title
-					if let Some((new, old)) = join_new_old(&new_data.title, &old_data.title) {
-						html! {
-							<div class="row">
-								<div class="row-title"><span>{ "Title" }</span></div>
-								<div class="row-old"><div class="label red">{ old.clone().unwrap_or_default() }</div></div>
-								<div class="row-new"><div class="label green">{ new.clone() }</div></div>
-							</div>
-						}
-					} else {
-						html! {}
-					}
-				}
-
-				{ // Clean Title
-					if let Some((new, old)) = join_new_old(&new_data.clean_title, &old_data.clean_title) {
-						html! {
-							<div class="row">
-								<div class="row-title"><span>{ "Clean Title" }</span></div>
-								<div class="row-old"><div class="label red">{ old.clone().unwrap_or_default() }</div></div>
-								<div class="row-new"><div class="label green">{ new.clone() }</div></div>
-							</div>
-						}
-					} else {
-						html! {}
-					}
-				}
-
-				{ // Description
-					if let Some((new, old)) = join_new_old(&new_data.description, &old_data.description) {
-						html! {
-							<div class="row">
-								<div class="row-title"><span>{ "Description" }</span></div>
-								<div class="row-old"><div class="label red">{ old.clone().unwrap_or_default() }</div></div>
-								<div class="row-new"><div class="label green">{ new.clone() }</div></div>
-							</div>
-						}
-					} else {
-						html! {}
-					}
-				}
-
-				{ // Rating
-					if let Some((new, old)) = join_new_old(&new_data.rating, &old_data.rating) {
-						html! {
-							<div class="row">
-								<div class="row-title"><span>{ "Rating" }</span></div>
-								<div class="row-old"><div class="label red">{ old.unwrap_or_default() }</div></div>
-								<div class="row-new"><div class="label green">{ new }</div></div>
-							</div>
-						}
-					} else {
-						html! {}
-					}
-				}
-
-				{ // ISBN 10
-					if let Some((new, old)) = join_new_old(&new_data.isbn_10, &old_data.isbn_10) {
-						html! {
-							<div class="row">
-								<div class="row-title"><span>{ "ISBN 10" }</span></div>
-								<div class="row-old"><div class="label red">{ old.clone().unwrap_or_default() }</div></div>
-								<div class="row-new"><div class="label green">{ new.clone() }</div></div>
-							</div>
-						}
-					} else {
-						html! {}
-					}
-				}
-
-				{ // ISBN 13
-					if let Some((new, old)) = join_new_old(&new_data.isbn_13, &old_data.isbn_13) {
-						html! {
-							<div class="row">
-								<div class="row-title"><span>{ "ISBN 13" }</span></div>
-								<div class="row-old"><div class="label red">{ old.clone().unwrap_or_default() }</div></div>
-								<div class="row-new"><div class="label green">{ new.clone() }</div></div>
-							</div>
-						}
-					} else {
-						html! {}
-					}
-				}
-
-				{ // Publicity
-					if let Some((new, old)) = join_new_old(&new_data.is_public, &old_data.is_public) {
-						html! {
-							<div class="row">
-								<div class="row-title"><span>{ "Is Public" }</span></div>
-								<div class="row-old"><div class="label red">{ old.unwrap_or_default() }</div></div>
-								<div class="row-new"><div class="label green">{ new }</div></div>
-							</div>
-						}
-					} else {
-						html! {}
-					}
-				}
-
-				{ // Available At
-					if let Some((new, old)) = join_new_old(&new_data.available_at, &old_data.available_at) {
-						html! {
-							<div class="row">
-								<div class="row-title"><span>{ "Available At" }</span></div>
-								<div class="row-old"><div class="label red">{ old.clone().unwrap_or_default() }</div></div>
-								<div class="row-new"><div class="label green">{ new.clone() }</div></div>
-							</div>
-						}
-					} else {
-						html! {}
-					}
-				}
-
-				{ // Language
-					if let Some((&new, &old)) = join_new_old(&new_data.language, &old_data.language) {
-						html! {
-							<div class="row">
-								<div class="row-title"><span>{ "Language" }</span></div>
-								<div class="row-old"><div class="label red">{ old.and_then(get_language_name).unwrap_or_default() }</div></div>
-								<div class="row-new"><div class="label green">{ get_language_name(new).unwrap_or_default() }</div></div>
-							</div>
-						}
-					} else {
-						html! {}
-					}
-				}
-
-				{ // Publisher
-					if let Some((new, old)) = join_new_old(&new_data.publisher, &old_data.publisher) {
-						html! {
-							<div class="row">
-								<div class="row-title"><span>{ "Publisher" }</span></div>
-								<div class="row-old"><div class="label red">{ old.clone().unwrap_or_default() }</div></div>
-								<div class="row-new"><div class="label green">{ new.clone() }</div></div>
-							</div>
-						}
-					} else {
-						html! {}
-					}
-				}
+				{ Self::display_row("Title", &new_data.title, &old_data.title, current.and_then(|v| v.title.as_ref())) }
+				{ Self::display_row("Clean Title", &new_data.clean_title, &old_data.clean_title, current.and_then(|v| v.clean_title.as_ref())) }
+				{ Self::display_row("Description", &new_data.description, &old_data.description, current.and_then(|v| v.description.as_ref())) }
+				{ Self::display_row("Rating", &new_data.rating, &old_data.rating, current.map(|v| &v.rating)) }
+				{ Self::display_row("ISBN 10", &new_data.isbn_10, &old_data.isbn_10, current.and_then(|v| v.isbn_10.as_ref())) }
+				{ Self::display_row("ISBN 13", &new_data.isbn_13, &old_data.isbn_13, current.and_then(|v| v.isbn_13.as_ref())) }
+				{ Self::display_row("Is Public", &new_data.is_public, &old_data.is_public, current.map(|v| &v.is_public)) }
+				{ Self::display_row("Available At", &new_data.available_at, &old_data.available_at, current.and_then(|v| v.available_at.as_ref())) }
+				{ Self::display_row("Language", &new_data.language, &old_data.language, current.and_then(|v| v.language.as_ref())) }
+				// { Self::display_row("Publisher", &new_data.publisher, &old_data.publisher, current.and_then(|v| v.publisher.as_ref())) }
 
 				// TODO: People, Tags, Images
 			</>
@@ -416,10 +291,37 @@ impl EditListPage {
 
 		votes.items.iter().find_map(|v| if v.member_id? == get_member_self()?.id { Some(v.vote) } else { None })
 	}
+
+	fn display_row<V: Clone + Default + PartialEq + fmt::Display>(title: &'static str, new_data: &Option<V>, old_data: &Option<V>, current: Option<&V>) -> Html {
+		if let Some((new_value, old_value)) = determine_new_old(new_data, old_data) {
+			let warning = if current != old_value.as_ref() {
+				html! {
+					<div class="row-shrink">
+						<div class="label yellow" title={ "Current Model has a different value than wanted. It'll not be used if approved." }>
+							<span class="material-icons">{ "warning" }</span>
+						</div>
+					</div>
+				}
+			} else {
+				html! {}
+			};
+
+			html! {
+				<div class="row">
+					<div class="row-title"><span>{ title }</span></div>
+					<div class="row-grow"><div class="label red">{ old_value.clone().unwrap_or_default() }</div></div>
+					<div class="row-grow"><div class="label green">{ new_value.clone() }</div></div>
+					{ warning }
+				</div>
+			}
+		} else {
+			html! {}
+		}
+	}
 }
 
 
-fn join_new_old<'a, V>(new: &'a Option<V>, old: &'a Option<V>) -> Option<(&'a V, &'a Option<V>)> {
+fn determine_new_old<'a, V>(new: &'a Option<V>, old: &'a Option<V>) -> Option<(&'a V, &'a Option<V>)> {
 	match (new, old) {
 		(Some(n), o) => Some((n, o)),
 		_ => None,
