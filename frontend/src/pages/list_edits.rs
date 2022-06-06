@@ -151,7 +151,22 @@ impl EditListPage {
 								html! {
 									<div title={ expires_at.format("%b %e, %Y %T %p").to_string() }>
 										<b>{ "Closes: " }</b>
-										<span>{ expires_at.date().signed_duration_since(Utc::today()).num_days() } { " days" }</span>
+
+										{
+											match expires_at.signed_duration_since(Utc::now()) {
+												v if v.num_days() != 0 => {
+													html! {
+														<span>{ v.num_days() } { " days" }</span>
+													}
+												}
+
+												v => {
+													html! {
+														<span>{ v.num_hours() } { " hours" }</span>
+													}
+												}
+											}
+										}
 									</div>
 								}
 							} else {
