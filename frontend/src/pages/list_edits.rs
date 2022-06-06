@@ -147,34 +147,49 @@ impl EditListPage {
 						</div>
 
 						{
-							if let Some(expires_at) = item.expires_at {
-								html! {
-									<div title={ expires_at.format("%b %e, %Y %T %p").to_string() }>
-										<b>{ "Closes: " }</b>
+							match item.expires_at {
+								// Closed
+								Some(v) if v < Utc::now() => {
+									html! {
+										<div>
+											<b>{ "Closed" }</b>
+										</div>
+									}
+								}
 
-										{
-											match expires_at.signed_duration_since(Utc::now()) {
-												v if v.num_days() != 0 => {
-													html! {
-														<span>{ v.num_days() } { " days" }</span>
+								// Closes X time
+								Some(expires_at) => {
+									html! {
+										<div title={ expires_at.format("%b %e, %Y %T %p").to_string() }>
+											<b>{ "Closes: " }</b>
+
+											{
+												match expires_at.signed_duration_since(Utc::now()) {
+													v if v.num_days() != 0 => {
+														html! {
+															<span>{ v.num_days() } { " days" }</span>
+														}
 													}
-												}
 
-												v => {
-													html! {
-														<span>{ v.num_hours() } { " hours" }</span>
+													v => {
+														html! {
+															<span>{ v.num_hours() } { " hours" }</span>
+														}
 													}
 												}
 											}
-										}
-									</div>
+										</div>
+									}
 								}
-							} else {
-								html! {
-									<div>
-										<b>{ "Closes: " }</b>
-										<span>{ "Never" }</span>
-									</div>
+
+								// Closes Never
+								None => {
+									html! {
+										<div>
+											<b>{ "Closes: " }</b>
+											<span>{ "Never" }</span>
+										</div>
+									}
 								}
 							}
 						}
