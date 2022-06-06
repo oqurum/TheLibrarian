@@ -1,8 +1,8 @@
 use std::{thread, time::Duration};
 
-use crate::{Result, Database, model::EditModel};
+use crate::{Result, Database};
 
-
+mod pending;
 
 pub fn start(db: Database) -> thread::JoinHandle<Result<()>> {
 	thread::spawn(move || {
@@ -10,7 +10,7 @@ pub fn start(db: Database) -> thread::JoinHandle<Result<()>> {
 
 		rt.block_on(async {
 			loop {
-				if let Err(e) = EditModel::task_update_pending(&db).await {
+				if let Err(e) = pending::task_update_pending(&db).await {
 					eprintln!("{}", e);
 				}
 

@@ -1,9 +1,22 @@
+use lazy_static::lazy_static;
 use librarian_common::{MemberId, util::serialize_datetime, Permissions};
 use chrono::{DateTime, TimeZone, Utc};
 use rusqlite::{Row, params, OptionalExtension};
 use serde::Serialize;
 
 use crate::{Database, Result};
+
+lazy_static! {
+	pub static ref SYSTEM_MEMBER: MemberModel = MemberModel {
+		id: MemberId::from(0),
+		name: String::from("System"),
+		email: None,
+		password: None,
+		permissions: Permissions::empty(),
+		created_at: Utc.timestamp(0, 0),
+		updated_at: Utc.timestamp(0, 0),
+	};
+}
 
 
 pub struct NewMemberModel {
