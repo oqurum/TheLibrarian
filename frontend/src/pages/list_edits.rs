@@ -192,6 +192,7 @@ impl EditListPage {
 					{
 						match &item.data {
 							EditData::Book(v) => Self::generate_book_rows(v, scope),
+							EditData::Person(v) => Self::generate_person_rows(v, scope),
 							_ => todo!(),
 						}
 					}
@@ -272,6 +273,25 @@ impl EditListPage {
 					</div>
 				</div>
 			</div>
+		}
+	}
+
+	fn generate_person_rows(person_edit_data: &PersonEditData, _scope: &Scope<Self>) -> Html {
+		let current = person_edit_data.current.as_ref();
+
+		let (new_data, old_data) = match (&person_edit_data.new, &person_edit_data.old) {
+			(Some(a), Some(b)) => (a, b),
+			_ => return html! {},
+		};
+
+		html! {
+			<>
+				{ Self::display_row("Title", &new_data.name, &old_data.name, current.map(|v| &v.name)) }
+				{ Self::display_row("Description", &new_data.description, &old_data.description, current.and_then(|v| v.description.as_ref())) }
+				{ Self::display_row("Birth Date", &new_data.birth_date, &old_data.birth_date, current.and_then(|v| v.birth_date.as_ref())) }
+
+				// TODO: Images
+			</>
 		}
 	}
 
