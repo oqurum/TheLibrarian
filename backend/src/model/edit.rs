@@ -314,22 +314,26 @@ impl EditModel {
 		self.status = new_status;
 
 		if new_status.is_accepted() {
-			// Modify Type
-			match self.operation {
-				EditOperation::Modify => {
-					// TODO: Currently only using book right now.
-					if let Some(book_model) = BookModel::get_by_id(BookId::from(self.model_id.unwrap()), db).await? {
-						if let EditData::Book(mut book_data) = self.parse_data()? {
-							accept_register_book_data_overwrites(book_model, &mut book_data, db).await?;
+			match self.parse_data()? {
+				EditData::Book(mut book_data) => {
+					match self.operation {
+						EditOperation::Modify => {
+							if let Some(book_model) = BookModel::get_by_id(BookId::from(self.model_id.unwrap()), db).await? {
+								accept_register_book_data_overwrites(book_model, &mut book_data, db).await?;
 
-							self.update_data_and_status(EditData::Book(book_data), db).await?;
+								self.update_data_and_status(EditData::Book(book_data), db).await?;
+							}
 						}
+
+						EditOperation::Create => (),
+						EditOperation::Delete => (),
+						EditOperation::Merge => (),
 					}
 				}
 
-				EditOperation::Create => (),
-				EditOperation::Delete => (),
-				EditOperation::Merge => (),
+				EditData::Person(_) => todo!(),
+				EditData::Tag => todo!(),
+				EditData::Collection => todo!(),
 			}
 		}
 
