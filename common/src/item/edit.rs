@@ -174,30 +174,30 @@ mod book_edit {
 
 	#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 	pub struct UpdatedBookEdit {
-		#[serde(skip_serializing_if = "is_false")]
+		#[serde(default, skip_serializing_if = "is_false")]
 		pub title: bool,
-		#[serde(skip_serializing_if = "is_false")]
+		#[serde(default, skip_serializing_if = "is_false")]
 		pub clean_title: bool,
-		#[serde(skip_serializing_if = "is_false")]
+		#[serde(default, skip_serializing_if = "is_false")]
 		pub description: bool,
 
-		#[serde(skip_serializing_if = "is_false")]
+		#[serde(default, skip_serializing_if = "is_false")]
 		pub rating: bool,
 
-		#[serde(skip_serializing_if = "is_false")]
+		#[serde(default, skip_serializing_if = "is_false")]
 		pub isbn_10: bool,
-		#[serde(skip_serializing_if = "is_false")]
+		#[serde(default, skip_serializing_if = "is_false")]
 		pub isbn_13: bool,
 
-		#[serde(skip_serializing_if = "is_false")]
+		#[serde(default, skip_serializing_if = "is_false")]
 		pub is_public: bool,
 
-		#[serde(skip_serializing_if = "is_false")]
+		#[serde(default, skip_serializing_if = "is_false")]
 		pub available_at: bool,
-		#[serde(skip_serializing_if = "is_false")]
+		#[serde(default, skip_serializing_if = "is_false")]
 		pub language: bool,
 
-		#[serde(skip_serializing_if = "is_false")]
+		#[serde(default, skip_serializing_if = "is_false")]
 		pub publisher: bool,
 	}
 
@@ -262,11 +262,11 @@ mod person_edit {
 
 	#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 	pub struct UpdatedPersonEdit {
-		#[serde(skip_serializing_if = "is_false")]
+		#[serde(default, skip_serializing_if = "is_false")]
 		pub name: bool,
-		#[serde(skip_serializing_if = "is_false")]
+		#[serde(default, skip_serializing_if = "is_false")]
 		pub description: bool,
-		#[serde(skip_serializing_if = "is_false")]
+		#[serde(default, skip_serializing_if = "is_false")]
 		pub birth_date: bool,
 	}
 
