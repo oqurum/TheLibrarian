@@ -11,7 +11,7 @@ pub use edit_vote::*;
 
 use crate::{Result, Database, edit_translate::{self, Output}};
 
-use super::{BookModel, MemberModel, BookTagModel, BookPersonModel, NewImageModel, ImageModel};
+use super::{BookModel, MemberModel, BookTagModel, BookPersonModel, NewImageModel, ImageModel, TagModel, PersonModel};
 
 
 #[derive(Debug)]
@@ -454,7 +454,9 @@ pub async fn accept_register_book_data_overwrites(
 	// Tags
 	if let Some(values) = new.added_tags {
 		for tag_id in values {
-			BookTagModel::insert(book_model.id, tag_id, None, db).await?;
+			if TagModel::get_by_id(tag_id, db).await?.is_some() {
+				BookTagModel::insert(book_model.id, tag_id, None, db).await?;
+			}
 		}
 	}
 
@@ -483,8 +485,10 @@ pub async fn accept_register_book_data_overwrites(
 	// People
 	if let Some(values) = new.added_people {
 		for person_id in values {
-			BookPersonModel::new(book_model.id, person_id)
-				.insert(db).await?;
+			if PersonModel::get_by_id(person_id, db).await?.is_some() {
+				BookPersonModel::new(book_model.id, person_id)
+					.insert(db).await?;
+			}
 		}
 	}
 
