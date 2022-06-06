@@ -5,6 +5,7 @@ use crate::{EditId, edit::*, util::*, TagId, PersonId, BookId, Member, MemberId,
 
 
 pub use book_edit::*;
+pub use person_edit::*;
 
 
 
@@ -74,7 +75,7 @@ pub struct UpdateEditModel {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EditData {
 	Book(BookEditData),
-	Person,
+	Person(PersonEditData),
 	Tag,
 	Collection,
 }
@@ -234,6 +235,57 @@ mod book_edit {
 			self.removed_tags.is_none() &&
 			self.added_images.is_none() &&
 			self.removed_images.is_none()
+		}
+	}
+}
+
+mod person_edit {
+	use crate::Person;
+	use super::*;
+
+	pub type PersonEditData = InnerEditData<Person, PersonEdit, UpdatedPersonEdit>;
+
+	#[derive(Debug, Clone, Serialize, Deserialize)]
+	pub struct PersonEdit {
+		#[serde(skip_serializing_if = "Option::is_none")]
+		pub name: Option<String>,
+		#[serde(skip_serializing_if = "Option::is_none")]
+		pub description: Option<String>,
+		#[serde(skip_serializing_if = "Option::is_none")]
+		pub birth_date: Option<String>,
+
+		#[serde(skip_serializing_if = "Option::is_none")]
+		pub added_images: Option<Vec<ThumbnailStore>>,
+		#[serde(skip_serializing_if = "Option::is_none")]
+		pub removed_images: Option<Vec<ThumbnailStore>>,
+	}
+
+	#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+	pub struct UpdatedPersonEdit {
+		#[serde(skip_serializing_if = "is_false")]
+		pub name: bool,
+		#[serde(skip_serializing_if = "is_false")]
+		pub description: bool,
+		#[serde(skip_serializing_if = "is_false")]
+		pub birth_date: bool,
+	}
+
+
+	impl PersonEdit {
+		pub fn is_empty(&self) -> bool {
+			self.name.is_none() &&
+			self.description.is_none() &&
+			self.birth_date.is_none() &&
+			self.added_images.is_none() &&
+			self.removed_images.is_none()
+		}
+	}
+
+	impl UpdatedPersonEdit {
+		pub fn is_empty(&self) -> bool {
+			!self.name &&
+			!self.description &&
+			!self.birth_date
 		}
 	}
 }

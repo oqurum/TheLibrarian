@@ -263,7 +263,7 @@ impl EditModel {
 	pub fn parse_data(&self) -> Result<EditData> {
 		Ok(match self.type_of {
 			EditType::Book => EditData::Book(serde_json::from_str(&self.data)?),
-			EditType::Person => EditData::Person,
+			EditType::Person => EditData::Person(serde_json::from_str(&self.data)?),
 			EditType::Tag => EditData::Tag,
 			EditType::Collection => EditData::Collection,
 		})
@@ -272,7 +272,7 @@ impl EditModel {
 	pub async fn update_data_and_status(&mut self, value: EditData, db: &Database) -> Result<()> {
 		match (self.type_of, value) {
 			(EditType::Book, EditData::Book(v)) => self.data = serde_json::to_string(&v)?,
-			(EditType::Person, EditData::Person) => (),
+			(EditType::Person, EditData::Person(v)) => self.data = serde_json::to_string(&v)?,
 			(EditType::Tag, EditData::Tag) => (),
 			(EditType::Collection, EditData::Collection) => (),
 
