@@ -113,10 +113,14 @@ impl MemberModel {
 	}
 
 	pub async fn get_by_id(id: MemberId, db: &Database) -> Result<Option<Self>> {
-		Ok(db.read().await.query_row(
-			r#"SELECT * FROM members WHERE id = ?1 LIMIT 1"#,
-			params![id],
-			|v| Self::try_from(v)
-		).optional()?)
+		if id == 0 {
+			Ok(Some(SYSTEM_MEMBER.clone()))
+		} else {
+			Ok(db.read().await.query_row(
+				r#"SELECT * FROM members WHERE id = ?1 LIMIT 1"#,
+				params![id],
+				|v| Self::try_from(v)
+			).optional()?)
+		}
 	}
 }
