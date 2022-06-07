@@ -103,6 +103,21 @@ async fn update_edit(
 	update.expires_at = None;
 	update.is_applied = None;
 
+
+	let mut edit_model = match EditModel::get_by_id(*edit_id, &db).await? {
+		Some(value) => value,
+		// TODO: Error.
+		_ => return Ok(web::Json(api::PostEditResponse::default())),
+	};
+
+
+	// Check that we're pending.
+	if !edit_model.status.is_pending() {
+		// TODO: Error.
+		return Ok(web::Json(api::PostEditResponse::default()));
+	}
+
+
 	let member = MemberModel::get_by_id(member.member_id(), &db).await?.unwrap();
 
 	// Only an Admin can change the status.
@@ -112,9 +127,7 @@ async fn update_edit(
 			return Ok(web::Json(api::PostEditResponse::default()));
 		}
 
-		if let Some(mut edit_model) = EditModel::get_by_id(*edit_id, &db).await? {
-			edit_model.process_status_change(new_status, &db).await?;
-		}
+		edit_model.process_status_change(new_status, &db).await?;
 	}
 
 	// Has Voting Or Admin Perms.
