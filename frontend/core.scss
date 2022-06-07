@@ -70,6 +70,9 @@ body {
 	}
 }
 
+:where(input, textarea, select) {
+	background-color: var(--surface-1);
+}
 
 :where(input, button, textarea, select),
 :where(input[type="file"])::-webkit-file-upload-button {
@@ -1086,6 +1089,7 @@ hr {
 		background: var(--surface-1);
 		border-radius: 4px;
 		padding: 10px;
+		margin-bottom: 1em;
 
 		.header,
 		.footer {
