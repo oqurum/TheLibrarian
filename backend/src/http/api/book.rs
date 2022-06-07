@@ -3,8 +3,9 @@ use actix_web::{get, web, HttpResponse, post};
 use chrono::Utc;
 use librarian_common::{api, DisplayItem, BookId, PersonId};
 
+use crate::http::MemberCookie;
 use crate::metadata::MetadataReturned;
-use crate::model::{NewImageModel, BookPersonModel, BookModel, BookTagWithTagModel, PersonModel};
+use crate::model::{NewImageModel, BookPersonModel, BookModel, BookTagWithTagModel, PersonModel, NewEditModel};
 use crate::{WebResult, metadata, Error};
 use crate::database::Database;
 
@@ -144,17 +145,21 @@ pub async fn get_book_info(book_id: web::Path<BookId>, db: web::Data<Database>) 
 
 #[post("/book/{id}")]
 pub async fn update_book_id(
-	_meta_id: web::Path<usize>,
-	body: web::Json<api::UpdateBookBody>,
+	book_id: web::Path<BookId>,
+	body: web::Json<api::UpdateBookBody>, // TODO: Replace with BookEdit
+	member: MemberCookie,
 	db: web::Data<Database>,
 ) -> WebResult<HttpResponse> {
 	let body = body.into_inner();
 
-	if let Some(mut book) = body.metadata {
-		book.updated_at = Utc::now();
+	let current_book = BookModel::get_by_id(*book_id, &db).await?;
 
-		let mut book: BookModel = book.into();
-		book.update_book(&db).await?;
+	if let Some((updated_book, current_book)) = body.metadata.zip(current_book) {
+		let updated_book: BookModel = updated_book.into();
+
+		let model = NewEditModel::from_book_modify(member.member_id(), current_book, updated_book)?;
+
+		model.insert(&db).await?;
 	}
 
 	Ok(HttpResponse::Ok().finish())
