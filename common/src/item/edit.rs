@@ -90,7 +90,7 @@ pub enum ModelIdGroup {
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct InnerEditData<Curr, Cached, Update> {
+pub struct InnerEditData<Curr, Cached, Update: Clone + Default> {
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub current: Option<Curr>,
 

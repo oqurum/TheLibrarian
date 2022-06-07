@@ -293,6 +293,7 @@ impl EditListPage {
 
 	fn generate_person_rows(person_edit_data: &PersonEditData, _scope: &Scope<Self>) -> Html {
 		let current = person_edit_data.current.as_ref();
+		let updated = person_edit_data.updated.clone().unwrap_or_default();
 
 		let (new_data, old_data) = match (&person_edit_data.new, &person_edit_data.old) {
 			(Some(a), Some(b)) => (a, b),
@@ -301,9 +302,9 @@ impl EditListPage {
 
 		html! {
 			<>
-				{ Self::display_row("Title", &new_data.name, &old_data.name, current.map(|v| &v.name)) }
-				{ Self::display_row("Description", &new_data.description, &old_data.description, current.and_then(|v| v.description.as_ref())) }
-				{ Self::display_row("Birth Date", &new_data.birth_date, &old_data.birth_date, current.and_then(|v| v.birth_date.as_ref())) }
+				{ Self::display_row("Title", &new_data.name, &old_data.name, current.map(|v| &v.name), updated.name) }
+				{ Self::display_row("Description", &new_data.description, &old_data.description, current.and_then(|v| v.description.as_ref()), updated.description) }
+				{ Self::display_row("Birth Date", &new_data.birth_date, &old_data.birth_date, current.and_then(|v| v.birth_date.as_ref()), updated.birth_date) }
 
 				// TODO: Images
 			</>
@@ -312,6 +313,7 @@ impl EditListPage {
 
 	fn generate_book_rows(book_edit_data: &BookEditData, _scope: &Scope<Self>) -> Html {
 		let current = book_edit_data.current.as_ref();
+		let updated = book_edit_data.updated.clone().unwrap_or_default();
 
 		let (new_data, old_data) = match (&book_edit_data.new, &book_edit_data.old) {
 			(Some(a), Some(b)) => (a, b),
@@ -320,15 +322,15 @@ impl EditListPage {
 
 		html! {
 			<>
-				{ Self::display_row("Title", &new_data.title, &old_data.title, current.and_then(|v| v.title.as_ref())) }
-				{ Self::display_row("Clean Title", &new_data.clean_title, &old_data.clean_title, current.and_then(|v| v.clean_title.as_ref())) }
-				{ Self::display_row("Description", &new_data.description, &old_data.description, current.and_then(|v| v.description.as_ref())) }
-				{ Self::display_row("Rating", &new_data.rating, &old_data.rating, current.map(|v| &v.rating)) }
-				{ Self::display_row("ISBN 10", &new_data.isbn_10, &old_data.isbn_10, current.and_then(|v| v.isbn_10.as_ref())) }
-				{ Self::display_row("ISBN 13", &new_data.isbn_13, &old_data.isbn_13, current.and_then(|v| v.isbn_13.as_ref())) }
-				{ Self::display_row("Is Public", &new_data.is_public, &old_data.is_public, current.map(|v| &v.is_public)) }
-				{ Self::display_row("Available At", &new_data.available_at, &old_data.available_at, current.and_then(|v| v.available_at.as_ref())) }
-				{ Self::display_row("Language", &new_data.language, &old_data.language, current.and_then(|v| v.language.as_ref())) }
+				{ Self::display_row("Title", &new_data.title, &old_data.title, current.and_then(|v| v.title.as_ref()), updated.title) }
+				{ Self::display_row("Clean Title", &new_data.clean_title, &old_data.clean_title, current.and_then(|v| v.clean_title.as_ref()), updated.clean_title) }
+				{ Self::display_row("Description", &new_data.description, &old_data.description, current.and_then(|v| v.description.as_ref()), updated.description) }
+				{ Self::display_row("Rating", &new_data.rating, &old_data.rating, current.map(|v| &v.rating), updated.rating) }
+				{ Self::display_row("ISBN 10", &new_data.isbn_10, &old_data.isbn_10, current.and_then(|v| v.isbn_10.as_ref()), updated.isbn_10) }
+				{ Self::display_row("ISBN 13", &new_data.isbn_13, &old_data.isbn_13, current.and_then(|v| v.isbn_13.as_ref()), updated.isbn_13) }
+				{ Self::display_row("Is Public", &new_data.is_public, &old_data.is_public, current.map(|v| &v.is_public), updated.is_public) }
+				{ Self::display_row("Available At", &new_data.available_at, &old_data.available_at, current.and_then(|v| v.available_at.as_ref()), updated.available_at) }
+				{ Self::display_row("Language", &new_data.language, &old_data.language, current.and_then(|v| v.language.as_ref()), updated.language) }
 				// { Self::display_row("Publisher", &new_data.publisher, &old_data.publisher, current.and_then(|v| v.publisher.as_ref())) }
 
 				// TODO: People, Tags, Images
@@ -342,13 +344,27 @@ impl EditListPage {
 		votes.items.iter().find_map(|v| if v.member_id? == get_member_self()?.id { Some(v.vote) } else { None })
 	}
 
-	fn display_row<V: Clone + Default + PartialEq + fmt::Display>(title: &'static str, new_data: &Option<V>, old_data: &Option<V>, current: Option<&V>) -> Html {
+	fn display_row<V: Clone + Default + PartialEq + fmt::Display>(
+		title: &'static str,
+		new_data: &Option<V>,
+		old_data: &Option<V>,
+		current: Option<&V>,
+		is_updated: bool,
+	) -> Html {
 		if let Some((new_value, old_value)) = determine_new_old(new_data, old_data) {
-			let warning = if current != old_value.as_ref() {
+			let warning = if current.is_some() && current != old_value.as_ref() && !is_updated {
 				html! {
 					<div class="row-shrink">
 						<div class="label yellow" title={ "Current Model has a different value than wanted. It'll not be used if approved." }>
 							<span class="material-icons">{ "warning" }</span>
+						</div>
+					</div>
+				}
+			} else if is_updated {
+				html! {
+					<div class="row-shrink">
+						<div class="label green" title={ "Updated Model with value." }>
+							<span class="material-icons">{ "done" }</span>
 						</div>
 					</div>
 				}
