@@ -47,17 +47,20 @@ pub async fn load_edit_list(
 			total: EditVoteModel::count_by_edit_id(item.id, &db).await?,
 		});
 
-		// Attempt to get the Book Model ID we're editing.
-		if let Some(ModelIdGroup::Book(book_id)) = item.get_model_id() {
-			if let EditData::Book(book_data) = &mut item.data {
-				// If we've already queried the database for this book id, clone it.
-				if let Some(book_model) = existing_books.iter().find(|v| v.id == book_id).cloned() {
-					book_data.current = Some(book_model.into());
-				}
-				// Query database for book id.
-				else if let Some(book_model) = BookModel::get_by_id(book_id, &db).await? {
-					existing_books.push(book_model.clone());
-					book_data.current = Some(book_model.into());
+		// Only add `current` field if status is pending.
+		if item.status.is_pending() {
+			// Attempt to get the Book Model ID we're editing.
+			if let Some(ModelIdGroup::Book(book_id)) = item.get_model_id() {
+				if let EditData::Book(book_data) = &mut item.data {
+					// If we've already queried the database for this book id, clone it.
+					if let Some(book_model) = existing_books.iter().find(|v| v.id == book_id).cloned() {
+						book_data.current = Some(book_model.into());
+					}
+					// Query database for book id.
+					else if let Some(book_model) = BookModel::get_by_id(book_id, &db).await? {
+						existing_books.push(book_model.clone());
+						book_data.current = Some(book_model.into());
+					}
 				}
 			}
 		}
