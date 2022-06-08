@@ -1,5 +1,5 @@
 use js_sys::Date;
-use librarian_common::{api::{MediaViewResponse, self, GetPostersResponse, GetTagsResponse}, Either, TagType, BookTag, LANGUAGES, util::string_to_upper_case, BookId, TagId};
+use librarian_common::{api::{MediaViewResponse, self, GetPostersResponse, GetTagsResponse}, Either, TagType, LANGUAGES, util::string_to_upper_case, BookId, TagId, item::edit::BookEdit, TagFE};
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{HtmlInputElement, HtmlTextAreaElement, HtmlSelectElement};
 use yew::{prelude::*, html::Scope};
@@ -16,7 +16,7 @@ pub enum Msg {
 
 	MultiselectToggle(bool, TagId),
 	MultiselectCreate(TagType, MultiselectNewItem),
-	MultiCreateResponse(BookTag),
+	MultiCreateResponse(TagFE),
 	AllTagsResponse(GetTagsResponse),
 
 	ReloadPosters,
@@ -45,7 +45,8 @@ pub struct MediaView {
 	media_popup: Option<DisplayOverlay>,
 
 	/// If we're currently editing. This'll be set.
-	editing_item: Option<MediaViewResponse>,
+	editing_item: BookEdit,
+	is_editing: bool,
 
 	// Multiselect Values
 	cached_tags: Vec<CachedTag>,
@@ -64,7 +65,8 @@ impl Component for MediaView {
 			media: None,
 			cached_posters: None,
 			media_popup: None,
-			editing_item: None,
+			editing_item: BookEdit::default(),
+			is_editing: false,
 
 			cached_tags: Vec::new(),
 		}
@@ -76,42 +78,23 @@ impl Component for MediaView {
 			Msg::Ignore => return false,
 
 			// Multiselect
-			Msg::MultiselectToggle(toggle, tag_id) => {
-				if toggle {
-					let book_id = ctx.props().id;
-
-					// TODO: Update after save.
-					ctx.link()
-					.send_future(async move {
-						request::new_book_tag(book_id, tag_id, None).await;
-
-						let book_tag_resp = request::get_book_tag(book_id, tag_id).await;
-
-						Msg::MultiCreateResponse(book_tag_resp.value.unwrap())
-					});
+			Msg::MultiselectToggle(inserted, tag_id) => if let Some(curr_book) = self.media.as_ref() {
+				if inserted {
+					// If the tag is in the db model.
+					if curr_book.tags.iter().any(|bt| bt.tag.id == tag_id) {
+						// We have to make sure it's on in the "removed_tags" vec
+						self.editing_item.remove_tag(tag_id);
+					} else {
+						self.editing_item.insert_added_tag(tag_id);
+					}
 				} else {
-					if let Some(book) = self.editing_item.as_mut() {
-						if let Some(index) = book.tags.iter().position(|bt| bt.tag.id == tag_id) {
-							book.tags.remove(index);
-						}
+					// If the tag is in the db model.
+					if curr_book.tags.iter().any(|bt| bt.tag.id == tag_id) {
+						self.editing_item.insert_removed_tag(tag_id);
+					} else {
+						// We have to make sure it's not in the "added_tags" vec
+						self.editing_item.remove_tag(tag_id);
 					}
-
-					// TODO: Update after we Save
-					if let Some(book) = self.media.as_mut() {
-						if let Some(index) = book.tags.iter().position(|bt| bt.tag.id == tag_id) {
-							book.tags.remove(index);
-						}
-					}
-
-					let book_id = ctx.props().id;
-
-					// TODO: Update after save.
-					ctx.link()
-					.send_future(async move {
-						request::delete_book_tag(book_id, tag_id).await;
-
-						Msg::Ignore
-					});
 				}
 			}
 
@@ -119,19 +102,13 @@ impl Component for MediaView {
 				match &type_of {
 					TagType::Genre |
 					TagType::Subject => {
-						let book_id = ctx.props().id;
-
 						ctx.link()
 						.send_future(async move {
 							let tag_resp = request::new_tag(item.name.clone(), type_of).await;
-							// TODO: Update after we Save
-							request::new_book_tag(book_id, tag_resp.id, None).await;
-
-							let book_tag_resp = request::get_book_tag(book_id, tag_resp.id).await;
 
 							item.register.emit(*tag_resp.id);
 
-							Msg::MultiCreateResponse(book_tag_resp.value.unwrap())
+							Msg::MultiCreateResponse(tag_resp)
 						});
 					}
 
@@ -139,26 +116,19 @@ impl Component for MediaView {
 				}
 			}
 
-			Msg::MultiCreateResponse(book_tag) => {
+			Msg::MultiCreateResponse(tag) => {
 				// Add original tag to cache.
-				if !self.cached_tags.iter().any(|v| v.id == book_tag.tag.id) {
+				if !self.cached_tags.iter().any(|v| v.id == tag.id) {
 					self.cached_tags.push(CachedTag {
-						type_of: book_tag.tag.type_of.clone(),
-						name: book_tag.tag.name.clone(),
-						id: book_tag.tag.id,
+						type_of: tag.type_of.clone(),
+						name: tag.name.clone(),
+						id: tag.id,
 					});
 
 					self.cached_tags.sort_unstable_by(|a, b| a.name.partial_cmp(&b.name).unwrap());
 				}
 
-				if let Some(book) = self.editing_item.as_mut() {
-					book.tags.push(book_tag.clone());
-				}
-
-				// TODO: Currently adding it since we don't take in account saving
-				if let Some(book) = self.media.as_mut() {
-					book.tags.push(book_tag);
-				}
+				self.editing_item.insert_added_tag(tag.id);
 			}
 
 			Msg::AllTagsResponse(resp) => {
@@ -187,53 +157,49 @@ impl Component for MediaView {
 
 			// Edits
 			Msg::ToggleEdit => {
-				if self.editing_item.is_none() {
-					self.editing_item = self.media.clone();
-
-					if self.cached_posters.is_none() {
-						ctx.link().send_message(Msg::ReloadPosters);
-					}
-				} else {
-					self.editing_item = None;
+				// Is currently editing? We won't be.
+				if self.is_editing {
+					self.editing_item = BookEdit::default();
+				} else if self.cached_posters.is_none() {
+					ctx.link().send_message(Msg::ReloadPosters);
 				}
+
+				self.is_editing = !self.is_editing;
 			}
 
 			Msg::SaveEdits => {
-				self.media = self.editing_item.clone();
+				let edit = self.editing_item.clone();
+				self.editing_item = BookEdit::default();
 
-				let metadata = self.media.as_ref().unwrap().metadata.clone();
-				let meta_id = metadata.id;
+				let book_id = self.media.as_ref().unwrap().metadata.id;
 
 				ctx.link()
 				.send_future(async move {
-					request::update_book(meta_id, &api::UpdateBookBody {
-						metadata: Some(metadata),
-						people: None,
-					}).await;
+					request::update_book(book_id, &edit).await;
 
-					Msg::Ignore
+					Msg::RetrieveMediaView(Box::new(request::get_media_view(book_id).await))
 				});
 			}
 
 			Msg::UpdateEditing(type_of, value) => {
-				let mut updating = self.editing_item.as_mut().unwrap();
+				let mut updating = &mut self.editing_item;
 
 				let value = Some(value).filter(|v| !v.is_empty());
 
 				match type_of {
-					ChangingType::Title => updating.metadata.title = value,
-					ChangingType::OriginalTitle => updating.metadata.clean_title = value,
-					ChangingType::Description => updating.metadata.description = value,
-					ChangingType::Rating => updating.metadata.rating = value.and_then(|v| v.parse().ok()).unwrap_or_default(),
+					ChangingType::Title => updating.title = value,
+					ChangingType::OriginalTitle => updating.clean_title = value,
+					ChangingType::Description => updating.description = value,
+					ChangingType::Rating => updating.rating = value.and_then(|v| v.parse().ok()),
 					ChangingType::ThumbPath => todo!(),
-					ChangingType::AvailableAt => updating.metadata.available_at = value.map(|v| {
+					ChangingType::AvailableAt => updating.available_at = value.map(|v| {
 						let date = Date::new(&JsValue::from_str(&v));
 						format!("{}-{}-{}", date.get_full_year(), date.get_month() + 1, date.get_date())
 					}),
-					ChangingType::Language => updating.metadata.language = value.and_then(|v| v.parse().ok()),
-					ChangingType::Isbn10 => updating.metadata.isbn_10 = value,
-					ChangingType::Isbn13 => updating.metadata.isbn_13 = value,
-					ChangingType::Publicity => updating.metadata.is_public = value.and_then(|v| v.parse().ok()).unwrap_or_default(),
+					ChangingType::Language => updating.language = value.and_then(|v| v.parse().ok()),
+					ChangingType::Isbn10 => updating.isbn_10 = value,
+					ChangingType::Isbn13 => updating.isbn_13 = value,
+					ChangingType::Publicity => updating.is_public = value.and_then(|v| v.parse().ok()),
 				}
 			}
 
@@ -268,16 +234,16 @@ impl Component for MediaView {
 	}
 
 	fn view(&self, ctx: &Context<Self>) -> Html {
-		let resp = self.editing_item.as_ref().or(self.media.as_ref());
+		let editing = &self.editing_item;
 
-		if let Some(MediaViewResponse { people, metadata, tags }) = resp {
-			let meta_id = metadata.id;
+		if let Some(MediaViewResponse { people, metadata: book_model, tags }) = self.media.as_ref() {
+			let meta_id = book_model.id;
 
 			html! {
 				<div class="media-view-container">
 					<div class="sidebar">
 					{
-						if self.is_editing() {
+						if self.is_editing {
 							html! {
 								<>
 									<div class="sidebar-item">
@@ -303,12 +269,12 @@ impl Component for MediaView {
 					<div class="main-content-view">
 						<div class="info-container">
 							<div class="poster large">
-								<img src={ metadata.get_thumb_url() } />
+								<img src={ book_model.get_thumb_url() } />
 							</div>
 
 							<div class="metadata">
 								{ // Book Display Info
-									if self.is_editing() {
+									if self.is_editing {
 										html! {
 											<>
 												<h5>{ "Book Display Info" }</h5>
@@ -319,10 +285,10 @@ impl Component for MediaView {
 													type="text"
 													onchange={Self::on_change_select(ctx.link(), ChangingType::Publicity)}
 												>
-													<option selected={metadata.is_public} value="true">
+													<option selected={editing.is_public.unwrap_or(book_model.is_public)} value="true">
 														{"Public"}
 													</option>
-													<option selected={!metadata.is_public} value="false">
+													<option selected={!editing.is_public.unwrap_or(book_model.is_public)} value="false">
 														{"Private"}
 													</option>
 												</select>
@@ -330,13 +296,13 @@ impl Component for MediaView {
 												<span class="sub-title">{"Title"}</span>
 												<input class="title" type="text"
 													onchange={Self::on_change_input(ctx.link(), ChangingType::Title)}
-													value={ metadata.title.clone().unwrap_or_default() }
+													value={ editing.title.clone().or_else(|| book_model.title.clone()).unwrap_or_default() }
 												/>
 
 												<span class="sub-title">{"Original Title"}</span>
 												<input class="title" type="text"
 													onchange={Self::on_change_input(ctx.link(), ChangingType::OriginalTitle)}
-													value={ metadata.clean_title.clone().unwrap_or_default() }
+													value={ editing.clean_title.clone().or_else(|| book_model.clean_title.clone()).unwrap_or_default() }
 												/>
 
 												<span class="sub-title">{"Description"}</span>
@@ -345,15 +311,15 @@ impl Component for MediaView {
 													cols="30"
 													class="description"
 													onchange={Self::on_change_textarea(ctx.link(), ChangingType::Description)}
-													value={ metadata.description.clone().unwrap_or_default() }
+													value={ editing.description.clone().or_else(|| book_model.description.clone()).unwrap_or_default() }
 												/>
 											</>
 										}
 									} else {
 										html! {
 											<>
-												<h3 class="title">{ metadata.get_title() }</h3>
-												<p class="description">{ metadata.description.clone().unwrap_or_default() }</p>
+												<h3 class="title">{ book_model.get_title() }</h3>
+												<p class="description">{ book_model.description.clone().unwrap_or_default() }</p>
 											</>
 										}
 									}
@@ -361,7 +327,7 @@ impl Component for MediaView {
 							</div>
 
 							{ // Book Info
-								if self.is_editing() {
+								if self.is_editing {
 									html! {
 										<div class="metadata">
 											<h5>{ "Book Info" }</h5>
@@ -370,19 +336,19 @@ impl Component for MediaView {
 											<input class="title" type="text"
 												placeholder="YYYY-MM-DD"
 												onchange={Self::on_change_input(ctx.link(), ChangingType::AvailableAt)}
-												value={ metadata.available_at.clone().unwrap_or_default() }
+												value={ editing.available_at.clone().or_else(|| book_model.available_at.clone()).unwrap_or_default() }
 											/>
 
 											<span class="sub-title">{"ISBN 10"}</span>
 											<input class="title" type="text"
 												onchange={Self::on_change_input(ctx.link(), ChangingType::Isbn10)}
-												value={ metadata.isbn_10.clone().unwrap_or_default() }
+												value={ editing.isbn_10.clone().or_else(|| book_model.isbn_10.clone()).unwrap_or_default() }
 											/>
 
 											<span class="sub-title">{"ISBN 13"}</span>
 											<input class="title" type="text"
 												onchange={Self::on_change_input(ctx.link(), ChangingType::Isbn13)}
-												value={ metadata.isbn_13.clone().unwrap_or_default() }
+												value={ editing.isbn_13.clone().or_else(|| book_model.isbn_13.clone()).unwrap_or_default() }
 											/>
 
 											<span class="sub-title">{"Publisher"}</span>
@@ -394,12 +360,12 @@ impl Component for MediaView {
 												type="text"
 												onchange={Self::on_change_select(ctx.link(), ChangingType::Language)}
 											>
-												<option value="-1" selected={metadata.language.is_none()}>{ "Unknown" }</option>
+												<option value="-1" selected={editing.language.or(book_model.language).is_none()}>{ "Unknown" }</option>
 												{
 													for LANGUAGES.iter()
 														.enumerate()
 														.map(|(index, lang)| {
-															let selected = metadata.language.filter(|v| index as u16 == *v).is_some();
+															let selected = editing.language.or(book_model.language).filter(|v| index as u16 == *v).is_some();
 
 															html! {
 																<option
@@ -420,7 +386,7 @@ impl Component for MediaView {
 							}
 
 							{ // Sources
-								if self.is_editing() {
+								if self.is_editing {
 									html! {
 										<div class="metadata">
 											<h5>{ "Sources" }</h5>
@@ -445,9 +411,19 @@ impl Component for MediaView {
 													for self.cached_tags
 														.iter()
 														.filter(|v| v.type_of.into_u8() == TagType::Genre.into_u8())
-														.map(|tag| html_nested! {
-															// TODO: Remove deref
-															<MultiselectItem name={tag.name.clone()} id={*tag.id} selected={tags.iter().any(|bt| bt.tag.id == tag.id)} />
+														.map(|tag| {
+															let mut filtered_tags = tags.iter()
+																// We only need the tag ids
+																.map(|bt| bt.tag.id)
+																// Filter out editing "removed tags"
+																.filter(|tag_id| !editing.removed_tags.as_ref().map(|v| v.iter().any(|r| r == tag_id)).unwrap_or_default())
+																// Chain into editing "added tags"
+																.chain(editing.added_tags.iter().flat_map(|v| v.iter()).copied());
+
+															html_nested! {
+																// TODO: Remove deref
+																<MultiselectItem name={tag.name.clone()} id={*tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
+															}
 														})
 												}
 											</MultiselectModule>
@@ -461,9 +437,19 @@ impl Component for MediaView {
 													for self.cached_tags
 														.iter()
 														.filter(|v| v.type_of.into_u8() == TagType::Subject.into_u8())
-														.map(|tag| html_nested! {
-															// TODO: Remove deref
-															<MultiselectItem name={tag.name.clone()} id={*tag.id} selected={tags.iter().any(|bt| bt.tag.id == tag.id)} />
+														.map(|tag| {
+															let mut filtered_tags = tags.iter()
+																// We only need the tag ids
+																.map(|bt| bt.tag.id)
+																// Filter out editing "removed tags"
+																.filter(|tag_id| !editing.removed_tags.as_ref().map(|v| v.iter().any(|r| r == tag_id)).unwrap_or_default())
+																// Chain into editing "added tags"
+																.chain(editing.added_tags.iter().flat_map(|v| v.iter()).copied());
+
+															html_nested! {
+																// TODO: Remove deref
+																<MultiselectItem name={tag.name.clone()} id={*tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
+															}
 														})
 												}
 											</MultiselectModule>
@@ -476,7 +462,7 @@ impl Component for MediaView {
 						</div>
 
 						{ // Posters
-							if self.is_editing() {
+							if self.is_editing {
 								if let Some(resp) = self.cached_posters.as_ref() {
 									html! {
 										<section>
@@ -538,7 +524,7 @@ impl Component for MediaView {
 							<h2>{ "Characters" }</h2>
 							<div class="characters-container">
 								{
-									if self.is_editing() {
+									if self.is_editing {
 										html! {
 											<div class="add-person" title="Add Book Character">
 												<span class="material-icons">{ "add" }</span>
@@ -555,7 +541,7 @@ impl Component for MediaView {
 							<h2>{ "People" }</h2>
 							<div class="authors-container">
 								{
-									if self.is_editing() {
+									if self.is_editing {
 										html! {
 											<div class="add-person" title="Add Person">
 												<span class="material-icons">{ "add" }</span>
@@ -600,10 +586,6 @@ impl Component for MediaView {
 }
 
 impl MediaView {
-	fn is_editing(&self) -> bool {
-		self.editing_item.is_some()
-	}
-
 	fn on_change_select(scope: &Scope<Self>, updating: ChangingType) -> Callback<Event> {
 		scope.callback(move |e: Event| {
 			Msg::UpdateEditing(updating, e.target().unwrap().dyn_into::<HtmlSelectElement>().unwrap().value())

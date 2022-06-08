@@ -94,7 +94,7 @@ impl<'a> TryFrom<&Row<'a>> for EditModel {
 
 
 impl NewEditModel {
-	pub fn from_book_modify(member_id: MemberId, current: BookModel, updated: BookModel) -> Result<Self> {
+	pub fn from_book_modify(member_id: MemberId, current: BookModel, updated: BookEdit) -> Result<Self> {
 		let now = Utc::now();
 
 		Ok(Self {
@@ -342,7 +342,7 @@ impl EditModel {
 }
 
 
-pub fn new_edit_data_from_book(current: BookModel, updated: BookModel) -> EditData {
+pub fn new_edit_data_from_book(current: BookModel, updated: BookEdit) -> EditData {
 	// TODO: Cleaner, less complicated way?
 
 	let Output { new_value: title, old_value: title_old } = edit_translate::cmp_opt_string(
@@ -352,13 +352,13 @@ pub fn new_edit_data_from_book(current: BookModel, updated: BookModel) -> EditDa
 	let Output { new_value: description, old_value: description_old } = edit_translate::cmp_opt_string(
 		current.description, updated.description);
 	let Output { new_value: rating, old_value: rating_old } = edit_translate::cmp_opt_number(
-		Some(current.rating), Some(updated.rating));
+		Some(current.rating), updated.rating);
 	let Output { new_value: isbn_10, old_value: isbn_10_old } = edit_translate::cmp_opt_string(
 		current.isbn_10, updated.isbn_10);
 	let Output { new_value: isbn_13, old_value: isbn_13_old } = edit_translate::cmp_opt_string(
 		current.isbn_13, updated.isbn_13);
 	let Output { new_value: is_public, old_value: is_public_old } = edit_translate::cmp_opt_bool(
-		Some(current.is_public), Some(updated.is_public));
+		Some(current.is_public), updated.is_public);
 	let Output { new_value: available_at, old_value: available_at_old } = edit_translate::cmp_opt_string(
 		current.available_at, updated.available_at);
 	let Output { new_value: language, old_value: language_old } = edit_translate::cmp_opt_number(

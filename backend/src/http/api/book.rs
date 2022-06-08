@@ -1,6 +1,7 @@
 use actix_web::{get, web, HttpResponse, post};
 
 use chrono::Utc;
+use librarian_common::item::edit::BookEdit;
 use librarian_common::{api, DisplayItem, BookId, PersonId};
 
 use crate::http::MemberCookie;
@@ -146,7 +147,7 @@ pub async fn get_book_info(book_id: web::Path<BookId>, db: web::Data<Database>) 
 #[post("/book/{id}")]
 pub async fn update_book_id(
 	book_id: web::Path<BookId>,
-	body: web::Json<api::UpdateBookBody>, // TODO: Replace with BookEdit
+	body: web::Json<BookEdit>,
 	member: MemberCookie,
 	db: web::Data<Database>,
 ) -> WebResult<HttpResponse> {
@@ -154,9 +155,7 @@ pub async fn update_book_id(
 
 	let current_book = BookModel::get_by_id(*book_id, &db).await?;
 
-	if let Some((updated_book, current_book)) = body.metadata.zip(current_book) {
-		let updated_book: BookModel = updated_book.into();
-
+	if let Some((updated_book, current_book)) = Some(body).zip(current_book) {
 		let model = NewEditModel::from_book_modify(member.member_id(), current_book, updated_book)?;
 
 		model.insert(&db).await?;

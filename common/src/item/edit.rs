@@ -128,7 +128,7 @@ mod book_edit {
 
 	pub type BookEditData = InnerEditData<DisplayMetaItem, BookEdit, UpdatedBookEdit>;
 
-	#[derive(Debug, Clone, Serialize, Deserialize)]
+	#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 	pub struct BookEdit {
 		#[serde(skip_serializing_if = "Option::is_none")]
 		pub title: Option<String>,
@@ -235,6 +235,38 @@ mod book_edit {
 			self.removed_tags.is_none() &&
 			self.added_images.is_none() &&
 			self.removed_images.is_none()
+		}
+
+		pub fn insert_added_tag(&mut self, value: TagId) {
+			self.added_tags.get_or_insert_with(Default::default).push(value);
+		}
+
+		pub fn insert_removed_tag(&mut self, value: TagId) {
+			self.removed_tags.get_or_insert_with(Default::default).push(value);
+		}
+
+		pub fn remove_tag(&mut self, value: TagId) {
+			if let Some(list) = self.added_tags.as_mut() {
+				if let Some(index) = list.iter().position(|&id| value == id) {
+					list.remove(index);
+
+					if list.is_empty() {
+						self.added_tags = None;
+					}
+
+					return;
+				}
+			}
+
+			if let Some(list) = self.removed_tags.as_mut() {
+				if let Some(index) = list.iter().position(|&id| value == id) {
+					list.remove(index);
+
+					if list.is_empty() {
+						self.removed_tags = None;
+					}
+				}
+			}
 		}
 	}
 }

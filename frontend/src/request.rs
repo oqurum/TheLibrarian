@@ -3,7 +3,7 @@ use wasm_bindgen::{JsValue, JsCast};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, Request, RequestMode, Response, Headers, FormData};
 
-use librarian_common::{api::*, SearchType, Either, Source, TagType, PersonId, BookId, TagId, ImageId, EditId, item::edit::UpdateEditModel};
+use librarian_common::{api::*, SearchType, Either, Source, TagType, PersonId, BookId, TagId, ImageId, EditId, item::edit::{UpdateEditModel, BookEdit}};
 
 // TODO: Manage Errors.
 
@@ -136,7 +136,7 @@ pub async fn get_member_self() -> GetMemberSelfResponse {
 
 // Metadata
 
-pub async fn update_book(id: BookId, value: &UpdateBookBody) {
+pub async fn update_book(id: BookId, value: &BookEdit) {
 	let _: Option<String> = fetch(
 		"POST",
 		&format!("/api/v1/book/{}", id),
@@ -144,10 +144,10 @@ pub async fn update_book(id: BookId, value: &UpdateBookBody) {
 	).await.ok();
 }
 
-pub async fn get_media_view(metadata_id: BookId) -> MediaViewResponse {
+pub async fn get_media_view(book_id: BookId) -> MediaViewResponse {
 	fetch(
 		"GET",
-		&format!("/api/v1/book/{}", metadata_id),
+		&format!("/api/v1/book/{}", book_id),
 		Option::<&()>::None
 	).await.unwrap()
 }
