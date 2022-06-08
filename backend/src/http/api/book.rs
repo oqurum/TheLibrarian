@@ -156,9 +156,14 @@ pub async fn update_book_id(
 	let current_book = BookModel::get_by_id(*book_id, &db).await?;
 
 	if let Some((updated_book, current_book)) = Some(body).zip(current_book) {
-		let model = NewEditModel::from_book_modify(member.member_id(), current_book, updated_book)?;
+		// Make sure we have something we're updating.
+		if !updated_book.is_empty() {
+			let model = NewEditModel::from_book_modify(member.member_id(), current_book, updated_book)?;
 
-		model.insert(&db).await?;
+			if !model.data.is_empty() {
+				model.insert(&db).await?;
+			}
+		}
 	}
 
 	Ok(HttpResponse::Ok().finish())

@@ -19,10 +19,9 @@ pub fn cmp_opt_string(value_old: Option<String>, value_new: Option<String>) -> O
 	let mut new_out = None;
 
 	// If we have an old value AND (the new value doesn't exist OR the new value DOES NOT EQUAL the old value)
-	// - Some(old) = OLD & !NEW
-	// - Some(old) = OLD & NEQ
+	// - Some(old) = OLD & NEW & NEQ
 
-	if old_exists && (value_new.is_none() || !both_equal) {
+	if old_exists && value_new.is_some() && !both_equal {
 		old_out = value_old;
 	}
 
@@ -46,10 +45,9 @@ pub fn cmp_opt_number<V: std::cmp::PartialEq>(value_old: Option<V>, value_new: O
 	let mut new_out = None;
 
 	// If we have an old value AND (the new value doesn't exist OR the new value DOES NOT EQUAL the old value)
-	// - Some(old) = OLD & !NEW
-	// - Some(old) = OLD & NEQ
+	// - Some(old) = OLD & NEW & NEQ
 
-	if old_exists && (value_new.is_none() || !both_equal) {
+	if old_exists && value_new.is_some() && !both_equal {
 		old_out = value_old;
 	}
 
@@ -72,10 +70,9 @@ pub fn cmp_opt_bool(value_old: Option<bool>, value_new: Option<bool>) -> Output<
 	let mut new_out = None;
 
 	// If we have an old value AND (the new value doesn't exist OR the new value DOES NOT EQUAL the old value)
-	// - Some(old) = OLD & !NEW
-	// - Some(old) = OLD & NEQ
+	// - Some(old) = OLD & NEW & NEQ
 
-	if old_exists && (value_new.is_none() || !both_equal) {
+	if old_exists && value_new.is_some() && !both_equal {
 		old_out = value_old;
 	}
 
