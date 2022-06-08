@@ -217,44 +217,54 @@ impl EditListPage {
 
 				<div class="footer">
 					<div class="aligned-left">
-						{
-							if let Some(is_selected) = my_vote.map(|v| !v).or(Some(false)) {
+						{ // Upvote / Downvote
+							if item.status.is_pending() {
 								html! {
-									<button
-										class="slim red"
-										disabled={!is_selected && my_vote.is_some()}
-										title="Downvote"
-										onclick={scope.callback_future(move |_| async move {
-											let resp = request::update_edit_item(id, &UpdateEditModel {
-												vote: Some(-1),
-												.. UpdateEditModel::default()
-											}).await;
+									<>
+									{
+										if let Some(is_selected) = my_vote.map(|v| !v).or(Some(false)) {
+											html! {
+												<button
+													class="slim red"
+													disabled={!is_selected && my_vote.is_some()}
+													title="Downvote"
+													onclick={scope.callback_future(move |_| async move {
+														let resp = request::update_edit_item(id, &UpdateEditModel {
+															vote: Some(-1),
+															.. UpdateEditModel::default()
+														}).await;
 
-											Msg::EditItemUpdate(resp)
-										})}
-									><span class="material-icons">{ "keyboard_arrow_down" }</span></button>
-								}
-							} else {
-								html! {}
-							}
-						}
+														Msg::EditItemUpdate(resp)
+													})}
+												><span class="material-icons">{ "keyboard_arrow_down" }</span></button>
+											}
+										} else {
+											html! {}
+										}
+									}
 
-						{
-							if let Some(is_selected) = my_vote.or(Some(false)) {
-								html! {
-									<button
-										class="slim green"
-										disabled={!is_selected && my_vote.is_some()}
-										title="Upvote"
-										onclick={scope.callback_future(move |_| async move {
-											let resp = request::update_edit_item(id, &UpdateEditModel {
-												vote: Some(1),
-												.. UpdateEditModel::default()
-											}).await;
+									{
+										if let Some(is_selected) = my_vote.or(Some(false)) {
+											html! {
+												<button
+													class="slim green"
+													disabled={!is_selected && my_vote.is_some()}
+													title="Upvote"
+													onclick={scope.callback_future(move |_| async move {
+														let resp = request::update_edit_item(id, &UpdateEditModel {
+															vote: Some(1),
+															.. UpdateEditModel::default()
+														}).await;
 
-											Msg::EditItemUpdate(resp)
-										})}
-									><span class="material-icons">{ "keyboard_arrow_up" }</span></button>
+														Msg::EditItemUpdate(resp)
+													})}
+												><span class="material-icons">{ "keyboard_arrow_up" }</span></button>
+											}
+										} else {
+											html! {}
+										}
+									}
+									</>
 								}
 							} else {
 								html! {}
@@ -262,29 +272,39 @@ impl EditListPage {
 						}
 					</div>
 					<div class="aligned-right">
-						<button
-							class="slim red"
-							onclick={scope.callback_future(move |_| async move {
-								let resp = request::update_edit_item(id, &UpdateEditModel {
-									status: Some(EditStatus::ForceRejected),
-									.. UpdateEditModel::default()
-								}).await;
+					{
+						if item.status.is_pending() {
+							html! {
+								<>
+									<button
+										class="slim red"
+										onclick={scope.callback_future(move |_| async move {
+											let resp = request::update_edit_item(id, &UpdateEditModel {
+												status: Some(EditStatus::ForceRejected),
+												.. UpdateEditModel::default()
+											}).await;
 
-								Msg::EditItemUpdate(resp)
-							})}
-						>{ "Force Reject" }</button>
+											Msg::EditItemUpdate(resp)
+										})}
+									>{ "Force Reject" }</button>
 
-						<button
-							class="slim green"
-							onclick={scope.callback_future(move |_| async move {
-								let resp = request::update_edit_item(id, &UpdateEditModel {
-									status: Some(EditStatus::ForceAccepted),
-									.. UpdateEditModel::default()
-								}).await;
+									<button
+										class="slim green"
+										onclick={scope.callback_future(move |_| async move {
+											let resp = request::update_edit_item(id, &UpdateEditModel {
+												status: Some(EditStatus::ForceAccepted),
+												.. UpdateEditModel::default()
+											}).await;
 
-								Msg::EditItemUpdate(resp)
-							})}
-						>{ "Force Accept" }</button>
+											Msg::EditItemUpdate(resp)
+										})}
+									>{ "Force Accept" }</button>
+								</>
+							}
+						} else {
+							html! {}
+						}
+					}
 					</div>
 				</div>
 			</div>
