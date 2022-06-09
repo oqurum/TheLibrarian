@@ -147,9 +147,9 @@ impl EditListPage {
 						</div>
 
 						{
-							match item.expires_at {
+							match (item.expires_at, item.status.is_pending()) {
 								// Closed
-								Some(v) if v < Utc::now() => {
+								(Some(_), false) => {
 									html! {
 										<div>
 											<b>{ "Closed" }</b>
@@ -158,7 +158,7 @@ impl EditListPage {
 								}
 
 								// Closes X time
-								Some(expires_at) => {
+								(Some(expires_at), true) => {
 									html! {
 										<div title={ expires_at.format("%b %e, %Y %T %p").to_string() }>
 											<b>{ "Closes: " }</b>
@@ -183,7 +183,7 @@ impl EditListPage {
 								}
 
 								// Closes Never
-								None => {
+								(None, _) => {
 									html! {
 										<div>
 											<b>{ "Closes: " }</b>
