@@ -21,7 +21,7 @@ pub async fn load_edit_list(
 
 	let mut items = Vec::new();
 
-	for item in EditModel::get_all(offset, limit, &db).await? {
+	for item in EditModel::find_by_status(offset, limit, None, None, &db).await? {
 		let member = if let Some(v) = existing_members.iter().find(|v| v.id == item.member_id).cloned() {
 			Some(v)
 		} else if let Some(v) = MemberModel::get_by_id(item.member_id, &db).await? {

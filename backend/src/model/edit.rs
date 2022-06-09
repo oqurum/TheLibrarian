@@ -174,7 +174,7 @@ impl EditModel {
 		).optional()?)
 	}
 
-	pub async fn find_by_status(status: EditStatus, is_expired: Option<bool>, db: &Database) -> Result<Vec<Self>> {
+	pub async fn find_by_status(offset: usize, limit: usize, status: Option<EditStatus>, is_expired: Option<bool>, db: &Database) -> Result<Vec<Self>> {
 		let mut expired_str = String::new();
 
 		if let Some(expired) = is_expired {
@@ -189,11 +189,24 @@ impl EditModel {
 
 		let this = db.read().await;
 
-		let mut conn = this.prepare(&format!("SELECT * FROM edit WHERE status = ?1 {expired_str}"))?;
+		if let Some(status) = status {
+			let mut conn = this.prepare(&format!("SELECT * FROM edit WHERE status = ?1 {expired_str} ORDER BY id DESC LIMIT ?2 OFFSET ?3"))?;
 
-		let map = conn.query_map([status], |v| Self::try_from(v))?;
+			let map = conn.query_map(params![status, limit, offset], |v| Self::try_from(v))?;
 
-		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+			Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+		} else {
+			if !expired_str.is_empty() {
+				expired_str.insert_str(0, "WHERE ");
+			}
+
+			let mut conn = this.prepare(&format!("SELECT * FROM edit {expired_str} ORDER BY id DESC LIMIT ?1 OFFSET ?2"))?;
+
+			let map = conn.query_map(params![limit, offset], |v| Self::try_from(v))?;
+
+			Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+		}
+
 	}
 
 	pub async fn get_count(db: &Database) -> Result<usize> {
