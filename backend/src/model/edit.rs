@@ -326,6 +326,10 @@ impl EditModel {
 	pub async fn process_status_change(&mut self, new_status: EditStatus, db: &Database) -> Result<()> {
 		self.status = new_status;
 
+		if !self.status.is_pending() {
+			self.ended_at = Some(Utc::now());
+		}
+
 		if new_status.is_accepted() {
 			match self.parse_data()? {
 				EditData::Book(mut book_data) => {
