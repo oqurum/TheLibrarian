@@ -147,49 +147,47 @@ impl EditListPage {
 						</div>
 
 						{
-							match (item.expires_at, item.status.is_pending()) {
-								// Closed
-								(Some(_), false) => {
-									html! {
-										<div>
-											<b>{ "Closed" }</b>
-										</div>
-									}
+							// Closed
+							if let Some(ended_at) = item.ended_at {
+								html! {
+									<div title={ ended_at.format("%b %e, %Y %T %p").to_string() }>
+										<b>{ "Closed" }</b>
+									</div>
 								}
+							}
 
-								// Closes X time
-								(Some(expires_at), true) => {
-									html! {
-										<div title={ expires_at.format("%b %e, %Y %T %p").to_string() }>
-											<b>{ "Closes: " }</b>
+							// Closes X time
+							else if let Some(expires_at) = item.expires_at {
+								html! {
+									<div title={ expires_at.format("%b %e, %Y %T %p").to_string() }>
+										<b>{ "Closes: " }</b>
 
-											{
-												match expires_at.signed_duration_since(Utc::now()) {
-													v if v.num_days() != 0 => {
-														html! {
-															<span>{ v.num_days() } { " days" }</span>
-														}
+										{
+											match expires_at.signed_duration_since(Utc::now()) {
+												v if v.num_days() != 0 => {
+													html! {
+														<span>{ v.num_days() } { " days" }</span>
 													}
+												}
 
-													v => {
-														html! {
-															<span>{ v.num_hours() } { " hours" }</span>
-														}
+												v => {
+													html! {
+														<span>{ v.num_hours() } { " hours" }</span>
 													}
 												}
 											}
-										</div>
-									}
+										}
+									</div>
 								}
+							}
 
-								// Closes Never
-								(None, _) => {
-									html! {
-										<div>
-											<b>{ "Closes: " }</b>
-											<span>{ "Never" }</span>
-										</div>
-									}
+							// Closes Never
+							else {
+								html! {
+									<div>
+										<b>{ "Closes: " }</b>
+										<span>{ "Never" }</span>
+									</div>
 								}
 							}
 						}
