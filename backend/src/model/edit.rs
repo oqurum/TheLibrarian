@@ -9,7 +9,7 @@ mod edit_vote;
 pub use edit_comment::*;
 pub use edit_vote::*;
 
-use crate::{Result, Database, edit_translate::{self, Output}};
+use crate::{Result, Database, edit_translate};
 
 use super::{BookModel, MemberModel, BookTagModel, BookPersonModel, NewImageModel, ImageModel, TagModel, PersonModel};
 
@@ -362,24 +362,15 @@ impl EditModel {
 pub fn new_edit_data_from_book(current: BookModel, updated: BookEdit) -> EditData {
 	// TODO: Cleaner, less complicated way?
 
-	let Output { new_value: title, old_value: title_old } = edit_translate::cmp_opt_string(
-		current.title, updated.title);
-	let Output { new_value: clean_title, old_value: clean_title_old } = edit_translate::cmp_opt_string(
-		current.clean_title, updated.clean_title);
-	let Output { new_value: description, old_value: description_old } = edit_translate::cmp_opt_string(
-		current.description, updated.description);
-	let Output { new_value: rating, old_value: rating_old } = edit_translate::cmp_opt_number(
-		Some(current.rating), updated.rating);
-	let Output { new_value: isbn_10, old_value: isbn_10_old } = edit_translate::cmp_opt_string(
-		current.isbn_10, updated.isbn_10);
-	let Output { new_value: isbn_13, old_value: isbn_13_old } = edit_translate::cmp_opt_string(
-		current.isbn_13, updated.isbn_13);
-	let Output { new_value: is_public, old_value: is_public_old } = edit_translate::cmp_opt_bool(
-		Some(current.is_public), updated.is_public);
-	let Output { new_value: available_at, old_value: available_at_old } = edit_translate::cmp_opt_string(
-		current.available_at, updated.available_at);
-	let Output { new_value: language, old_value: language_old } = edit_translate::cmp_opt_number(
-		current.language, updated.language);
+	let (title_old, title) = edit_translate::cmp_opt_string(current.title, updated.title);
+	let (clean_title_old, clean_title) = edit_translate::cmp_opt_string(current.clean_title, updated.clean_title);
+	let (description_old, description) = edit_translate::cmp_opt_string(current.description, updated.description);
+	let (rating_old, rating) = edit_translate::cmp_opt_partial_eq(Some(current.rating), updated.rating);
+	let (isbn_10_old, isbn_10) = edit_translate::cmp_opt_string(current.isbn_10, updated.isbn_10);
+	let (isbn_13_old, isbn_13) = edit_translate::cmp_opt_string(current.isbn_13, updated.isbn_13);
+	let (is_public_old, is_public) = edit_translate::cmp_opt_bool(Some(current.is_public), updated.is_public);
+	let (available_at_old, available_at) = edit_translate::cmp_opt_string(current.available_at, updated.available_at);
+	let (language_old, language) = edit_translate::cmp_opt_partial_eq(current.language, updated.language);
 
 	let new = BookEdit {
 		title,
