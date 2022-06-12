@@ -1,9 +1,9 @@
 use std::ops::Neg;
 
 use actix_web::{web, get, post};
-use librarian_common::{api, EditId, item::edit::*, SpecificPermissions, GroupPermissions};
+use librarian_common::{api, EditId, item::edit::*};
 
-use crate::{database::{Database}, WebResult, model::{EditModel, BookModel, MemberModel, EditVoteModel, NewEditVoteModel}, http::MemberCookie};
+use crate::{database::Database, WebResult, model::{EditModel, BookModel, MemberModel, EditVoteModel, NewEditVoteModel}, http::MemberCookie};
 
 
 // Get List Of Edits
@@ -122,7 +122,7 @@ async fn update_edit(
 
 	// Only an Admin can change the status.
 	if let Some(new_status) = update.status {
-		if !member.permissions.contains_group(GroupPermissions::ADMIN) {
+		if !member.permissions.is_admin() {
 			// TODO: Error.
 			return Ok(web::Json(api::PostEditResponse::default()));
 		}
@@ -145,7 +145,7 @@ async fn update_edit(
 			}
 		}
 
-		if !member.permissions.intersects_any(GroupPermissions::ADMIN, SpecificPermissions::VOTING) {
+		if !member.permissions.has_voting_perms() {
 			// TODO: Error.
 			return Ok(web::Json(api::PostEditResponse::default()));
 		}
@@ -193,7 +193,7 @@ async fn update_edit(
 		vote: vote_model.map(|v| {
 			let mut shared = SharedEditVoteModel::from(v);
 
-			if !member.permissions.contains_group(GroupPermissions::ADMIN) {
+			if !member.permissions.is_admin() {
 				shared.member_id = None;
 			}
 

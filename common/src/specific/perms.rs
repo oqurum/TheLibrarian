@@ -45,9 +45,24 @@ impl Permissions {
 	pub fn basic() -> Self {
 		Self {
 			group: GroupPermissions::BASIC,
-			specific: SpecificPermissions::empty()
+			specific: SpecificPermissions::as_basic()
 		}
 	}
+
+	pub fn editor() -> Self {
+		Self {
+			group: GroupPermissions::BASIC,
+			specific: SpecificPermissions::as_editor()
+		}
+	}
+
+	pub fn manager() -> Self {
+		Self {
+			group: GroupPermissions::MANAGER,
+			specific: SpecificPermissions::as_manager()
+		}
+	}
+
 
 	/// Returns true if all of the flags in other are contained within self.
 	pub fn contains_group(self, value: GroupPermissions) -> bool {
@@ -79,6 +94,54 @@ impl Permissions {
 	/// Returns true if there are flags common to both self and other.
 	pub fn intersects_any(self, group: GroupPermissions, specific: SpecificPermissions) -> bool {
 		self.group.intersects(group) || self.specific.intersects(specific)
+	}
+
+
+	// Custom
+
+	pub fn is_admin(self) -> bool {
+		self.contains_group(GroupPermissions::ADMIN)
+	}
+
+
+	/// Either Group: Admin or Manager
+	///
+	/// Specific: Create
+	pub fn has_creation_perms(self) -> bool {
+		self.intersects_any(
+			GroupPermissions::ADMIN | GroupPermissions::MANAGER,
+			SpecificPermissions::CREATE,
+		)
+	}
+
+	/// Either Group: Admin or Manager
+	///
+	/// Specific: Delete
+	pub fn has_deletion_perms(self) -> bool {
+		self.intersects_any(
+			GroupPermissions::ADMIN | GroupPermissions::MANAGER,
+			SpecificPermissions::DELETE,
+		)
+	}
+
+	/// Either Group: Admin or Manager
+	///
+	/// Specific: Edit
+	pub fn has_editing_perms(self) -> bool {
+		self.intersects_any(
+			GroupPermissions::ADMIN | GroupPermissions::MANAGER,
+			SpecificPermissions::EDIT,
+		)
+	}
+
+	/// Either Group: Admin or Manager
+	///
+	/// Specific: Voting
+	pub fn has_voting_perms(self) -> bool {
+		self.intersects_any(
+			GroupPermissions::ADMIN | GroupPermissions::MANAGER,
+			SpecificPermissions::VOTING,
+		)
 	}
 }
 
