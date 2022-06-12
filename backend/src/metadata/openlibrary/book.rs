@@ -179,6 +179,8 @@ pub struct BookSearchItem {
 	pub id_canadian_national_library_archive: Option<Vec<String>>,
 	pub id_cornell_university_online_library: Option<Vec<String>>,
 	pub id_bhl: Option<Vec<String>>,
+	pub id_ean: Option<Vec<String>>,
+	pub id_shelfari: Option<Vec<String>>,
 	pub id_yakaboo: Option<Vec<String>>,
 	pub id_depósito_legal: Option<Vec<String>>,
 	pub id_goodreads: Option<Vec<String>>,
