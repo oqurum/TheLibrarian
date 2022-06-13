@@ -3,7 +3,7 @@ use wasm_bindgen::{JsValue, JsCast};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, Request, RequestMode, Response, Headers, FormData};
 
-use librarian_common::{api::*, SearchType, Either, Source, TagType, PersonId, BookId, TagId, ImageId, EditId, item::edit::{UpdateEditModel, BookEdit}};
+use librarian_common::{api::*, SearchType, Either, Source, TagType, PersonId, BookId, TagId, ImageId, EditId, item::edit::{UpdateEditModel, BookEdit}, ImageIdType};
 
 // TODO: Manage Errors.
 
@@ -108,18 +108,18 @@ pub async fn delete_book_tag(book_id: BookId, tag_id: TagId) -> DeletionResponse
 
 // Image
 
-pub async fn get_posters_for_meta(metadata_id: BookId) -> GetPostersResponse {
+pub async fn get_posters_for_meta(img_id_type: ImageIdType) -> GetPostersResponse {
 	fetch(
 		"GET",
-		&format!("/api/v1/posters/{}", metadata_id),
+		&format!("/api/v1/posters/{}", img_id_type),
 		Option::<&()>::None
 	).await.unwrap()
 }
 
-pub async fn change_poster_for_meta(metadata_id: BookId, url_or_id: Either<String, ImageId>) {
+pub async fn change_poster_for_meta(img_id_type: ImageIdType, url_or_id: Either<String, ImageId>) {
 	let _: Option<String> = fetch(
 		"POST",
-		&format!("/api/v1/posters/{}", metadata_id),
+		&format!("/api/v1/posters/{}", img_id_type),
 		Some(&ChangePosterBody {
 			url_or_id
 		})

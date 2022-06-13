@@ -15,13 +15,13 @@ impl ImageType {
 		self as u8
 	}
 
-	pub fn from_number(value: u8) -> Self {
-		match value {
+	pub fn from_number(value: u8) -> Option<Self> {
+		Some(match value {
 			0 => Self::Book,
 			1 => Self::Person,
 
-			_ => unimplemented!()
-		}
+			_ => return None,
+		})
 	}
 }
 

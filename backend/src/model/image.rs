@@ -38,7 +38,7 @@ impl<'a> TryFrom<&Row<'a>> for ImageModel {
 		Ok(Self {
 			id: value.get(0)?,
 			link_id: value.get(1)?,
-			type_of: ImageType::from_number(value.get(2)?),
+			type_of: ImageType::from_number(value.get(2)?).unwrap(),
 			path: ThumbnailStore::from(value.get::<_, String>(3)?),
 			created_at: Utc.timestamp_millis(value.get(4)?),
 		})

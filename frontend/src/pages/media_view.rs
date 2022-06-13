@@ -1,5 +1,5 @@
 use js_sys::Date;
-use librarian_common::{api::{MediaViewResponse, self, GetPostersResponse, GetTagsResponse}, Either, TagType, LANGUAGES, util::string_to_upper_case, BookId, TagId, item::edit::BookEdit, TagFE};
+use librarian_common::{api::{MediaViewResponse, self, GetPostersResponse, GetTagsResponse}, Either, TagType, LANGUAGES, util::string_to_upper_case, BookId, TagId, item::edit::BookEdit, TagFE, ImageIdType};
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{HtmlInputElement, HtmlTextAreaElement, HtmlSelectElement};
 use yew::{prelude::*, html::Scope};
@@ -145,11 +145,11 @@ impl Component for MediaView {
 
 
 			Msg::ReloadPosters => {
-				let meta_id = self.media.as_ref().unwrap().metadata.id;
+				let book_id = self.media.as_ref().unwrap().metadata.id;
 
 				ctx.link()
 				.send_future(async move {
-					Msg::RetrievePosters(request::get_posters_for_meta(meta_id).await)
+					Msg::RetrievePosters(request::get_posters_for_meta(ImageIdType::new_book(book_id)).await)
 				});
 
 				return false;
@@ -237,7 +237,7 @@ impl Component for MediaView {
 		let editing = &self.editing_item;
 
 		if let Some(MediaViewResponse { people, metadata: book_model, tags }) = self.media.as_ref() {
-			let meta_id = book_model.id;
+			let book_id = book_model.id;
 
 			html! {
 				<div class="media-view-container">
@@ -492,7 +492,7 @@ impl Component for MediaView {
 																		if is_selected {
 																			Msg::Ignore
 																		} else {
-																			request::change_poster_for_meta(meta_id, url_or_id).await;
+																			request::change_poster_for_meta(ImageIdType::new_book(book_id), url_or_id).await;
 
 																			Msg::ReloadPosters
 																		}

@@ -1,4 +1,4 @@
-use librarian_common::{api::{MediaViewResponse, GetPostersResponse}, Either};
+use librarian_common::{api::{MediaViewResponse, GetPostersResponse}, Either, ImageIdType};
 use yew::prelude::*;
 
 use crate::request;
@@ -70,11 +70,11 @@ impl Component for PopupEditMetadata {
 			}
 
 			Msg::UpdatedPoster => {
-				let meta_id = ctx.props().media_resp.metadata.id;
+				let book_id = ctx.props().media_resp.metadata.id;
 
 				ctx.link()
 				.send_future(async move {
-					Msg::RetrievePostersResponse(request::get_posters_for_meta(meta_id).await)
+					Msg::RetrievePostersResponse(request::get_posters_for_meta(ImageIdType::new_book(book_id)).await)
 				});
 
 				return false;
@@ -118,11 +118,11 @@ impl PopupEditMetadata {
 			TabDisplay::General => self.render_tab_general(ctx.props()),
 			TabDisplay::Poster => {
 				if self.cached_posters.is_none() {
-					let metadata_id = ctx.props().media_resp.metadata.id;
+					let book_id = ctx.props().media_resp.metadata.id;
 
 					ctx.link()
 					.send_future(async move {
-						Msg::RetrievePostersResponse(request::get_posters_for_meta(metadata_id).await)
+						Msg::RetrievePostersResponse(request::get_posters_for_meta(ImageIdType::new_book(book_id)).await)
 					});
 				}
 
@@ -160,7 +160,7 @@ impl PopupEditMetadata {
 					<div class="poster-list">
 						{
 							for resp.items.iter().map(|poster| {
-								let meta_id = ctx.props().media_resp.metadata.id;
+								let book_id = ctx.props().media_resp.metadata.id;
 								let url_or_id = poster.id.map(Either::Right).unwrap_or_else(|| Either::Left(poster.path.clone()));
 								let is_selected = poster.selected;
 
@@ -174,7 +174,7 @@ impl PopupEditMetadata {
 												if is_selected {
 													Msg::Ignore
 												} else {
-													request::change_poster_for_meta(meta_id, url_or_id).await;
+													request::change_poster_for_meta(ImageIdType::new_book(book_id), url_or_id).await;
 
 													Msg::UpdatedPoster
 												}
