@@ -2,7 +2,6 @@ use std::io::Write;
 
 use actix_files::NamedFile;
 use actix_web::{get, post, web, HttpResponse, Responder};
-use chrono::Utc;
 use futures::TryStreamExt;
 use librarian_common::{Poster, api, Either, BookId};
 
@@ -65,11 +64,8 @@ async fn post_change_poster(
 
 			meta.thumb_path = hash;
 
-			(NewImageModel {
-				link_id: meta.id,
-				path: meta.thumb_path.clone(),
-				created_at: Utc::now(),
-			}).insert(&db).await?;
+			NewImageModel::new_book(meta.id, meta.thumb_path.clone())
+				.insert(&db).await?;
 		}
 
 		Either::Right(id) => {
@@ -105,11 +101,8 @@ async fn post_upload_poster(
 
 	let hash = store_image(file.into_inner()).await?;
 
-	(NewImageModel {
-		link_id: book.id,
-		path: hash,
-		created_at: Utc::now(),
-	}).insert(&db).await?;
+	NewImageModel::new_book(book.id, hash)
+		.insert(&db).await?;
 
 	Ok(HttpResponse::Ok().finish())
 }

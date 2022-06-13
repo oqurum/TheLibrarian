@@ -159,14 +159,13 @@ pub async fn init() -> Result<Database> {
 		[]
 	)?;
 
-
-	// TODO: type_of for Author, Book Meta, etc..
 	// Uploaded Images
 	conn.execute(
 		r#"CREATE TABLE IF NOT EXISTS "uploaded_images" (
 			"id"			INTEGER NOT NULL,
 
 			"link_id"		INTEGER NOT NULL,
+			"type_of"		INTEGER NOT NULL,
 
 			"path"			TEXT NOT NULL,
 

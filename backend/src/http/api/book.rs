@@ -1,6 +1,5 @@
 use actix_web::{get, web, HttpResponse, post};
 
-use chrono::Utc;
 use librarian_common::item::edit::BookEdit;
 use librarian_common::{api, DisplayItem, BookId, PersonId};
 
@@ -38,11 +37,7 @@ pub async fn add_new_book(
 		db_book.add_or_update_book(&db).await?;
 
 		for path in posters_to_add {
-			(NewImageModel {
-				link_id: db_book.id,
-				path,
-				created_at: Utc::now(),
-			}).insert(&db).await?;
+			NewImageModel::new_book(db_book.id, path).insert(&db).await?;
 		}
 
 		for person_id in author_ids {

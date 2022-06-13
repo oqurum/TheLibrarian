@@ -482,7 +482,7 @@ pub async fn accept_register_book_data_overwrites(
 	// Images
 	if let Some(values) = new.added_images {
 		for thumb_path in values {
-			NewImageModel::new(book_model.id, thumb_path)
+			NewImageModel::new_book(book_model.id, thumb_path)
 				.insert(db).await?;
 		}
 	}

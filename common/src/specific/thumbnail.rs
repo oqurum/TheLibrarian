@@ -4,6 +4,29 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 pub static MISSING_THUMB_PATH: &str = "/images/missingthumbnail.jpg";
 
 
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub enum ImageType {
+	Book = 0,
+	Person,
+}
+
+impl ImageType {
+	pub fn as_num(self) -> u8 {
+		self as u8
+	}
+
+	pub fn from_number(value: u8) -> Self {
+		match value {
+			0 => Self::Book,
+			1 => Self::Person,
+
+			_ => unimplemented!()
+		}
+	}
+}
+
+
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum ThumbnailStore {
 	Path(String),
