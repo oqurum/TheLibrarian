@@ -28,10 +28,10 @@ async fn main() -> Result<()> {
 	config::save_config().await?;
 
 	let db = database::init().await?;
-
-	scheduler::start(db.clone());
-
 	let db_data = web::Data::new(db);
+
+	scheduler::start(db_data.clone());
+
 
 	println!("Starting HTTP Server on port 8085");
 
