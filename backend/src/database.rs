@@ -164,15 +164,24 @@ pub async fn init() -> Result<Database> {
 		r#"CREATE TABLE IF NOT EXISTS "uploaded_images" (
 			"id"			INTEGER NOT NULL,
 
-			"link_id"		INTEGER NOT NULL,
-			"type_of"		INTEGER NOT NULL,
-
 			"path"			TEXT NOT NULL,
 
 			"created_at"	DATETIME NOT NULL,
 
-			UNIQUE(link_id, path),
+			UNIQUE(path),
 			PRIMARY KEY("id" AUTOINCREMENT)
+		);"#,
+		[]
+	)?;
+
+	conn.execute(
+		r#"CREATE TABLE IF NOT EXISTS "image_link" (
+			"image_id"		INTEGER NOT NULL,
+
+			"link_id"		INTEGER NOT NULL,
+			"type_of"		INTEGER NOT NULL,
+
+			UNIQUE(image_id, link_id, type_of)
 		);"#,
 		[]
 	)?;

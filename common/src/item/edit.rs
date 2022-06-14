@@ -123,7 +123,7 @@ fn is_false(value: &bool) -> bool {
 
 
 mod book_edit {
-	use crate::DisplayMetaItem;
+	use crate::{DisplayMetaItem, ImageId};
 	use super::*;
 
 	pub type BookEditData = InnerEditData<DisplayMetaItem, BookEdit, UpdatedBookEdit>;
@@ -167,9 +167,9 @@ mod book_edit {
 		pub removed_tags: Option<Vec<TagId>>,
 
 		#[serde(skip_serializing_if = "Option::is_none")]
-		pub added_images: Option<Vec<ThumbnailStore>>,
+		pub added_images: Option<Vec<ImageId>>,
 		#[serde(skip_serializing_if = "Option::is_none")]
-		pub removed_images: Option<Vec<ThumbnailStore>>,
+		pub removed_images: Option<Vec<ImageId>>,
 	}
 
 	#[derive(Debug, Clone, Default, Serialize, Deserialize)]

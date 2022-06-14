@@ -5,7 +5,7 @@ use librarian_common::{api, DisplayItem, BookId, PersonId};
 
 use crate::http::MemberCookie;
 use crate::metadata::MetadataReturned;
-use crate::model::{NewImageModel, BookPersonModel, BookModel, BookTagWithTagModel, PersonModel, NewEditModel};
+use crate::model::{NewUploadedImageModel, BookPersonModel, BookModel, BookTagWithTagModel, PersonModel, NewEditModel, ImageLinkModel};
 use crate::{WebResult, metadata, Error};
 use crate::database::Database;
 
@@ -37,7 +37,8 @@ pub async fn add_new_book(
 		db_book.add_or_update_book(&db).await?;
 
 		for path in posters_to_add {
-			NewImageModel::new_book(db_book.id, path).insert(&db).await?;
+			let model = NewUploadedImageModel::new(path).insert(&db).await?;
+			ImageLinkModel::new_book(model.id, db_book.id).insert(&db).await?;
 		}
 
 		for person_id in author_ids {

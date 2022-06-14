@@ -5,7 +5,7 @@ use actix_web::{get, post, web, HttpResponse, Responder};
 use futures::TryStreamExt;
 use librarian_common::{Poster, api, Either, ImageIdType, ImageType, BookId};
 
-use crate::{WebResult, Error, store_image, database::Database, model::{NewImageModel, BookModel, ImageModel}};
+use crate::{WebResult, Error, store_image, database::Database, model::{BookModel, ImageLinkModel, NewUploadedImageModel, UploadedImageModel}};
 
 
 
@@ -25,14 +25,14 @@ async fn get_poster_list(
 ) -> WebResult<web::Json<api::GetPostersResponse>> {
 	let items: Vec<Poster> = match image.type_of {
 		ImageType::Book => {
-			let meta = BookModel::get_by_id(BookId::from(image.id), &db).await?.unwrap();
+			let book = BookModel::get_by_id(BookId::from(image.id), &db).await?.unwrap();
 
-			ImageModel::get_by_linked_id(BookId::from(image.id), &db).await?
+			ImageLinkModel::get_by_linked_id(image.id, image.type_of, &db).await?
 				.into_iter()
 				.map(|poster| Poster {
-					id: Some(poster.id),
+					id: Some(poster.image_id),
 
-					selected: poster.path == meta.thumb_path,
+					selected: poster.path == book.thumb_path,
 
 					path: poster.path.as_url(),
 
@@ -61,7 +61,7 @@ async fn post_change_poster(
 ) -> WebResult<HttpResponse> {
 	match image.type_of {
 		ImageType::Book => {
-			let mut meta = BookModel::get_by_id(BookId::from(image.id), &db).await?.unwrap();
+			let mut book = BookModel::get_by_id(BookId::from(image.id), &db).await?.unwrap();
 
 			match body.into_inner().url_or_id {
 				Either::Left(url) => {
@@ -72,25 +72,27 @@ async fn post_change_poster(
 
 					let hash = store_image(resp.to_vec()).await?;
 
+					let image = NewUploadedImageModel::new(hash)
+						.insert(&db).await?;
 
-					meta.thumb_path = hash;
+					book.thumb_path = image.path;
 
-					NewImageModel::new_book(meta.id, meta.thumb_path.clone())
+					ImageLinkModel::new_book(image.id, book.id)
 						.insert(&db).await?;
 				}
 
 				Either::Right(id) => {
-					let poster = ImageModel::get_by_id(id, &db).await?.unwrap();
+					let poster = UploadedImageModel::get_by_id(id, &db).await?.unwrap();
 
-					if meta.thumb_path == poster.path {
+					if book.thumb_path == poster.path {
 						return Ok(HttpResponse::Ok().finish());
 					}
 
-					meta.thumb_path = poster.path;
+					book.thumb_path = poster.path;
 				}
 			}
 
-			meta.update_book(&db).await?;
+			book.update_book(&db).await?;
 		}
 
 		ImageType::Person => {
@@ -120,7 +122,10 @@ async fn post_upload_poster(
 
 			let hash = store_image(file.into_inner()).await?;
 
-			NewImageModel::new_book(book.id, hash)
+			let image = NewUploadedImageModel::new(hash)
+				.insert(&db).await?;
+
+			ImageLinkModel::new_book(image.id, book.id)
 				.insert(&db).await?;
 		}
 

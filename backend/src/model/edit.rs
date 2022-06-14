@@ -11,7 +11,7 @@ pub use edit_vote::*;
 
 use crate::{Result, Database, edit_translate};
 
-use super::{BookModel, MemberModel, BookTagModel, BookPersonModel, NewImageModel, ImageModel, TagModel, PersonModel};
+use super::{BookModel, MemberModel, BookTagModel, BookPersonModel, TagModel, PersonModel, ImageLinkModel};
 
 
 #[derive(Debug)]
@@ -481,15 +481,16 @@ pub async fn accept_register_book_data_overwrites(
 
 	// Images
 	if let Some(values) = new.added_images {
-		for thumb_path in values {
-			NewImageModel::new_book(book_model.id, thumb_path)
+		for image_id in values {
+			ImageLinkModel::new_book(image_id, book_model.id)
 				.insert(db).await?;
 		}
 	}
 
 	if let Some(values) = new.removed_images {
-		for thumb_path in values {
-			ImageModel::remove(book_model.id, thumb_path, db).await?;
+		for image_id in values {
+			ImageLinkModel::new_book(image_id, book_model.id)
+				.remove(db).await?;
 		}
 	}
 
