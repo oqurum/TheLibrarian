@@ -17,7 +17,7 @@ pub struct BookModel {
 
 	pub thumb_path: ThumbnailStore,
 	/// Not in Database
-	pub all_thumb_urls: Vec<String>,
+	pub all_thumb_urls: Vec<String>, // TODO: Remove.
 
 	// TODO: Make table for all tags. Include publisher in it. Remove country.
 	pub cached: MetadataItemCached,
@@ -68,6 +68,7 @@ impl<'a> TryFrom<&Row<'a>> for BookModel {
 	}
 }
 
+// TODO: Consolidate all of these into one or two structs.
 impl From<BookModel> for DisplayMetaItem {
 	fn from(val: BookModel) -> Self {
 		DisplayMetaItem {
