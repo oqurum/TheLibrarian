@@ -1,4 +1,4 @@
-use librarian_common::{api::{ExternalSearchResponse, SearchItem}, SearchType};
+use librarian_common::{api::{ExternalSearchResponse, SearchItem}, SearchType, Source};
 use gloo_utils::document;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlInputElement;
@@ -15,6 +15,7 @@ pub struct Property {
     pub classes: Classes,
 
 	pub on_close: Callback<()>,
+	pub on_select: Callback<Source>,
 
 	pub input_value: String,
 }
@@ -24,6 +25,8 @@ pub enum Msg {
 	BookSearchResponse(String, ExternalSearchResponse),
 
 	SearchFor(String),
+
+	OnSelect(Source),
 
 	Ignore,
 }
@@ -65,6 +68,10 @@ impl Component for PopupSearchBook {
 			Msg::BookSearchResponse(search, resp) => {
 				self.cached_posters = Some(LoadingItem::Loaded(resp));
 				self.input_value = search;
+			}
+
+			Msg::OnSelect(source) => {
+				ctx.props().on_select.emit(source);
 			}
 		}
 
@@ -136,17 +143,7 @@ impl PopupSearchBook {
 			<div
 				class="book-search-item"
 				{YEW_CLOSE_POPUP}
-				onclick={
-					ctx.link()
-					.callback_future(move |_| {
-						let source = source.clone();
-
-						async move {
-							request::new_book(source).await;
-							Msg::Ignore
-						}
-					})
-				}
+				onclick={ ctx.link().callback(move |_| Msg::OnSelect(source.clone())) }
 			>
 				<img src={ item.thumbnail_url.to_string() } />
 				<div class="book-info">

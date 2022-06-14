@@ -181,7 +181,14 @@ impl Component for HomePage {
 								};
 
 								html! {
-									<PopupSearchBook {input_value} on_close={ ctx.link().callback(|_| Msg::ClosePopup) } />
+									<PopupSearchBook
+										{input_value}
+										on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
+										on_select={ ctx.link().callback_future(|source| async {
+											request::new_book(source).await;
+											Msg::Ignore
+										}) }
+									/>
 								}
 							} else {
 								html! {}
