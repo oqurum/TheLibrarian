@@ -5,7 +5,7 @@ use actix_web::{get, post, web, HttpResponse, Responder};
 use futures::TryStreamExt;
 use librarian_common::{Poster, api, Either, ImageIdType, ImageType, BookId};
 
-use crate::{WebResult, Error, store_image, database::Database, model::{BookModel, ImageLinkModel, NewUploadedImageModel, UploadedImageModel}};
+use crate::{WebResult, Error, store_image, database::Database, model::{BookModel, ImageLinkModel, UploadedImageModel}};
 
 
 
@@ -70,14 +70,11 @@ async fn post_change_poster(
 						.bytes()
 						.await.map_err(Error::from)?;
 
-					let hash = store_image(resp.to_vec()).await?;
+					let image_model = store_image(resp.to_vec(), &db).await?;
 
-					let image = NewUploadedImageModel::new(hash)
-						.insert(&db).await?;
+					book.thumb_path = image_model.path;
 
-					book.thumb_path = image.path;
-
-					ImageLinkModel::new_book(image.id, book.id)
+					ImageLinkModel::new_book(image_model.id, book.id)
 						.insert(&db).await?;
 				}
 
@@ -120,12 +117,9 @@ async fn post_upload_poster(
 				file.write_all(&item).map_err(Error::from)?;
 			}
 
-			let hash = store_image(file.into_inner()).await?;
+			let image_model = store_image(file.into_inner(), &db).await?;
 
-			let image = NewUploadedImageModel::new(hash)
-				.insert(&db).await?;
-
-			ImageLinkModel::new_book(image.id, book.id)
+			ImageLinkModel::new_book(image_model.id, book.id)
 				.insert(&db).await?;
 		}
 

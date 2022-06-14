@@ -23,7 +23,7 @@ pub async fn add_new_book(
 		let mut posters_to_add = Vec::new();
 
 		for item in meta.thumb_locations.iter_mut().filter(|v| v.is_url()) {
-			item.download().await?;
+			item.download(&db).await?;
 
 			if let Some(v) = item.as_local_value().cloned() {
 				posters_to_add.push(v);

@@ -81,6 +81,14 @@ impl NewUploadedImageModel {
 		Self { path, created_at: Utc::now() }
 	}
 
+	pub async fn get_or_insert(self, db: &Database) -> Result<UploadedImageModel> {
+		if let Some(value) = UploadedImageModel::get_by_path(self.path.as_value(), db).await? {
+			Ok(value)
+		} else {
+			self.insert(db).await
+		}
+	}
+
 	pub async fn insert(self, db: &Database) -> Result<UploadedImageModel> {
 		let conn = db.write().await;
 
@@ -99,14 +107,30 @@ impl NewUploadedImageModel {
 			created_at: self.created_at,
 		})
 	}
+
+	pub async fn path_exists(path: &str, db: &Database) -> Result<bool> {
+		Ok(db.read().await.query_row(
+			"SELECT COUNT(*) FROM uploaded_images WHERE path = ?1",
+			[ path ],
+			|v| Ok(v.get::<_, usize>(0)? != 0)
+		)?)
+	}
 }
 
 
 impl UploadedImageModel {
-	pub async fn get_by_id(id: ImageId, db: &Database) -> Result<Option<Self>> {
+	pub async fn get_by_path(value: &str, db: &Database) -> Result<Option<Self>> {
 		Ok(db.read().await.query_row(
-			r#"SELECT * FROM uploaded_images WHERE id = ?1 LIMIT 1"#,
-			[id],
+			r#"SELECT * FROM uploaded_images WHERE path = ?1"#,
+			[value],
+			|v| Self::try_from(v)
+		).optional()?)
+	}
+
+	pub async fn get_by_id(value: ImageId, db: &Database) -> Result<Option<Self>> {
+		Ok(db.read().await.query_row(
+			r#"SELECT * FROM uploaded_images WHERE id = ?1"#,
+			[value],
 			|v| Self::try_from(v)
 		).optional()?)
 	}
