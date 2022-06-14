@@ -7,7 +7,7 @@ use crate::{
 	BasicLibrary, BasicDirectory, Chapter,
 	DisplayItem, DisplayMetaItem, Person,
 	SearchType, Source, Member, Poster,
-	Result, TagFE, BookTag, TagType, PersonId, TagId, ImageId, BookTagId, item::edit::{SharedEditModel, SharedEditVoteModel}
+	Result, TagFE, BookTag, TagType, PersonId, TagId, ImageId, BookTagId, item::edit::{SharedEditModel, SharedEditVoteModel}, MetadataItemCached
 };
 
 
@@ -275,6 +275,13 @@ pub struct ExternalSearchResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ExternalSourceItemResponse {
+	pub item: Option<MetadataBookItem>,
+}
+
+
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum SearchItem {
 	Book(MetadataBookSearchItem),
 	Person(MetadataPersonSearchItem),
@@ -319,6 +326,27 @@ pub struct MetadataBookSearchItem {
 	pub description: Option<String>,
 	pub name: String,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct MetadataBookItem {
+	pub source: Source,
+	pub title: Option<String>,
+	pub description: Option<String>,
+	pub rating: f64,
+
+	pub thumbnails: Vec<String>,
+
+	// TODO: Make table for all tags. Include publisher in it. Remove country.
+	pub cached: MetadataItemCached,
+
+	pub isbn_10: Option<String>,
+	pub isbn_13: Option<String>,
+
+	pub available_at: Option<String>,
+	pub language: Option<u16>
+}
+
+
 
 // Task
 

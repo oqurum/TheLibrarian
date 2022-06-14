@@ -1,11 +1,13 @@
 use actix_web::{get, web};
-use librarian_common::{api, SearchType, SearchForBooksBy, SearchFor};
+use librarian_common::{api, SearchType, SearchForBooksBy, SearchFor, Source};
 
 use crate::{WebResult, metadata};
 
 
 #[get("/external/search")]
-pub async fn get_external_search(body: web::Query<api::GetMetadataSearch>) -> WebResult<web::Json<api::ExternalSearchResponse>> {
+pub async fn get_external_search(
+	body: web::Query<api::GetMetadataSearch>
+) -> WebResult<web::Json<api::ExternalSearchResponse>> {
 	let search = metadata::search_all_agents(
 		&body.query,
 		match body.search_type {
@@ -53,4 +55,20 @@ pub async fn get_external_search(body: web::Query<api::GetMetadataSearch>) -> We
 			))
 			.collect()
 	}))
+}
+
+
+#[get("/external/{source}")]
+pub async fn get_external_item(
+	path: web::Path<Source>
+) -> WebResult<web::Json<api::ExternalSourceItemResponse>> {
+	if let Some(meta) = metadata::get_metadata_by_source(&*path, true).await? {
+		Ok(web::Json(api::ExternalSourceItemResponse {
+			item: Some(meta.meta.into()),
+		}))
+	} else {
+		Ok(web::Json(api::ExternalSourceItemResponse {
+			item: None,
+		}))
+	}
 }

@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::{Deref, DerefMut}};
 
 use async_trait::async_trait;
-use librarian_common::{PersonId, BookId, SearchFor, Source, MetadataItemCached, ThumbnailStore};
+use librarian_common::{PersonId, BookId, SearchFor, Source, MetadataItemCached, ThumbnailStore, api::MetadataBookItem};
 use chrono::Utc;
 
 use crate::{Result, database::Database, model::{NewPersonModel, PersonAltModel, BookModel, PersonModel}};
@@ -306,6 +306,23 @@ impl From<FoundItem> for BookModel {
 			created_at: Utc::now(),
 			updated_at: Utc::now(),
 			deleted_at: None,
+			available_at: val.available_at,
+			language: val.language,
+		}
+	}
+}
+
+impl From<FoundItem> for MetadataBookItem {
+	fn from(val: FoundItem) -> Self {
+		MetadataBookItem {
+			source: val.source,
+			title: val.title,
+			description: val.description,
+			rating: val.rating,
+			thumbnails: val.thumb_locations.into_iter().filter_map(|v| v.into_api_path()).collect(),
+			cached: val.cached,
+			isbn_10: val.isbn_10,
+			isbn_13: val.isbn_13,
 			available_at: val.available_at,
 			language: val.language,
 		}

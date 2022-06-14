@@ -63,6 +63,7 @@ pub fn api_route() -> Scope<
 
 		// External
 		.service(external::get_external_search)
+		.service(external::get_external_item)
 
 		// Settings
 		.service(settings::get_settings)
