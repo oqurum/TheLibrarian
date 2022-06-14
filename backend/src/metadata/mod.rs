@@ -316,11 +316,17 @@ impl From<FoundItem> for BookModel {
 #[derive(Debug)]
 pub enum FoundImageLocation {
 	Url(String),
-	FileData(Vec<u8>),
 	Local(ThumbnailStore),
 }
 
 impl FoundImageLocation {
+	pub fn into_api_path(self) -> Option<String> {
+		match self {
+			Self::Url(v) => Some(v),
+			Self::Local(v) => Some(v.as_url()),
+		}
+	}
+
 	pub fn into_url_value(self) -> Option<String> {
 		match self {
 			Self::Url(v) => Some(v),
@@ -346,34 +352,20 @@ impl FoundImageLocation {
 		matches!(self, Self::Local(_))
 	}
 
-	pub fn is_file_data(&self) -> bool {
-		matches!(self, Self::FileData(_))
-	}
-
 	pub fn is_url(&self) -> bool {
 		matches!(self, Self::Url(_))
 	}
 
 	pub async fn download(&mut self, db: &Database) -> Result<()> {
-		match self {
-			FoundImageLocation::Url(ref url) => {
-				let resp = reqwest::get(url)
-					.await?
-					.bytes()
-					.await?;
+		if let FoundImageLocation::Url(ref url) = self {
+			let resp = reqwest::get(url)
+				.await?
+				.bytes()
+				.await?;
 
-				let model = crate::store_image(resp.to_vec(), db).await?;
+			let model = crate::store_image(resp.to_vec(), db).await?;
 
-				*self = Self::Local(model.path);
-			}
-
-			FoundImageLocation::FileData(image) => {
-				if let Ok(model) = crate::store_image(image.clone(), db).await {
-					*self = Self::Local(model.path)
-				}
-			}
-
-			_ => (),
+			*self = Self::Local(model.path);
 		}
 
 		Ok(())
