@@ -1103,28 +1103,6 @@ hr {
 
 		.body {
 			margin-top: 1em;
-
-			> .row {
-				display: flex;
-				margin-bottom: 0.5em;
-
-				> .row-title {
-					width: 18%;
-					font-weight: bold;
-					text-align: right;
-					align-self: center;
-				}
-
-				> .row-shrink {
-					flex-shrink: 1;
-					padding: 4px;
-				}
-
-				> .row-grow {
-					flex-grow: 1;
-					padding: 4px;
-				}
-			}
 		}
 	}
 }
@@ -1132,6 +1110,28 @@ hr {
 @media screen and (max-width: 1354px) {
 	.edit-list-view-container .list-items {
 		width: 669px;
+	}
+}
+
+.comparison-row {
+	display: flex;
+	margin-bottom: 0.5em;
+
+	> .row-title {
+		width: 18%;
+		font-weight: bold;
+		text-align: right;
+		align-self: center;
+	}
+
+	> .row-shrink {
+		flex-shrink: 1;
+		padding: 4px;
+	}
+
+	> .row-grow {
+		flex-grow: 1;
+		padding: 4px;
 	}
 }
 

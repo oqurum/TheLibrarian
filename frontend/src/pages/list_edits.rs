@@ -405,7 +405,7 @@ impl EditListPage {
 					};
 
 					html! {
-						<div class="row">
+						<div class="comparison-row">
 							<div class="row-title"><span>{ title }</span></div>
 							<div class="row-grow"><div class="label red">{ old_value.clone().unwrap_or_default() }</div></div>
 							<div class="row-grow"><div class="label green">{ new_value.clone() }</div></div>
@@ -421,7 +421,7 @@ impl EditListPage {
 			// EditOperation::Delete => html! {},
 			// EditOperation::Merge => html! {},
 
-			_ => html! { <div class="row"><div class="row-title"><span>{ "Unimplemented Operation" }</span></div></div> }
+			_ => html! { <div class="comparison-row"><div class="row-title"><span>{ "Unimplemented Operation" }</span></div></div> }
 		}
 	}
 }
