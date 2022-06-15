@@ -9,7 +9,8 @@ pub use popup::{
 	Popup, PopupType,
 	edit_metadata::PopupEditMetadata,
 	search_book::PopupSearchBook,
-	button::ButtonPopup, button::ButtonPopupPosition
+	button::ButtonPopup, button::ButtonPopupPosition,
+	book_update_with_meta::PopupBookUpdateWithMeta,
 };
 pub use mass_selector_bar::MassSelectBar;
 pub use multi_select::{MultiselectModule, MultiselectItem, MultiselectNewItem};

@@ -9,6 +9,7 @@ use yew::prelude::*;
 pub mod button;
 pub mod edit_metadata;
 pub mod search_book;
+pub mod book_update_with_meta;
 
 pub static YEW_CLOSE_POPUP: &str = "yew_close_popup";
 

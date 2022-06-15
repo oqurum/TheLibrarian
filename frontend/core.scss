@@ -134,6 +134,7 @@ hr {
 .label {
 	padding: 3px;
 	border-radius: var(--radius-2);
+	background-color: var(--surface-1);
 
 	&.green {
 		background-color: var(--green-9);
@@ -1118,10 +1119,11 @@ hr {
 	margin-bottom: 0.5em;
 
 	> .row-title {
-		width: 18%;
+		width: 12%;
 		font-weight: bold;
 		text-align: right;
 		align-self: center;
+		flex-shrink: 0;
 	}
 
 	> .row-shrink {
@@ -1132,6 +1134,8 @@ hr {
 	> .row-grow {
 		flex-grow: 1;
 		padding: 4px;
+		min-width: 44%;
+		max-width: 44%;
 	}
 }
 
