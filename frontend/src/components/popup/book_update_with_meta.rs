@@ -61,7 +61,35 @@ impl Component for PopupBookUpdateWithMeta {
 			Msg::Ignore => return false,
 
 			Msg::OnClose => ctx.props().on_close.emit(()),
-			Msg::OnSubmit => ctx.props().on_submit.emit(self.edits.clone()),
+			Msg::OnSubmit => {
+				let MediaViewResponse { metadata: old_meta, .. } = &ctx.props().book_resp;
+
+				let edits = self.edits.clone();
+
+				ctx.props().on_submit.emit(BookEdit {
+					title: edits.title.or_else(|| old_meta.title.clone()),
+					clean_title: edits.clean_title.or_else(|| old_meta.clean_title.clone()),
+					description: edits.description.or_else(|| old_meta.description.clone()),
+					rating: edits.rating.or(Some(old_meta.rating)),
+					isbn_10: edits.isbn_10.or_else(|| old_meta.isbn_10.clone()),
+					isbn_13: edits.isbn_13.or_else(|| old_meta.isbn_13.clone()),
+					available_at: edits.available_at.or_else(|| old_meta.available_at.clone()),
+
+					// TODO: Currently need these since BookEdit is sent to backend. If we don't have it it'll think it's unset.
+					is_public: edits.is_public,
+					language: edits.language,
+					publisher: edits.publisher,
+
+					// added_people: edits.added_people,
+					// removed_people: edits.removed_people,
+					// added_tags: edits.added_tags,
+					// removed_tags: edits.removed_tags,
+					// added_images: edits.added_images,
+					// removed_images: edits.removed_images,
+
+					.. BookEdit::default()
+				})
+			},
 
 			Msg::UpdateNew(value, is_set) => {
 				let MediaViewResponse { metadata: old_meta, .. } = &ctx.props().book_resp;

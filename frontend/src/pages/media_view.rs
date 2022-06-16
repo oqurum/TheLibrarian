@@ -1,10 +1,13 @@
 use js_sys::Date;
-use librarian_common::{api::{MediaViewResponse, self, GetPostersResponse, GetTagsResponse}, Either, TagType, LANGUAGES, util::string_to_upper_case, BookId, TagId, item::edit::BookEdit, TagFE, ImageIdType};
+use librarian_common::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse, MetadataBookItem}, Either, TagType, LANGUAGES, util::string_to_upper_case, BookId, TagId, item::edit::BookEdit, TagFE, ImageIdType};
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::{HtmlInputElement, HtmlTextAreaElement, HtmlSelectElement};
 use yew::{prelude::*, html::Scope};
 
-use crate::{components::{MultiselectModule, MultiselectItem, MultiselectNewItem, UploadModule}, request};
+use crate::{
+	components::{MultiselectModule, MultiselectItem, MultiselectNewItem, UploadModule, Popup, PopupBookUpdateWithMeta, PopupEditMetadata, PopupSearchBook, PopupType},
+	request
+};
 
 
 
@@ -236,8 +239,15 @@ impl Component for MediaView {
 	fn view(&self, ctx: &Context<Self>) -> Html {
 		let editing = &self.editing_item;
 
-		if let Some(MediaViewResponse { people, metadata: book_model, tags }) = self.media.as_ref() {
+		if let Some(book_resp @ MediaViewResponse { people, metadata: book_model, tags }) = self.media.as_ref() {
 			let book_id = book_model.id;
+
+			let on_click_more = ctx.link().callback(move |e: MouseEvent| {
+				e.prevent_default();
+				e.stop_propagation();
+
+				Msg::ShowPopup(DisplayOverlay::More { book_id, mouse_pos: (e.page_x(), e.page_y()) })
+			});
 
 			html! {
 				<div class="media-view-container">
@@ -269,6 +279,20 @@ impl Component for MediaView {
 					<div class="main-content-view">
 						<div class="info-container">
 							<div class="poster large">
+								<div class="bottom-right">
+									<span class="material-icons" onclick={on_click_more} title="More Options">{ "more_horiz" }</span>
+								</div>
+								<div class="bottom-left">
+									<span class="material-icons" onclick={ctx.link().callback_future(move |e: MouseEvent| {
+										e.prevent_default();
+										e.stop_propagation();
+
+										async move {
+											Msg::ShowPopup(DisplayOverlay::Edit(Box::new(request::get_media_view(book_id).await)))
+										}
+									})} title="More Options">{ "edit" }</span>
+								</div>
+
 								<img src={ book_model.get_thumb_url() } />
 							</div>
 
@@ -565,6 +589,80 @@ impl Component for MediaView {
 							</div>
 						</section>
 					</div>
+
+					{
+						if let Some(overlay_type) = self.media_popup.as_ref() {
+							match overlay_type {
+								&DisplayOverlay::More { mouse_pos, .. } => {
+									html! {
+										<Popup type_of={ PopupType::AtPoint(mouse_pos.0, mouse_pos.1) } on_close={ctx.link().callback(|_| Msg::ClosePopup)}>
+											<div class="menu-list">
+												// <div class="menu-item" yew-close-popup="" onclick={
+												// 	Self::on_click_prevdef(ctx.link(), Msg::UpdateBook(book_id))
+												// }>{ "Refresh Metadata" }</div>
+												<div class="menu-item" yew-close-popup="" onclick={
+													Self::on_click_prevdef_stopprop(ctx.link(), Msg::ShowPopup(DisplayOverlay::SearchForBook { input_value: None }))
+												}>{ "Search New Metadata" }</div>
+												<div class="menu-item" yew-close-popup="">{ "Delete" }</div>
+											</div>
+										</Popup>
+									}
+								}
+
+								DisplayOverlay::Edit(resp) => {
+									html! {
+										<PopupEditMetadata
+											on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
+											classes={ classes!("popup-book-edit") }
+											media_resp={ (&**resp).clone() }
+										/>
+									}
+								}
+
+								DisplayOverlay::EditFromMetadata(new_meta) => {
+									html! {
+										<PopupBookUpdateWithMeta
+											on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
+											on_submit={ ctx.link().callback_future(move |v| async move {
+												request::update_book(book_id, &v).await;
+												Msg::Ignore
+											}) }
+											classes={ classes!("popup-book-edit") }
+											book_resp={ book_resp.clone() }
+											metadata={ (&**new_meta).clone() }
+										/>
+									}
+								}
+
+								DisplayOverlay::SearchForBook { input_value } => {
+									let input_value = if let Some(v) = input_value {
+										v.to_string()
+									} else {
+										format!(
+											"{} {}",
+											book_model.title.as_deref().unwrap_or_default(),
+											book_model.cached.author.as_deref().unwrap_or_default()
+										)
+									};
+
+									let input_value = input_value.trim().to_string();
+
+									html! {
+										<PopupSearchBook
+											{input_value}
+											on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
+											on_select={ ctx.link().callback_future(|source| async {
+												let resp = request::get_external_source_item(source).await;
+												Msg::ShowPopup(DisplayOverlay::EditFromMetadata(Box::new(resp.item.unwrap())))
+											}) }
+										/>
+									}
+								}
+							}
+						} else {
+							html! {}
+						}
+					}
 				</div>
 			}
 		} else {
@@ -651,23 +749,28 @@ pub enum ChangingType {
 
 #[derive(Clone)]
 pub enum DisplayOverlay {
-	Info {
-		meta_id: usize
-	},
+	Edit(Box<MediaViewResponse>),
 
-	Edit(Box<api::MediaViewResponse>),
+	EditFromMetadata(Box<MetadataBookItem>),
 
 	More {
-		meta_id: usize,
+		book_id: BookId,
 		mouse_pos: (i32, i32)
+	},
+
+	SearchForBook {
+		input_value: Option<String>,
 	},
 }
 
 impl PartialEq for DisplayOverlay {
 	fn eq(&self, other: &Self) -> bool {
 		match (self, other) {
-			(Self::Info { meta_id: l_id }, Self::Info { meta_id: r_id }) => l_id == r_id,
-			(Self::More { meta_id: l_id, .. }, Self::More { meta_id: r_id, .. }) => l_id == r_id,
+			(Self::More { book_id: l_id, .. }, Self::More { book_id: r_id, .. }) => l_id == r_id,
+			(
+				Self::SearchForBook { input_value: l_val, .. },
+				Self::SearchForBook { input_value: r_val, .. }
+			) => l_val == r_val,
 
 			_ => false
 		}

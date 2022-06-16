@@ -168,6 +168,18 @@ pub async fn external_search_for(search: &str, search_for: SearchType) -> Extern
 }
 
 
+pub async fn get_external_source_item(value: Source) -> ExternalSourceItemResponse {
+	fetch(
+		"GET",
+		&format!(
+			"/api/v1/external/{}",
+			value
+		),
+		Option::<&()>::None
+	).await.unwrap()
+}
+
+
 // People
 
 
