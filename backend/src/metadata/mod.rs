@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::{Deref, DerefMut}};
+use std::{collections::HashMap, ops::{Deref, DerefMut}, fmt::{self, Debug}, borrow::Cow};
 
 use async_trait::async_trait;
 use librarian_common::{PersonId, BookId, SearchFor, Source, MetadataItemCached, ThumbnailStore, api::MetadataBookItem};
@@ -297,7 +297,6 @@ impl From<FoundItem> for BookModel {
 			thumb_path: val.thumb_locations.iter()
 				.find_map(|v| v.as_local_value().cloned())
 				.unwrap_or(ThumbnailStore::None),
-			all_thumb_urls: val.thumb_locations.into_iter().filter_map(|v| v.into_url_value()).collect(),
 			cached: val.cached,
 			isbn_10: val.isbn_10,
 			isbn_13: val.isbn_13,
@@ -319,7 +318,7 @@ impl From<FoundItem> for MetadataBookItem {
 			title: val.title,
 			description: val.description,
 			rating: val.rating,
-			thumbnails: val.thumb_locations.into_iter().filter_map(|v| v.into_api_path()).collect(),
+			thumbnails: val.thumb_locations.into_iter().map(|v| v.as_api_path().into_owned()).collect(),
 			cached: val.cached,
 			isbn_10: val.isbn_10,
 			isbn_13: val.isbn_13,
@@ -337,10 +336,10 @@ pub enum FoundImageLocation {
 }
 
 impl FoundImageLocation {
-	pub fn into_api_path(self) -> Option<String> {
+	pub fn as_api_path(&self) -> Cow<'_, str> {
 		match self {
-			Self::Url(v) => Some(v),
-			Self::Local(v) => Some(v.as_url()),
+			Self::Url(v) => Cow::Borrowed(v.as_str()),
+			Self::Local(v) => Cow::Owned(v.as_url()),
 		}
 	}
 
@@ -386,5 +385,11 @@ impl FoundImageLocation {
 		}
 
 		Ok(())
+	}
+}
+
+impl fmt::Display for FoundImageLocation {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		fmt::Display::fmt(&self.as_api_path(), f)
 	}
 }

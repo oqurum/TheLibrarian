@@ -16,8 +16,6 @@ pub struct BookModel {
 	pub rating: f64,
 
 	pub thumb_path: ThumbnailStore,
-	/// Not in Database
-	pub all_thumb_urls: Vec<String>, // TODO: Remove.
 
 	// TODO: Make table for all tags. Include publisher in it. Remove country.
 	pub cached: MetadataItemCached,
@@ -51,7 +49,6 @@ impl<'a> TryFrom<&Row<'a>> for BookModel {
 			description: value.get(3)?,
 			rating: value.get(4)?,
 			thumb_path: ThumbnailStore::from(value.get::<_, Option<String>>(5)?),
-			all_thumb_urls: Vec::new(),
 			cached: value.get::<_, Option<String>>(6)?
 				.map(|v| MetadataItemCached::from_string(&v))
 				.unwrap_or_default(),
@@ -101,7 +98,6 @@ impl From<DisplayMetaItem> for BookModel {
 			description: val.description,
 			rating: val.rating,
 			thumb_path: val.thumb_path,
-			all_thumb_urls: Vec::new(),
 			cached: val.cached,
 			isbn_10: val.isbn_10,
 			isbn_13: val.isbn_13,
