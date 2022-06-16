@@ -49,7 +49,16 @@ impl Component for EditListPage {
 				});
 			}
 
-			Msg::EditListResults(resp) => {
+			Msg::EditListResults(mut resp) => {
+				// Default old BookEdit (generate_person_rows checks for both new/old have Some)
+				resp.items.iter_mut()
+					.for_each(|v| match &mut v.data {
+						EditData::Book(v) => if v.old.is_none() { v.old = Some(Default::default()) },
+						EditData::Person(v) => if v.old.is_none() { v.old = Some(Default::default()) },
+						EditData::Tag => todo!(),
+						EditData::Collection => todo!(),
+					});
+
 				self.items_resp = Some(resp);
 			}
 
@@ -372,7 +381,7 @@ impl EditListPage {
 		votes.items.iter().find_map(|v| if v.member_id? == get_member_self()?.id { Some(v.vote) } else { None })
 	}
 
-	fn display_row<V: Clone + Default + PartialEq + fmt::Display>(
+	fn display_row<V: Clone + Default + PartialEq + fmt::Display + fmt::Debug>(
 		title: &'static str,
 		new_data: &Option<V>,
 		old_data: &Option<V>,
@@ -384,32 +393,48 @@ impl EditListPage {
 		match operation {
 			EditOperation::Modify => {
 				if let Some((new_value, old_value)) = determine_new_old(new_data, old_data) {
-					let warning = if status.is_accepted() && is_updated {
-						html! {
-							<div class="row-shrink">
-								<div class="label green" title={ "Updated Model with value." }>
-									<span class="material-icons">{ "done" }</span>
-								</div>
-							</div>
-						}
-					} else if current.is_some() && current != old_value.as_ref() {
-						html! {
-							<div class="row-shrink">
-								<div class="label yellow" title={ "Current Model has a different value than wanted. It'll not be used if approved." }>
-									<span class="material-icons">{ "warning" }</span>
-								</div>
-							</div>
-						}
-					} else {
-						html! {}
-					};
-
 					html! {
 						<div class="comparison-row">
 							<div class="row-title"><span>{ title }</span></div>
-							<div class="row-grow"><div class="label red">{ old_value.clone().unwrap_or_default() }</div></div>
-							<div class="row-grow"><div class="label green">{ new_value.clone() }</div></div>
-							{ warning }
+							// Old Value
+							{
+								if let Some(val) = old_value.clone() {
+									html! {
+										<div class="row-grow"><div class="label red">{ val }</div></div>
+									}
+								} else {
+									html! {
+										<div class="row-grow"><div class="label red">{ "(Empty)" }</div></div>
+									}
+								}
+							}
+
+							// New Value
+							{
+								if status.is_accepted() && is_updated {
+									html! {
+										<div class="row-grow">
+											<div class="label green" title={ "Updated Model with value." }>
+												{ new_value.clone() }
+											</div>
+										</div>
+									}
+								} else if current.is_some() && current != old_value.as_ref() {
+									html! {
+										<div class="row-grow">
+											<div class="label yellow" title={ "Current Model has a different value than wanted. It'll not be used if approved." }>
+												{ new_value.clone() }
+											</div>
+										</div>
+									}
+								} else {
+									html! {
+										<div class="row-grow">
+											<div class="label green">{ new_value.clone() }</div>
+										</div>
+									}
+								}
+							}
 						</div>
 					}
 				} else {

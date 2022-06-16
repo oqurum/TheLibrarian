@@ -278,7 +278,7 @@ mod person_edit {
 
 	pub type PersonEditData = InnerEditData<Person, PersonEdit, UpdatedPersonEdit>;
 
-	#[derive(Debug, Clone, Serialize, Deserialize)]
+	#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 	pub struct PersonEdit {
 		#[serde(skip_serializing_if = "Option::is_none")]
 		pub name: Option<String>,
