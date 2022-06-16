@@ -1108,7 +1108,7 @@ hr {
 
 // Edit List Container
 .edit-list-view-container {
-	//
+	overflow-y: auto;
 
 	.list-items {
 		width: 50%;
