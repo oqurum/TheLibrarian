@@ -876,6 +876,35 @@ hr {
 	}
 }
 
+.popup-comparison-edit {
+	width: 58%;
+
+	.header {
+		//
+	}
+
+	.footer {
+		//
+	}
+
+	.content {
+		display: flex;
+		flex-direction: column;
+		flex-grow: 1;
+	}
+
+
+	.comparison-row > .row-grow {
+		cursor: pointer;
+		border-radius: var(--radius-2);
+
+		&.selected > .label {
+			border-left: 2px var(--brand) solid;
+			border-right: 2px var(--brand) solid;
+		}
+	}
+}
+
 
 .main-content-view {
 	margin: 0.5em;

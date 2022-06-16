@@ -114,7 +114,7 @@ impl Component for PopupBookUpdateWithMeta {
 			<Popup
 				type_of={ PopupType::FullOverlay }
 				on_close={ ctx.props().on_close.clone() }
-				classes={ classes!("popup-book-edit") }
+				classes={ classes!("popup-comparison-edit") }
 			>
 				<div class="header">
 					<h2>{ "Book Update" }</h2>
@@ -138,11 +138,11 @@ impl PopupBookUpdateWithMeta {
 
 		html! {
 			<div class="body">
-				{ Self::display_row("Title", &metadata.title, &new_meta.title, UpdateValue::Title, ctx.link()) }
-				{ Self::display_row("Description", &metadata.description, &new_meta.description, UpdateValue::Description, ctx.link()) }
-				{ Self::display_row("ISBN 10", &metadata.isbn_10, &new_meta.isbn_10, UpdateValue::Isbn10, ctx.link()) }
-				{ Self::display_row("ISBN 13", &metadata.isbn_13, &new_meta.isbn_13, UpdateValue::Isbn13, ctx.link()) }
-				{ Self::display_row("Available At", &metadata.available_at, &new_meta.available_at, UpdateValue::AvailableAt, ctx.link()) }
+				{ Self::display_row("Title", &metadata.title, &new_meta.title, UpdateValue::Title, self.edits.title.is_none(), ctx.link()) }
+				{ Self::display_row("Description", &metadata.description, &new_meta.description, UpdateValue::Description, self.edits.description.is_none(), ctx.link()) }
+				{ Self::display_row("ISBN 10", &metadata.isbn_10, &new_meta.isbn_10, UpdateValue::Isbn10, self.edits.isbn_10.is_none(), ctx.link()) }
+				{ Self::display_row("ISBN 13", &metadata.isbn_13, &new_meta.isbn_13, UpdateValue::Isbn13, self.edits.isbn_13.is_none(), ctx.link()) }
+				{ Self::display_row("Available At", &metadata.available_at, &new_meta.available_at, UpdateValue::AvailableAt, self.edits.available_at.is_none(), ctx.link()) }
 			</div>
 		}
 	}
@@ -152,15 +152,19 @@ impl PopupBookUpdateWithMeta {
 		current: &Option<V>,
 		new: &Option<V>,
 		updating: UpdateValue,
+		is_old: bool,
 		scope: &Scope<Self>,
 	) -> Html {
+		let old_selected = is_old.then(|| "selected");
+		let new_selected = (!is_old).then(|| "selected");
+
 		match (current, new) {
 			(Some(old_value), Some(new_value)) if old_value != new_value => {
 				html! {
 					<div class="comparison-row">
 						<div class="row-title"><span>{ title }</span></div>
-						<div class="row-grow" onclick={ scope.callback(move |_| Msg::UpdateNew(updating, false)) }><div class="label">{ old_value.clone() }</div></div>
-						<div class="row-grow" onclick={ scope.callback(move |_| Msg::UpdateNew(updating, true)) }><div class="label">{ new_value.clone() }</div></div>
+						<div class={ classes!("row-grow", old_selected) } onclick={ scope.callback(move |_| Msg::UpdateNew(updating, false)) }><div class="label">{ old_value.clone() }</div></div>
+						<div class={ classes!("row-grow", new_selected) } onclick={ scope.callback(move |_| Msg::UpdateNew(updating, true)) }><div class="label">{ new_value.clone() }</div></div>
 					</div>
 				}
 			}
@@ -169,8 +173,8 @@ impl PopupBookUpdateWithMeta {
 				html! {
 					<div class="comparison-row">
 						<div class="row-title"><span>{ title }</span></div>
-						<div class="row-grow" onclick={ scope.callback(move |_| Msg::UpdateNew(updating, false)) }><div class="label">{ "(Empty)" }</div></div>
-						<div class="row-grow" onclick={ scope.callback(move |_| Msg::UpdateNew(updating, true)) }><div class="label">{ new_value.clone() }</div></div>
+						<div class={ classes!("row-grow", old_selected) } onclick={ scope.callback(move |_| Msg::UpdateNew(updating, false)) }><div class="label">{ "(Empty)" }</div></div>
+						<div class={ classes!("row-grow", new_selected) } onclick={ scope.callback(move |_| Msg::UpdateNew(updating, true)) }><div class="label">{ new_value.clone() }</div></div>
 					</div>
 				}
 			}
