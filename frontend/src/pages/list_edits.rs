@@ -63,10 +63,16 @@ impl Component for EditListPage {
 			}
 
 			Msg::EditItemUpdate(mut item) => {
-				if let Some(my_vote) = item.vote.take() {
-					if let Some(all_edit_items) = self.items_resp.as_mut() {
-						if let Some(edit_model) = all_edit_items.items.iter_mut().find(|v| v.id == my_vote.edit_id) {
-							if let Some(votes) = edit_model.votes.as_mut() {
+				let new_edit_model = match item.edit_model {
+					Some(v) => v,
+					None => return false,
+				};
+
+				if let Some(all_edit_items) = self.items_resp.as_mut() {
+					if let Some(curr_edit_model) = all_edit_items.items.iter_mut().find(|v| v.id == new_edit_model.id) {
+						// Get Our Upvote/Downvote
+						if let Some(my_vote) = item.vote.take() {
+							if let Some(votes) = curr_edit_model.votes.as_mut() {
 								// Insert or Update Vote
 								if let Some(curr_vote_pos) = votes.items.iter_mut().position(|v| v.id == my_vote.id) {
 									if votes.items[curr_vote_pos].vote == my_vote.vote {
@@ -79,9 +85,13 @@ impl Component for EditListPage {
 								}
 							}
 						}
+
+						// Just update model.
+						else {
+							*curr_edit_model = new_edit_model;
+						}
 					}
 				}
-
 			}
 
 			Msg::Ignore => return false,

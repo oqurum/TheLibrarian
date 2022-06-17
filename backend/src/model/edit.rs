@@ -293,8 +293,8 @@ impl EditModel {
 
 		db.write().await
 		.execute(r#"
-			UPDATE edit SET data = ?2, status = ?3 WHERE id = ?1"#,
-			params![ self.id, &self.data, self.status ]
+			UPDATE edit SET data = ?2, status = ?3, ended_at = ?4 WHERE id = ?1"#,
+			params![ self.id, &self.data, self.status, self.ended_at.map(|v| v.timestamp_millis()) ]
 		)?;
 
 		Ok(())
@@ -438,8 +438,8 @@ pub async fn accept_register_book_data_overwrites(
 	edit: &mut BookEditData,
 	db: &Database
 ) -> Result<()> {
-	let (old, new) = match (edit.old.clone(), edit.new.clone()) {
-		(Some(a), Some(b)) => (a, b),
+	let (old, new) = match (edit.old.clone().unwrap_or_default(), edit.new.clone()) {
+		(a, Some(b)) => (a, b),
 		_ => return Ok(())
 	};
 

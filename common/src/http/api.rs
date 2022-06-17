@@ -7,7 +7,7 @@ use crate::{
 	BasicLibrary, BasicDirectory, Chapter,
 	DisplayItem, DisplayMetaItem, Person,
 	SearchType, Source, Member, Poster,
-	Result, TagFE, BookTag, TagType, PersonId, TagId, ImageId, BookTagId, item::edit::{SharedEditModel, SharedEditVoteModel}, MetadataItemCached
+	Result, TagFE, BookTag, TagType, PersonId, TagId, ImageId, BookTagId, item::edit::{SharedEditModel, SharedEditVoteModel}, MetadataItemCached,
 };
 
 
@@ -35,6 +35,7 @@ pub struct GetEditResponse {
 // POST /edit/{id}
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct PostEditResponse {
+	pub edit_model: Option<SharedEditModel>,
 	pub vote: Option<SharedEditVoteModel>,
 }
 

@@ -120,9 +120,11 @@ async fn update_edit(
 
 	let member = MemberModel::get_by_id(member.member_id(), &db).await?.unwrap();
 
+	let member_is_admin = member.permissions.is_admin();
+
 	// Only an Admin can change the status.
 	if let Some(new_status) = update.status {
-		if !member.permissions.is_admin() {
+		if !member_is_admin {
 			// TODO: Error.
 			return Ok(web::Json(api::PostEditResponse::default()));
 		}
@@ -190,10 +192,12 @@ async fn update_edit(
 	EditModel::update_by_id(*edit_id, update, &db).await?;
 
 	Ok(web::Json(api::PostEditResponse {
+		edit_model: Some(edit_model.into_shared_edit(Some(member))?),
+
 		vote: vote_model.map(|v| {
 			let mut shared = SharedEditVoteModel::from(v);
 
-			if !member.permissions.is_admin() {
+			if !member_is_admin {
 				shared.member_id = None;
 			}
 
