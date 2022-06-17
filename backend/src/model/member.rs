@@ -1,10 +1,12 @@
 use lazy_static::lazy_static;
 use librarian_common::{MemberId, util::serialize_datetime, Permissions};
 use chrono::{DateTime, TimeZone, Utc};
-use rusqlite::{Row, params, OptionalExtension};
+use rusqlite::{params, OptionalExtension};
 use serde::Serialize;
 
 use crate::{Database, Result};
+
+use super::{TableRow, AdvRow};
 
 lazy_static! {
 	pub static ref SYSTEM_MEMBER: MemberModel = MemberModel {
@@ -47,18 +49,16 @@ pub struct MemberModel {
 	pub updated_at: DateTime<Utc>,
 }
 
-impl<'a> TryFrom<&Row<'a>> for MemberModel {
-	type Error = rusqlite::Error;
-
-	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
+impl TableRow<'_> for MemberModel {
+	fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
 		Ok(Self {
-			id: value.get(0)?,
-			name: value.get(1)?,
-			email: value.get(2)?,
-			password: value.get(3)?,
-			permissions: value.get(4)?,
-			created_at: Utc.timestamp_millis(value.get(5)?),
-			updated_at: Utc.timestamp_millis(value.get(6)?),
+			id: row.next()?,
+			name: row.next()?,
+			email: row.next()?,
+			password: row.next()?,
+			permissions: row.next()?,
+			created_at: Utc.timestamp_millis(row.next()?),
+			updated_at: Utc.timestamp_millis(row.next()?),
 		})
 	}
 }
@@ -108,7 +108,7 @@ impl MemberModel {
 		Ok(db.read().await.query_row(
 			r#"SELECT * FROM members WHERE email = ?1 LIMIT 1"#,
 			params![value],
-			|v| Self::try_from(v)
+			|v| Self::from_row(v)
 		).optional()?)
 	}
 
@@ -119,7 +119,7 @@ impl MemberModel {
 			Ok(db.read().await.query_row(
 				r#"SELECT * FROM members WHERE id = ?1 LIMIT 1"#,
 				params![id],
-				|v| Self::try_from(v)
+				|v| Self::from_row(v)
 			).optional()?)
 		}
 	}

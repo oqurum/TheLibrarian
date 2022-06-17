@@ -2,7 +2,7 @@ use chrono::Utc;
 use librarian_common::edit::*;
 use rusqlite::params;
 
-use crate::{Database, Result, model::{NewEditCommentModel, EditModel, SYSTEM_MEMBER}};
+use crate::{Database, Result, model::{NewEditCommentModel, EditModel, SYSTEM_MEMBER, TableRow}};
 
 
 
@@ -20,7 +20,7 @@ pub async fn task_update_pending(db: &Database) -> Result<()> {
 
 			let map = conn.query_map(
 				params![ EditStatus::Rejected, now, pending ],
-				|v| EditModel::try_from(v)
+				|v| EditModel::from_row(v)
 			)?;
 
 			map.collect::<std::result::Result<Vec<_>, _>>()?
@@ -46,7 +46,7 @@ pub async fn task_update_pending(db: &Database) -> Result<()> {
 
 			let mut conn = this.prepare("SELECT * FROM edit WHERE expires_at < ?1 AND status = ?2 AND vote_count >= 0")?;
 
-			let map = conn.query_map(params![ now, pending ], |v| EditModel::try_from(v))?;
+			let map = conn.query_map(params![ now, pending ], |v| EditModel::from_row(v))?;
 
 			map.collect::<std::result::Result<Vec<_>, _>>()?
 		};

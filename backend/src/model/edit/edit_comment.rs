@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc, TimeZone};
 use librarian_common::{EditId, MemberId, EditCommentId};
-use rusqlite::{Row, params};
+use rusqlite::params;
 
-use crate::{Database, Result};
+use crate::{Database, Result, model::{TableRow, AdvRow}};
 
 
 
@@ -30,20 +30,18 @@ pub struct EditCommentModel {
 }
 
 
-impl<'a> TryFrom<&Row<'a>> for EditCommentModel {
-	type Error = rusqlite::Error;
-
-	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
+impl TableRow<'_> for EditCommentModel {
+	fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
 		Ok(Self {
-			id: value.get(0)?,
+			id: row.next()?,
 
-			edit_id: value.get(1)?,
-			member_id: value.get(2)?,
+			edit_id: row.next()?,
+			member_id: row.next()?,
 
-			text: value.get(3)?,
-			deleted: value.get(4)?,
+			text: row.next()?,
+			deleted: row.next()?,
 
-			created_at: Utc.timestamp_millis(value.get(5)?),
+			created_at: Utc.timestamp_millis(row.next()?),
 		})
 	}
 }
@@ -105,13 +103,13 @@ impl EditCommentModel {
 		if let Some(deleted) = deleted {
 			let mut conn = this.prepare(r#"SELECT * FROM edit_comment WHERE edit_id = ?1 AND deleted = ?2 LIMIT ?3 OFFSET ?4"#)?;
 
-			let map = conn.query_map(params![ edit_id, deleted, limit, offset ], |v| Self::try_from(v))?;
+			let map = conn.query_map(params![ edit_id, deleted, limit, offset ], |v| Self::from_row(v))?;
 
 			Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 		} else {
 			let mut conn = this.prepare(r#"SELECT * FROM edit_comment WHERE edit_id = ?1 LIMIT ?2 OFFSET ?3"#)?;
 
-			let map = conn.query_map(params![ edit_id, limit, offset ], |v| Self::try_from(v))?;
+			let map = conn.query_map(params![ edit_id, limit, offset ], |v| Self::from_row(v))?;
 
 			Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 		}

@@ -1,8 +1,10 @@
 use librarian_common::{TagId, TagType, TagFE};
 use chrono::{DateTime, TimeZone, Utc};
-use rusqlite::{Row, params, OptionalExtension};
+use rusqlite::{params, OptionalExtension};
 
 use crate::{Database, Result};
+
+use super::{AdvRow, TableRow};
 
 pub struct NewTagModel {
 	pub name: String,
@@ -21,16 +23,14 @@ pub struct TagModel {
 }
 
 
-impl<'a> TryFrom<&Row<'a>> for TagModel {
-	type Error = rusqlite::Error;
-
-	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
+impl TableRow<'_> for TagModel {
+	fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
 		Ok(Self {
-			id: value.get(0)?,
-			name: value.get(1)?,
-			type_of: TagType::from_u8(value.get(2)?, value.get(3)?),
-			created_at: Utc.timestamp_millis(value.get(4)?),
-			updated_at: Utc.timestamp_millis(value.get(5)?),
+			id: row.next()?,
+			name: row.next()?,
+			type_of: TagType::from_u8(row.next()?, row.next()?),
+			created_at: Utc.timestamp_millis(row.next()?),
+			updated_at: Utc.timestamp_millis(row.next()?),
 		})
 	}
 }
@@ -53,7 +53,7 @@ impl TagModel {
 		Ok(db.read().await.query_row(
 			r#"SELECT * FROM tags WHERE id = ?1"#,
 			params![id],
-			|v| Self::try_from(v)
+			|v| Self::from_row(v)
 		).optional()?)
 	}
 
@@ -62,7 +62,7 @@ impl TagModel {
 
 		let mut conn = this.prepare("SELECT * FROM tags")?;
 
-		let map = conn.query_map([], |v| Self::try_from(v))?;
+		let map = conn.query_map([], |v| Self::from_row(v))?;
 
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}

@@ -1,4 +1,4 @@
-use rusqlite::{Row, params, OptionalExtension};
+use rusqlite::{params, OptionalExtension};
 
 use serde::Serialize;
 
@@ -6,19 +6,19 @@ use librarian_common::PersonId;
 
 use crate::{Database, Result};
 
+use super::{TableRow, AdvRow};
+
 #[derive(Debug, Serialize)]
 pub struct PersonAltModel {
 	pub person_id: PersonId,
 	pub name: String,
 }
 
-impl<'a> TryFrom<&Row<'a>> for PersonAltModel {
-	type Error = rusqlite::Error;
-
-	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
+impl TableRow<'_> for PersonAltModel {
+	fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
 		Ok(Self {
-			person_id: value.get(0)?,
-			name: value.get(1)?,
+			person_id: row.next()?,
+			name: row.next()?,
 		})
 	}
 }
@@ -50,7 +50,7 @@ impl PersonAltModel {
 		Ok(db.read().await.query_row(
 			r#"SELECT * FROM person_alt WHERE name = ?1 LIMIT 1"#,
 			params![value],
-			|v| PersonAltModel::try_from(v)
+			|v| PersonAltModel::from_row(v)
 		).optional()?)
 	}
 

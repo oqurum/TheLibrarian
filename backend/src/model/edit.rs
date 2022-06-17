@@ -1,17 +1,18 @@
 use chrono::{DateTime, Utc, TimeZone, Duration};
 use librarian_common::{edit::*, EditId, MemberId, item::edit::*, BookId, PersonId, TagId};
-use rusqlite::{Row, params, OptionalExtension};
+use rusqlite::{params, OptionalExtension};
 
 
 mod edit_comment;
 mod edit_vote;
+mod edit_person;
 
 pub use edit_comment::*;
 pub use edit_vote::*;
 
 use crate::{Result, Database, edit_translate};
 
-use super::{BookModel, MemberModel, BookTagModel, BookPersonModel, TagModel, PersonModel, ImageLinkModel};
+use super::{BookModel, MemberModel, BookTagModel, BookPersonModel, TagModel, PersonModel, ImageLinkModel, TableRow, AdvRow};
 
 
 #[derive(Debug)]
@@ -63,31 +64,29 @@ pub struct EditModel {
 }
 
 
-impl<'a> TryFrom<&Row<'a>> for EditModel {
-	type Error = rusqlite::Error;
-
-	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
+impl TableRow<'_> for EditModel {
+	fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
 		Ok(Self {
-			id: value.get(0)?,
+			id: row.next()?,
 
-			type_of: value.get(1)?,
-			operation: value.get(2)?,
-			status: value.get(3)?,
+			type_of: row.next()?,
+			operation: row.next()?,
+			status: row.next()?,
 
-			member_id: value.get(4)?,
-			model_id: value.get(5)?,
+			member_id: row.next()?,
+			model_id: row.next()?,
 
-			is_applied: value.get(6)?,
+			is_applied: row.next()?,
 
-			vote_count: value.get(7)?,
+			vote_count: row.next()?,
 
-			data: value.get(8)?,
+			data: row.next()?,
 
-			ended_at: value.get::<_, Option<_>>(9)?.map(|v| Utc.timestamp_millis(v)),
-			expires_at: value.get::<_, Option<_>>(10)?.map(|v| Utc.timestamp_millis(v)),
+			ended_at: row.next_opt()?.map(|v| Utc.timestamp_millis(v)),
+			expires_at: row.next_opt()?.map(|v| Utc.timestamp_millis(v)),
 
-			created_at: Utc.timestamp_millis(value.get(11)?),
-			updated_at: Utc.timestamp_millis(value.get(12)?),
+			created_at: Utc.timestamp_millis(row.next()?),
+			updated_at: Utc.timestamp_millis(row.next()?),
 		})
 	}
 }
@@ -161,7 +160,7 @@ impl EditModel {
 
 		let mut conn = this.prepare(r#"SELECT * FROM edit LIMIT ?1 OFFSET ?2"#)?;
 
-		let map = conn.query_map([limit, offset], |v| Self::try_from(v))?;
+		let map = conn.query_map([limit, offset], |v| Self::from_row(v))?;
 
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
@@ -170,7 +169,7 @@ impl EditModel {
 		Ok(db.read().await.query_row(
 			r#"SELECT * FROM edit WHERE id = ?1 LIMIT 1"#,
 			params![id],
-			|v| Self::try_from(v)
+			|v| Self::from_row(v)
 		).optional()?)
 	}
 
@@ -192,7 +191,7 @@ impl EditModel {
 		if let Some(status) = status {
 			let mut conn = this.prepare(&format!("SELECT * FROM edit WHERE status = ?1 {expired_str} ORDER BY id DESC LIMIT ?2 OFFSET ?3"))?;
 
-			let map = conn.query_map(params![status, limit, offset], |v| Self::try_from(v))?;
+			let map = conn.query_map(params![status, limit, offset], |v| Self::from_row(v))?;
 
 			Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 		} else {
@@ -202,7 +201,7 @@ impl EditModel {
 
 			let mut conn = this.prepare(&format!("SELECT * FROM edit {expired_str} ORDER BY id DESC LIMIT ?1 OFFSET ?2"))?;
 
-			let map = conn.query_map(params![limit, offset], |v| Self::try_from(v))?;
+			let map = conn.query_map(params![limit, offset], |v| Self::from_row(v))?;
 
 			Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 		}

@@ -1,9 +1,11 @@
-use rusqlite::{Row, params};
+use rusqlite::params;
 use serde::Serialize;
 
 use librarian_common::{BookId, PersonId};
 
 use crate::{Result, Database};
+
+use super::{AdvRow, TableRow};
 
 #[derive(Debug, Serialize)]
 pub struct BookPersonModel {
@@ -11,13 +13,11 @@ pub struct BookPersonModel {
 	pub person_id: PersonId,
 }
 
-impl<'a> TryFrom<&Row<'a>> for BookPersonModel {
-	type Error = rusqlite::Error;
-
-	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
+impl TableRow<'_> for BookPersonModel {
+	fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
 		Ok(Self {
-			book_id: value.get(0)?,
-			person_id: value.get(1)?,
+			book_id: row.next()?,
+			person_id: row.next()?,
 		})
 	}
 }
@@ -88,7 +88,7 @@ impl BookPersonModel {
 
 		let mut conn = this.prepare(r#"SELECT * FROM book_person WHERE book_id = ?1"#)?;
 
-		let map = conn.query_map([book_id], |v| Self::try_from(v))?;
+		let map = conn.query_map([book_id], |v| Self::from_row(v))?;
 
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}

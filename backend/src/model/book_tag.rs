@@ -1,12 +1,12 @@
-use librarian_common::{TagType, BookTag};
+use librarian_common::BookTag;
 use chrono::{DateTime, TimeZone, Utc};
-use rusqlite::{Row, OptionalExtension, params};
+use rusqlite::{OptionalExtension, params};
 
 use librarian_common::{BookId, TagId, BookTagId};
 
 use crate::{Database, Result};
 
-use super::{TagModel};
+use super::{TagModel, AdvRow, TableRow};
 
 pub struct BookTagModel {
 	pub id: BookTagId,
@@ -19,23 +19,20 @@ pub struct BookTagModel {
 	pub created_at: DateTime<Utc>,
 }
 
-impl<'a> TryFrom<&Row<'a>> for BookTagModel {
-	type Error = rusqlite::Error;
-
-	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
+impl TableRow<'_> for BookTagModel {
+	fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
 		Ok(Self {
-			id: value.get(0)?,
+			id: row.next()?,
 
-			book_id: value.get(1)?,
-			tag_id: value.get(2)?,
+			book_id: row.next()?,
+			tag_id: row.next()?,
 
-			index: value.get(3)?,
+			index: row.next()?,
 
-			created_at: Utc.timestamp_millis(value.get(4)?),
+			created_at: Utc.timestamp_millis(row.next()?),
 		})
 	}
 }
-
 
 
 
@@ -51,26 +48,17 @@ pub struct BookTagWithTagModel {
 	pub tag: TagModel,
 }
 
-impl<'a> TryFrom<&Row<'a>> for BookTagWithTagModel {
-	type Error = rusqlite::Error;
-
-	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
+impl TableRow<'_> for BookTagWithTagModel {
+	fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
 		Ok(Self {
-			id: value.get(0)?,
+			id: row.next()?,
 
-			book_id: value.get(1)?,
+			book_id: row.next()?,
+			index: row.next()?,
 
-			index: value.get(2)?,
+			created_at: Utc.timestamp_millis(row.next()?),
 
-			created_at: Utc.timestamp_millis(value.get(3)?),
-
-			tag: TagModel {
-				id: value.get(4)?,
-				name: value.get(5)?,
-				type_of: TagType::from_u8(value.get(6)?, value.get(7)?),
-				created_at: Utc.timestamp_millis(value.get(8)?),
-				updated_at: Utc.timestamp_millis(value.get(9)?),
-			}
+			tag: TagModel::create(row)?
 		})
 	}
 }
@@ -94,7 +82,7 @@ impl BookTagModel {
 		Ok(db.read().await.query_row(
 			r#"SELECT * FROM book_tags WHERE id = ?1"#,
 			params![id],
-			|v| Self::try_from(v)
+			|v| Self::from_row(v)
 		).optional()?)
 	}
 
@@ -156,7 +144,7 @@ impl BookTagModel {
 
 		let mut conn = this.prepare("SELECT * FROM book_tags WHERE book_id = ?1")?;
 
-		let map = conn.query_map([book_id], |v| Self::try_from(v))?;
+		let map = conn.query_map([book_id], |v| Self::from_row(v))?;
 
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
@@ -174,7 +162,7 @@ impl BookTagWithTagModel {
 			WHERE book_id = ?1"#
 		)?;
 
-		let map = conn.query_map([book_id], |v| Self::try_from(v))?;
+		let map = conn.query_map([book_id], |v| Self::from_row(v))?;
 
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
@@ -186,7 +174,7 @@ impl BookTagWithTagModel {
 			JOIN tags ON book_tags.tag_id == tags.id
 			WHERE book_id = ?1 AND tag_id = ?2"#,
 			params![book_id, tag_id],
-			|v| Self::try_from(v)
+			|v| Self::from_row(v)
 		).optional()?)
 	}
 }

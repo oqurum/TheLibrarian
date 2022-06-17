@@ -1,11 +1,11 @@
 use librarian_common::{BookId, PersonId, Person, Source, ThumbnailStore, util::serialize_datetime};
 use chrono::{DateTime, TimeZone, Utc};
-use rusqlite::{Row, params, OptionalExtension};
+use rusqlite::{params, OptionalExtension};
 use serde::Serialize;
 
 use crate::{Database, Result};
 
-use super::PersonAltModel;
+use super::{PersonAltModel, TableRow, AdvRow};
 
 
 
@@ -41,23 +41,21 @@ pub struct PersonModel {
 	pub created_at: DateTime<Utc>,
 }
 
-impl<'a> TryFrom<&Row<'a>> for PersonModel {
-	type Error = rusqlite::Error;
-
-	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
+impl TableRow<'_> for PersonModel {
+	fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
 		Ok(Self {
-			id: value.get(0)?,
+			id: row.next()?,
 
-			source: Source::try_from(value.get::<_, String>(1)?).unwrap(),
+			source: Source::try_from(row.next::<String>()?).unwrap(),
 
-			name: value.get(2)?,
-			description: value.get(3)?,
-			birth_date: value.get(4)?,
+			name: row.next()?,
+			description: row.next()?,
+			birth_date: row.next()?,
 
-			thumb_url: ThumbnailStore::from(value.get::<_, Option<String>>(5)?),
+			thumb_url: ThumbnailStore::from(row.next_opt::<String>()?),
 
-			created_at: Utc.timestamp_millis(value.get(6)?),
-			updated_at: Utc.timestamp_millis(value.get(7)?),
+			created_at: Utc.timestamp_millis(row.next()?),
+			updated_at: Utc.timestamp_millis(row.next()?),
 		})
 	}
 }
@@ -111,7 +109,7 @@ impl PersonModel {
 
 		let mut conn = this.prepare(r#"SELECT * FROM person LIMIT ?1 OFFSET ?2"#)?;
 
-		let map = conn.query_map([limit, offset], |v| Self::try_from(v))?;
+		let map = conn.query_map([limit, offset], |v| Self::from_row(v))?;
 
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
@@ -126,7 +124,7 @@ impl PersonModel {
 			WHERE book_id = ?1
 		"#)?;
 
-		let map = conn.query_map([book_id], |v| Self::try_from(v))?;
+		let map = conn.query_map([book_id], |v| Self::from_row(v))?;
 
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
@@ -155,7 +153,7 @@ impl PersonModel {
 
 		let mut conn = this.prepare(&sql)?;
 
-		let map = conn.query_map(params![limit, offset], |v| Self::try_from(v))?;
+		let map = conn.query_map(params![limit, offset], |v| Self::from_row(v))?;
 
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
@@ -164,7 +162,7 @@ impl PersonModel {
 		let person = db.read().await.query_row(
 			r#"SELECT * FROM person WHERE name = ?1 LIMIT 1"#,
 			params![value],
-			|v| Self::try_from(v)
+			|v| Self::from_row(v)
 		).optional()?;
 
 		if let Some(person) = person {
@@ -180,7 +178,7 @@ impl PersonModel {
 		Ok(db.read().await.query_row(
 			r#"SELECT * FROM person WHERE id = ?1 LIMIT 1"#,
 			params![id],
-			|v| Self::try_from(v)
+			|v| Self::from_row(v)
 		).optional()?)
 	}
 
@@ -188,7 +186,7 @@ impl PersonModel {
 		Ok(db.read().await.query_row(
 			r#"SELECT * FROM person WHERE source = ?1 LIMIT 1"#,
 			params![value],
-			|v| Self::try_from(v)
+			|v| Self::from_row(v)
 		).optional()?)
 	}
 

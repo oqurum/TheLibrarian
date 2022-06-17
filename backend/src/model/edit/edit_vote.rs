@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc, TimeZone};
 use librarian_common::{EditId, MemberId, item::edit::SharedEditVoteModel, EditVoteId};
-use rusqlite::{Row, params, OptionalExtension};
+use rusqlite::{params, OptionalExtension};
 
-use crate::{Result, Database};
+use crate::{Result, Database, model::{TableRow, AdvRow}};
 
 
 
@@ -30,18 +30,16 @@ pub struct NewEditVoteModel {
 }
 
 
-impl<'a> TryFrom<&Row<'a>> for EditVoteModel {
-	type Error = rusqlite::Error;
-
-	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
+impl TableRow<'_> for EditVoteModel {
+	fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
 		Ok(Self {
-			id: value.get(0)?,
-			edit_id: value.get(1)?,
-			member_id: value.get(2)?,
+			id: row.next()?,
+			edit_id: row.next()?,
+			member_id: row.next()?,
 
-			vote: value.get(3)?,
+			vote: row.next()?,
 
-			created_at: Utc.timestamp_millis(value.get(4)?),
+			created_at: Utc.timestamp_millis(row.next()?),
 		})
 	}
 }
@@ -130,7 +128,7 @@ impl EditVoteModel {
 				edit_id,
 				member_id,
 			],
-			|v| Self::try_from(v)
+			|v| Self::from_row(v)
 		).optional()?)
 	}
 
@@ -139,7 +137,7 @@ impl EditVoteModel {
 
 		let mut conn = this.prepare("SELECT * FROM edit_vote WHERE edit_id = ?1 LIMIT ?2 OFFSET ?3")?;
 
-		let map = conn.query_map(params![edit_id, limit, offset], |v| Self::try_from(v))?;
+		let map = conn.query_map(params![edit_id, limit, offset], |v| Self::from_row(v))?;
 
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}

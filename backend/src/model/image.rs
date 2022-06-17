@@ -1,9 +1,11 @@
 use librarian_common::{ThumbnailStore, ImageId, BookId, util::serialize_datetime, PersonId, ImageType};
 use chrono::{DateTime, TimeZone, Utc};
-use rusqlite::{Row, params, OptionalExtension};
+use rusqlite::{params, OptionalExtension};
 use serde::Serialize;
 
 use crate::{Result, Database};
+
+use super::{TableRow, AdvRow};
 
 
 #[derive(Debug, Serialize)]
@@ -50,30 +52,26 @@ pub struct ImageWithLink {
 
 
 
-
-impl<'a> TryFrom<&Row<'a>> for UploadedImageModel {
-	type Error = rusqlite::Error;
-
-	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
+impl TableRow<'_> for UploadedImageModel {
+	fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
 		Ok(Self {
-			id: value.get(0)?,
-			path: ThumbnailStore::from(value.get::<_, String>(3)?),
-			created_at: Utc.timestamp_millis(value.get(4)?),
+			id: row.next()?,
+			path: ThumbnailStore::from(row.next::<String>()?),
+			created_at: Utc.timestamp_millis(row.next()?),
 		})
 	}
 }
 
-impl<'a> TryFrom<&Row<'a>> for ImageLinkModel {
-	type Error = rusqlite::Error;
-
-	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
+impl TableRow<'_> for ImageLinkModel {
+	fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
 		Ok(Self {
-			image_id: value.get(0)?,
-			link_id: value.get(1)?,
-			type_of: ImageType::from_number(value.get(2)?).unwrap(),
+			image_id: row.next()?,
+			link_id: row.next()?,
+			type_of: ImageType::from_number(row.next()?).unwrap(),
 		})
 	}
 }
+
 
 
 impl NewUploadedImageModel {
@@ -123,7 +121,7 @@ impl UploadedImageModel {
 		Ok(db.read().await.query_row(
 			r#"SELECT * FROM uploaded_images WHERE path = ?1"#,
 			[value],
-			|v| Self::try_from(v)
+			|v| Self::from_row(v)
 		).optional()?)
 	}
 
@@ -131,7 +129,7 @@ impl UploadedImageModel {
 		Ok(db.read().await.query_row(
 			r#"SELECT * FROM uploaded_images WHERE id = ?1"#,
 			[value],
-			|v| Self::try_from(v)
+			|v| Self::from_row(v)
 		).optional()?)
 	}
 

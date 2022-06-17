@@ -1,9 +1,11 @@
 use librarian_common::{MetadataItemCached, DisplayMetaItem, ThumbnailStore, BookId, PersonId, util::{serialize_datetime, serialize_datetime_opt}, search::PublicBook};
 use chrono::{DateTime, TimeZone, Utc};
-use rusqlite::{Row, params, OptionalExtension};
+use rusqlite::{params, OptionalExtension};
 use serde::Serialize;
 
 use crate::{Database, Result};
+
+use super::{TableRow, AdvRow};
 
 
 #[derive(Debug, Clone, Serialize)]
@@ -38,29 +40,27 @@ pub struct BookModel {
 }
 
 
-impl<'a> TryFrom<&Row<'a>> for BookModel {
-	type Error = rusqlite::Error;
-
-	fn try_from(value: &Row<'a>) -> std::result::Result<Self, Self::Error> {
+impl TableRow<'_> for BookModel {
+	fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
 		Ok(Self {
-			id: value.get(0)?,
-			title: value.get(1)?,
-			clean_title: value.get(2)?,
-			description: value.get(3)?,
-			rating: value.get(4)?,
-			thumb_path: ThumbnailStore::from(value.get::<_, Option<String>>(5)?),
-			cached: value.get::<_, Option<String>>(6)?
+			id: row.next()?,
+			title: row.next()?,
+			clean_title: row.next()?,
+			description: row.next()?,
+			rating: row.next()?,
+			thumb_path: ThumbnailStore::from(row.next_opt::<String>()?),
+			cached: row.next_opt::<String>()?
 				.map(|v| MetadataItemCached::from_string(&v))
 				.unwrap_or_default(),
-			isbn_10: value.get(7)?,
-			isbn_13: value.get(8)?,
-			is_public: value.get(9)?,
-			edition_count: value.get(10)?,
-			available_at: value.get(11)?,
-			language: value.get(12)?,
-			created_at: Utc.timestamp_millis(value.get(13)?),
-			updated_at: Utc.timestamp_millis(value.get(14)?),
-			deleted_at: value.get::<_, Option<_>>(15)?.map(|v| Utc.timestamp_millis(v)),
+			isbn_10: row.next()?,
+			isbn_13: row.next()?,
+			is_public: row.next()?,
+			edition_count: row.next()?,
+			available_at: row.next()?,
+			language: row.next()?,
+			created_at: Utc.timestamp_millis(row.next()?),
+			updated_at: Utc.timestamp_millis(row.next()?),
+			deleted_at: row.next_opt()?.map(|v| Utc.timestamp_millis(v)),
 		})
 	}
 }
@@ -214,7 +214,7 @@ impl BookModel {
 		Ok(db.read().await.query_row(
 			r#"SELECT * FROM book WHERE id = ?1 LIMIT 1"#,
 			params![id],
-			|v| Self::try_from(v)
+			|v| Self::from_row(v)
 		).optional()?)
 	}
 
@@ -239,7 +239,7 @@ impl BookModel {
 
 		let mut conn = this.prepare(&format!("SELECT * FROM book {} LIMIT ?1 OFFSET ?2", inner_query))?;
 
-		let map = conn.query_map([limit, offset], |v| Self::try_from(v))?;
+		let map = conn.query_map([limit, offset], |v| Self::from_row(v))?;
 
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
@@ -324,7 +324,7 @@ impl BookModel {
 
 		let mut conn = this.prepare(&sql)?;
 
-		let map = conn.query_map(params![limit, offset], |v| Self::try_from(v))?;
+		let map = conn.query_map(params![limit, offset], |v| Self::from_row(v))?;
 
 		Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
 	}
