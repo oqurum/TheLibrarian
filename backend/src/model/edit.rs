@@ -281,21 +281,29 @@ impl EditModel {
 		})
 	}
 
-	pub async fn update_data_and_status(&mut self, value: EditData, db: &Database) -> Result<()> {
-		match (self.type_of, value) {
-			(EditType::Book, EditData::Book(v)) => self.data = serde_json::to_string(&v)?,
-			(EditType::Person, EditData::Person(v)) => self.data = serde_json::to_string(&v)?,
-			(EditType::Tag, EditData::Tag) => (),
-			(EditType::Collection, EditData::Collection) => (),
+	pub async fn update_end_data_and_status(&mut self, value: Option<EditData>, db: &Database) -> Result<()> {
+		if let Some(value) = value {
+			match (self.type_of, value) {
+				(EditType::Book, EditData::Book(v)) => self.data = serde_json::to_string(&v)?,
+				(EditType::Person, EditData::Person(v)) => self.data = serde_json::to_string(&v)?,
+				(EditType::Tag, EditData::Tag) => (),
+				(EditType::Collection, EditData::Collection) => (),
 
-			_ => panic!("save_data"),
+				_ => panic!("save_data"),
+			}
+
+			db.write().await
+			.execute(r#"
+				UPDATE edit SET data = ?2, status = ?3, ended_at = ?4 WHERE id = ?1"#,
+				params![ self.id, &self.data, self.status, self.ended_at.map(|v| v.timestamp_millis()) ]
+			)?;
+		} else {
+			db.write().await
+			.execute(r#"
+				UPDATE edit SET status = ?2, ended_at = ?3 WHERE id = ?1"#,
+				params![ self.id, self.status, self.ended_at.map(|v| v.timestamp_millis()) ]
+			)?;
 		}
-
-		db.write().await
-		.execute(r#"
-			UPDATE edit SET data = ?2, status = ?3, ended_at = ?4 WHERE id = ?1"#,
-			params![ self.id, &self.data, self.status, self.ended_at.map(|v| v.timestamp_millis()) ]
-		)?;
 
 		Ok(())
 	}
@@ -337,7 +345,7 @@ impl EditModel {
 							if let Some(book_model) = BookModel::get_by_id(BookId::from(self.model_id.unwrap()), db).await? {
 								accept_register_book_data_overwrites(book_model, &mut book_data, db).await?;
 
-								self.update_data_and_status(EditData::Book(book_data), db).await?;
+								self.update_end_data_and_status(Some(EditData::Book(book_data)), db).await?;
 							}
 						}
 
@@ -351,6 +359,8 @@ impl EditModel {
 				EditData::Tag => todo!(),
 				EditData::Collection => todo!(),
 			}
+		} else {
+			self.update_end_data_and_status(None, db).await?;
 		}
 
 		Ok(())
