@@ -1,6 +1,7 @@
 use actix_identity::{CookieIdentityPolicy, IdentityService, Identity};
 use actix_web::HttpResponse;
 use actix_web::{web, App, HttpServer, cookie::SameSite};
+use librarian_common::api::WrappingResponse;
 
 use crate::database::Database;
 
@@ -9,6 +10,9 @@ mod auth;
 mod search;
 pub use self::api::api_route;
 pub use self::auth::*;
+
+
+pub type JsonResponse<V> = web::Json<WrappingResponse<V>>;
 
 
 // TODO: Convert to async closure (https://github.com/rust-lang/rust/issues/62290)

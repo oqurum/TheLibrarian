@@ -7,14 +7,37 @@ use crate::{
 	BasicLibrary, BasicDirectory, Chapter,
 	DisplayItem, DisplayMetaItem, Person,
 	SearchType, Source, Member, Poster,
-	Result, TagFE, BookTag, TagType, PersonId, TagId, ImageId, BookTagId, item::edit::{SharedEditModel, SharedEditVoteModel}, MetadataItemCached,
+	Result, TagFE, BookTag, TagType, PersonId, TagId, ImageId, BookTagId,
+	MetadataItemCached,
+	item::edit::{SharedEditModel, SharedEditVoteModel},
 };
 
 
 
 
-// General
+// Wrapping structs
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct WrappingResponse<V> {
+	pub resp: Option<V>,
+	pub error: Option<ApiErrorResponse>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ApiErrorResponse {
+	pub description: String,
+}
+
+// List Response
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct QueryListResponse<V> {
+	pub offset: usize,
+	pub limit: usize,
+	pub total: usize,
+	pub items: Vec<V>
+}
+
+// Deletion Response
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct DeletionResponse {
 	pub amount: usize,
@@ -366,12 +389,4 @@ pub struct SimpleListQuery {
 	pub offset: Option<usize>,
 	pub limit: Option<usize>,
 	pub query: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct QueryListResponse<V> {
-	pub offset: usize,
-	pub limit: usize,
-	pub total: usize,
-	pub items: Vec<V>
 }
