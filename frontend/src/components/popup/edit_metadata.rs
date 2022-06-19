@@ -1,4 +1,4 @@
-use librarian_common::{api::{MediaViewResponse, GetPostersResponse}, Either, ImageIdType};
+use librarian_common::{api, Either, ImageIdType};
 use yew::prelude::*;
 
 use crate::request;
@@ -21,12 +21,12 @@ pub struct Property {
 
 	pub on_close: Callback<()>,
 
-	pub media_resp: MediaViewResponse,
+	pub media_resp: api::MediaViewResponse,
 }
 
 
 pub enum Msg {
-	RetrievePostersResponse(GetPostersResponse),
+	RetrievePostersResponse(api::WrappingResponse<api::GetPostersResponse>),
 
 	// Events
 	SwitchTab(TabDisplay),
@@ -40,7 +40,7 @@ pub enum Msg {
 pub struct PopupEditMetadata {
 	tab_display: TabDisplay,
 
-	cached_posters: Option<GetPostersResponse>,
+	cached_posters: Option<api::WrappingResponse<api::GetPostersResponse>>,
 }
 
 impl Component for PopupEditMetadata {
@@ -152,6 +152,8 @@ impl PopupEditMetadata {
 
 	fn render_tab_poster(&self, ctx: &Context<Self>) -> Html {
 		if let Some(resp) = self.cached_posters.as_ref() {
+			let resp = crate::continue_or_html_err!(resp);
+
 			html! {
 				<div class="content edit-posters">
 					<div class="drop-container">

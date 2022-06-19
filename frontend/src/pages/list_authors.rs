@@ -1,6 +1,6 @@
 use librarian_common::{api, Person, SearchType, PersonId};
 use gloo_utils::document;
-use wasm_bindgen::{prelude::Closure, JsCast};
+use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
 use web_sys::{HtmlElement, HtmlInputElement};
 use yew::{prelude::*, html::Scope};
 use yew_router::prelude::Link;
@@ -18,7 +18,7 @@ pub enum Msg {
 	RequestPeople,
 
 	// Results
-	PeopleListResults(api::GetPeopleResponse),
+	PeopleListResults(api::WrappingResponse<api::GetPeopleResponse>),
 	PersonUpdateSearchResults(String, api::ExternalSearchResponse),
 	PersonCombineSearchResults(String, Vec<Person>),
 
@@ -35,7 +35,7 @@ pub enum Msg {
 pub struct AuthorListPage {
 	on_scroll_fn: Option<Closure<dyn FnMut()>>,
 
-	media_items: Option<Vec<Person>>,
+	media_items: Option<api::WrappingResponse<Vec<Person>>>,
 	total_media_count: usize,
 
 	is_fetching_authors: bool,
@@ -84,7 +84,11 @@ impl Component for AuthorListPage {
 
 				self.is_fetching_authors = true;
 
-				let offset = Some(self.media_items.as_ref().map(|v| v.len()).unwrap_or_default()).filter(|v| *v != 0);
+				let offset = Some(
+					self.media_items.as_ref()
+						.and_then(|v| v.resp.as_ref())
+						.map(|v| v.len()).unwrap_or_default()
+					).filter(|v| *v != 0);
 
 				ctx.link()
 				.send_future(async move {
@@ -92,14 +96,23 @@ impl Component for AuthorListPage {
 				});
 			}
 
-			Msg::PeopleListResults(mut resp) => {
+			Msg::PeopleListResults(resp) => {
 				self.is_fetching_authors = false;
-				self.total_media_count = resp.total;
 
-				if let Some(items) = self.media_items.as_mut() {
-					items.append(&mut resp.items);
-				} else {
-					self.media_items = Some(resp.items);
+				match resp.ok() {
+					Ok(mut resp) => {
+						self.total_media_count = resp.total;
+
+						if let Some(items) = self.media_items.as_mut().and_then(|v| v.resp.as_mut()) {
+							items.append(&mut resp.items);
+						} else {
+							self.media_items = Some(api::WrappingResponse::new(resp.items));
+						}
+					}
+
+					Err(e) => {
+						log::error!("{e}")
+					}
 				}
 			}
 
@@ -159,7 +172,12 @@ impl Component for AuthorListPage {
 	}
 
 	fn view(&self, ctx: &Context<Self>) -> Html {
-		if let Some(items) = self.media_items.as_deref() {
+		let items = match self.media_items.as_ref() {
+			Some(v) => Some(crate::continue_or_html_err!(v)),
+			None => None,
+		};
+
+		if let Some(items) = items {
 			// TODO: Placeholders
 			// let remaining = (self.total_media_count as usize - items.len()).min(50);
 
@@ -209,7 +227,6 @@ impl Component for AuthorListPage {
 										let input_value = if let Some(v) = input_value {
 											v.to_string()
 										} else {
-											let items = self.media_items.as_ref().unwrap();
 											items.iter().find(|v| v.id == person_id).unwrap().name.clone()
 										};
 
@@ -229,7 +246,7 @@ impl Component for AuthorListPage {
 
 															let input = document().get_element_by_id(input_id).unwrap().unchecked_into::<HtmlInputElement>();
 
-															Msg::PersonUpdateSearchResults(input.value(), request::external_search_for(&input.value(), SearchType::Person).await)
+															Msg::PersonUpdateSearchResults(input.value(), request::external_search_for(&input.value(), SearchType::Person).await.ok().unwrap_throw())
 														})
 													}>{ "Search" }</button>
 												</form>
@@ -299,7 +316,6 @@ impl Component for AuthorListPage {
 										let input_value = if let Some(v) = input_value {
 											v.to_string()
 										} else {
-											let items = self.media_items.as_ref().unwrap();
 											items.iter().find(|v| v.id == person_id).unwrap().name.clone()
 										};
 
@@ -319,7 +335,7 @@ impl Component for AuthorListPage {
 
 															let input = document().get_element_by_id(input_id).unwrap().unchecked_into::<HtmlInputElement>();
 
-															Msg::PersonCombineSearchResults(input.value(), request::get_people(Some(&input.value()), None, None).await.items)
+															Msg::PersonCombineSearchResults(input.value(), request::get_people(Some(&input.value()), None, None).await.ok().unwrap_throw().items)
 														})
 													}>{ "Search" }</button>
 												</form>
@@ -463,7 +479,7 @@ impl AuthorListPage {
 	// }
 
 	pub fn can_req_more(&self) -> bool {
-		let count = self.media_items.as_ref().map(|v| v.len()).unwrap_or_default();
+		let count = self.media_items.as_ref().and_then(|v| v.resp.as_ref()).map(|v| v.len()).unwrap_or_default();
 
 		count != 0 && count != self.total_media_count as usize
 	}

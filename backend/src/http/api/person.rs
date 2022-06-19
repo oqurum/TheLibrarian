@@ -1,7 +1,7 @@
 use actix_web::{web, get, HttpResponse};
 use librarian_common::{api, PersonId};
 
-use crate::{database::{Database}, WebResult, Error, model::PersonModel};
+use crate::{database::{Database}, WebResult, Error, model::PersonModel, http::JsonResponse};
 
 
 // Get List Of People and Search For People
@@ -9,7 +9,7 @@ use crate::{database::{Database}, WebResult, Error, model::PersonModel};
 pub async fn load_author_list(
 	db: web::Data<Database>,
 	query: web::Query<api::SimpleListQuery>,
-) -> WebResult<web::Json<api::GetPeopleResponse>> {
+) -> WebResult<JsonResponse<api::GetPeopleResponse>> {
 	let offset = query.offset.unwrap_or(0);
 	let limit = query.offset.unwrap_or(50);
 
@@ -20,12 +20,12 @@ pub async fn load_author_list(
 			.map(|v| v.into())
 			.collect();
 
-		Ok(web::Json(api::GetPeopleResponse {
+		Ok(web::Json(api::WrappingResponse::new(api::GetPeopleResponse {
 			offset,
 			limit,
 			total: 0, // TODO
 			items
-		}))
+		})))
 	}
 
 	// Return All People
@@ -35,24 +35,24 @@ pub async fn load_author_list(
 			.map(|v| v.into())
 			.collect();
 
-		Ok(web::Json(api::GetPeopleResponse {
+		Ok(web::Json(api::WrappingResponse::new(api::GetPeopleResponse {
 			offset,
 			limit,
 			total: PersonModel::get_count(&db).await?,
 			items
-		}))
+		})))
 	}
 }
 
 
 // Person
 #[get("/person/{id}")]
-async fn load_person(person_id: web::Path<PersonId>, db: web::Data<Database>) -> WebResult<web::Json<api::GetPersonResponse>> {
+async fn load_person(person_id: web::Path<PersonId>, db: web::Data<Database>) -> WebResult<JsonResponse<api::GetPersonResponse>> {
 	let person = PersonModel::get_by_id(*person_id, &db).await?.unwrap();
 
-	Ok(web::Json(api::GetPersonResponse {
+	Ok(web::Json(api::WrappingResponse::new(api::GetPersonResponse {
 		person: person.into()
-	}))
+	})))
 }
 
 

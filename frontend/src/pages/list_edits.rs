@@ -2,6 +2,7 @@ use std::fmt;
 
 use chrono::Utc;
 use librarian_common::{api, item::edit::*, edit::*};
+use wasm_bindgen::UnwrapThrowExt;
 use yew::{prelude::*, html::Scope};
 
 use crate::{request, get_member_self};
@@ -17,15 +18,15 @@ pub enum Msg {
 	RequestEdits,
 
 	// Results
-	EditListResults(api::GetEditListResponse),
+	EditListResults(api::WrappingResponse<api::GetEditListResponse>),
 
-	EditItemUpdate(api::PostEditResponse),
+	EditItemUpdate(api::WrappingResponse<api::PostEditResponse>),
 
 	Ignore,
 }
 
 pub struct EditListPage {
-	items_resp: Option<api::GetEditListResponse>,
+	items_resp: Option<api::WrappingResponse<api::GetEditListResponse>>,
 }
 
 impl Component for EditListPage {
@@ -51,24 +52,28 @@ impl Component for EditListPage {
 
 			Msg::EditListResults(mut resp) => {
 				// Default old BookEdit (generate_person_rows checks for both new/old have Some)
-				resp.items.iter_mut()
-					.for_each(|v| match &mut v.data {
-						EditData::Book(v) => if v.old.is_none() { v.old = Some(Default::default()) },
-						EditData::Person(v) => if v.old.is_none() { v.old = Some(Default::default()) },
-						EditData::Tag => todo!(),
-						EditData::Collection => todo!(),
-					});
+				if let Some(resp) = resp.resp.as_mut() {
+					resp.items.iter_mut()
+						.for_each(|v| match &mut v.data {
+							EditData::Book(v) => if v.old.is_none() { v.old = Some(Default::default()) },
+							EditData::Person(v) => if v.old.is_none() { v.old = Some(Default::default()) },
+							EditData::Tag => todo!(),
+							EditData::Collection => todo!(),
+						});
+				}
 
 				self.items_resp = Some(resp);
 			}
 
-			Msg::EditItemUpdate(mut item) => {
+			Msg::EditItemUpdate(item) => {
+				let mut item = item.ok().unwrap_throw();
+
 				let new_edit_model = match item.edit_model {
 					Some(v) => v,
 					None => return false,
 				};
 
-				if let Some(all_edit_items) = self.items_resp.as_mut() {
+				if let Some(all_edit_items) = self.items_resp.as_mut().and_then(|v| v.resp.as_mut()) {
 					if let Some(curr_edit_model) = all_edit_items.items.iter_mut().find(|v| v.id == new_edit_model.id) {
 						// Get Our Upvote/Downvote
 						if let Some(my_vote) = item.vote.take() {
@@ -102,6 +107,8 @@ impl Component for EditListPage {
 
 	fn view(&self, ctx: &Context<Self>) -> Html {
 		if let Some(resp) = self.items_resp.as_ref() {
+			let resp = crate::continue_or_html_err!(resp);
+
 			html! {
 				<div class="main-content-view edit-list-view-container">
 

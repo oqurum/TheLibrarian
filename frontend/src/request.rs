@@ -14,7 +14,7 @@ use librarian_common::{api::*, SearchType, Either, Source, TagType, PersonId, Bo
 pub async fn get_edit_list(
 	offset: Option<usize>,
 	limit: Option<usize>
-) -> GetEditListResponse {
+) -> WrappingResponse<GetEditListResponse> {
 	let mut url = String::from("/api/v1/edits?");
 
 	if let Some(value) = offset {
@@ -33,38 +33,38 @@ pub async fn get_edit_list(
 		"GET",
 		&url,
 		Option::<&()>::None
-	).await.unwrap()
+	).await.unwrap_or_else(def)
 }
 
-pub async fn update_edit_item(id: EditId, value: &UpdateEditModel) -> PostEditResponse {
+pub async fn update_edit_item(id: EditId, value: &UpdateEditModel) -> WrappingResponse<PostEditResponse> {
 	fetch(
 		"POST",
 		&format!("/api/v1/edit/{}", id),
 		Some(value)
-	).await.unwrap()
+	).await.unwrap_or_else(def)
 }
 
 
 
 // Tags
 
-pub async fn get_tags() -> GetTagsResponse {
+pub async fn get_tags() -> WrappingResponse<GetTagsResponse> {
 	fetch(
 		"GET",
 		"/api/v1/tags",
 		Option::<&()>::None
-	).await.unwrap()
+	).await.unwrap_or_else(def)
 }
 
-pub async fn get_tag(id: TagId) -> GetTagResponse {
+pub async fn get_tag(id: TagId) -> WrappingResponse<GetTagResponse> {
 	fetch(
 		"GET",
 		&format!("/api/v1/tag/{}", id),
 		Option::<&()>::None
-	).await.unwrap()
+	).await.unwrap_or_else(def)
 }
 
-pub async fn new_tag(name: String, type_of: TagType) -> NewTagResponse {
+pub async fn new_tag(name: String, type_of: TagType) -> WrappingResponse<NewTagResponse> {
 	fetch(
 		"POST",
 		"/api/v1/tag",
@@ -72,13 +72,13 @@ pub async fn new_tag(name: String, type_of: TagType) -> NewTagResponse {
 			name,
 			type_of
 		})
-	).await.unwrap()
+	).await.unwrap_or_else(def)
 }
 
 
 // Book Tag
 
-pub async fn new_book_tag(book_id: BookId, tag_id: TagId, index: Option<usize>) -> NewBookTagResponse {
+pub async fn new_book_tag(book_id: BookId, tag_id: TagId, index: Option<usize>) -> WrappingResponse<NewBookTagResponse> {
 	fetch(
 		"POST",
 		&format!("/api/v1/tag/book/{book_id}"),
@@ -86,34 +86,34 @@ pub async fn new_book_tag(book_id: BookId, tag_id: TagId, index: Option<usize>) 
 			tag_id,
 			index,
 		})
-	).await.unwrap()
+	).await.unwrap_or_else(def)
 }
 
-pub async fn get_book_tag(book_id: BookId, tag_id: TagId) -> GetBookTagResponse {
+pub async fn get_book_tag(book_id: BookId, tag_id: TagId) -> WrappingResponse<GetBookTagResponse> {
 	fetch(
 		"GET",
 		&format!("/api/v1/tag/{tag_id}/book/{book_id}"),
 		Option::<&()>::None
-	).await.unwrap()
+	).await.unwrap_or_else(def)
 }
 
-pub async fn delete_book_tag(book_id: BookId, tag_id: TagId) -> DeletionResponse {
+pub async fn delete_book_tag(book_id: BookId, tag_id: TagId) -> WrappingResponse<DeletionResponse> {
 	fetch(
 		"DELETE",
 		&format!("/api/v1/tag/{tag_id}/book/{book_id}"),
 		Option::<&()>::None
-	).await.unwrap()
+	).await.unwrap_or_else(def)
 }
 
 
 // Image
 
-pub async fn get_posters_for_meta(img_id_type: ImageIdType) -> GetPostersResponse {
+pub async fn get_posters_for_meta(img_id_type: ImageIdType) -> WrappingResponse<GetPostersResponse> {
 	fetch(
 		"GET",
 		&format!("/api/v1/posters/{}", img_id_type),
 		Option::<&()>::None
-	).await.unwrap()
+	).await.unwrap_or_else(def)
 }
 
 pub async fn change_poster_for_meta(img_id_type: ImageIdType, url_or_id: Either<String, ImageId>) {
@@ -129,8 +129,8 @@ pub async fn change_poster_for_meta(img_id_type: ImageIdType, url_or_id: Either<
 
 // Member
 
-pub async fn get_member_self() -> GetMemberSelfResponse {
-	fetch("GET", "/api/v1/member", Option::<&()>::None).await.unwrap_or_default()
+pub async fn get_member_self() -> WrappingResponse<GetMemberSelfResponse> {
+	fetch("GET", "/api/v1/member", Option::<&()>::None).await.unwrap_or_else(def)
 }
 
 
@@ -144,18 +144,18 @@ pub async fn update_book(id: BookId, value: &BookEdit) {
 	).await.ok();
 }
 
-pub async fn get_media_view(book_id: BookId) -> MediaViewResponse {
+pub async fn get_media_view(book_id: BookId) -> WrappingResponse<MediaViewResponse> {
 	fetch(
 		"GET",
 		&format!("/api/v1/book/{}", book_id),
 		Option::<&()>::None
-	).await.unwrap()
+	).await.unwrap_or_else(def)
 }
 
 
 // External
 
-pub async fn external_search_for(search: &str, search_for: SearchType) -> ExternalSearchResponse {
+pub async fn external_search_for(search: &str, search_for: SearchType) -> WrappingResponse<ExternalSearchResponse> {
 	fetch(
 		"GET",
 		&format!(
@@ -164,11 +164,11 @@ pub async fn external_search_for(search: &str, search_for: SearchType) -> Extern
 			serde_json::to_string(&search_for).unwrap().replace('"', "")
 		),
 		Option::<&()>::None
-	).await.unwrap()
+	).await.unwrap_or_else(def)
 }
 
 
-pub async fn get_external_source_item(value: Source) -> ExternalSourceItemResponse {
+pub async fn get_external_source_item(value: Source) -> WrappingResponse<ExternalSourceItemResponse> {
 	fetch(
 		"GET",
 		&format!(
@@ -176,7 +176,7 @@ pub async fn get_external_source_item(value: Source) -> ExternalSourceItemRespon
 			value
 		),
 		Option::<&()>::None
-	).await.unwrap()
+	).await.unwrap_or_else(def)
 }
 
 
@@ -191,7 +191,7 @@ pub async fn update_person(id: PersonId, body: &PostPersonBody) {
 	).await.ok();
 }
 
-pub async fn get_people(query: Option<&str>, offset: Option<usize>, limit: Option<usize>) -> GetPeopleResponse {
+pub async fn get_people(query: Option<&str>, offset: Option<usize>, limit: Option<usize>) -> WrappingResponse<GetPeopleResponse> {
 	let mut url = String::from("/api/v1/people?");
 
 	if let Some(value) = offset {
@@ -215,15 +215,15 @@ pub async fn get_people(query: Option<&str>, offset: Option<usize>, limit: Optio
 		"GET",
 		&url,
 		Option::<&()>::None
-	).await.unwrap()
+	).await.unwrap_or_else(def)
 }
 
-pub async fn get_person(id: PersonId) -> GetPersonResponse {
+pub async fn get_person(id: PersonId) -> WrappingResponse<GetPersonResponse> {
 	fetch(
 		"GET",
 		&format!("/api/v1/person/{}", id),
 		Option::<&()>::None
-	).await.unwrap()
+	).await.unwrap_or_else(def)
 }
 
 // Books
@@ -244,24 +244,24 @@ pub async fn get_books(
 	limit: Option<usize>,
 	search: Option<SearchQuery>,
 	person_id: Option<PersonId>,
-) -> GetBookListResponse {
+) -> WrappingResponse<GetBookListResponse> {
 	let url = format!(
 		"/api/v1/books?{}",
 		serde_urlencoded::to_string(BookListQuery::new(offset, limit, search, person_id).unwrap()).unwrap()
 	);
 
-	fetch("GET", &url, Option::<&()>::None).await.unwrap()
+	fetch("GET", &url, Option::<&()>::None).await.unwrap_or_else(def)
 }
 
-pub async fn get_book_info(id: BookId) -> GetBookIdResponse {
-	fetch("GET", &format!("/api/v1/book/{}", id), Option::<&()>::None).await.unwrap()
+pub async fn get_book_info(id: BookId) -> WrappingResponse<GetBookIdResponse> {
+	fetch("GET", &format!("/api/v1/book/{}", id), Option::<&()>::None).await.unwrap_or_else(def)
 }
 
 
 // Options
 
-pub async fn get_settings() -> GetSettingsResponse {
-	fetch("GET", "/api/v1/settings", Option::<&()>::None).await.unwrap()
+pub async fn get_settings() -> WrappingResponse<GetSettingsResponse> {
+	fetch("GET", "/api/v1/settings", Option::<&()>::None).await.unwrap_or_else(def)
 }
 
 pub async fn update_options_add(options: ModifyOptionsBody) {
@@ -336,4 +336,21 @@ async fn fetch_url_encoded<V: for<'a> Deserialize<'a>>(method: &str, url: &str, 
 	let text = JsFuture::from(resp.json()?).await?;
 
 	Ok(text.into_serde().unwrap())
+}
+
+
+fn def<V>(e: JsValue) -> WrappingResponse<V> {
+	WrappingResponse {
+		resp: None,
+		error: Some(ApiErrorResponse {
+			description: {
+				use std::fmt::Write;
+
+				let mut s = String::new();
+				let _ = write!(&mut s, "{:?}", e);
+
+				s
+			}
+		})
+	}
 }

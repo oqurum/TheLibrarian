@@ -1,7 +1,7 @@
 use std::{rc::Rc, sync::Mutex};
 
 use librarian_common::{api, DisplayItem, BookId};
-use wasm_bindgen::{prelude::Closure, JsCast};
+use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
 use web_sys::{HtmlElement, UrlSearchParams, HtmlInputElement};
 use yew::{prelude::*, html::Scope};
 use yew_router::prelude::Link;
@@ -15,7 +15,7 @@ pub enum Msg {
 	RequestMediaItems,
 
 	// Results
-	MediaListResults(api::GetBookListResponse),
+	MediaListResults(api::WrappingResponse<api::GetBookListResponse>),
 
 	// Events
 	OnScroll(i32),
@@ -127,7 +127,9 @@ impl Component for HomePage {
 				});
 			}
 
-			Msg::MediaListResults(mut resp) => {
+			Msg::MediaListResults(resp) => {
+				let mut resp = resp.ok().unwrap_throw();
+
 				self.is_fetching_media_items = false;
 				self.total_media_count = resp.count;
 

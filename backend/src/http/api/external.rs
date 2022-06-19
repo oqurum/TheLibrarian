@@ -1,13 +1,13 @@
 use actix_web::{get, web};
 use librarian_common::{api, SearchType, SearchForBooksBy, SearchFor, Source};
 
-use crate::{WebResult, metadata};
+use crate::{WebResult, metadata, http::JsonResponse};
 
 
 #[get("/external/search")]
 pub async fn get_external_search(
 	body: web::Query<api::GetMetadataSearch>
-) -> WebResult<web::Json<api::ExternalSearchResponse>> {
+) -> WebResult<JsonResponse<api::ExternalSearchResponse>> {
 	let search = metadata::search_all_agents(
 		&body.query,
 		match body.search_type {
@@ -17,7 +17,7 @@ pub async fn get_external_search(
 		}
 	).await?;
 
-	Ok(web::Json(api::ExternalSearchResponse {
+	Ok(web::Json(api::WrappingResponse::new(api::ExternalSearchResponse {
 		items: search.0.into_iter()
 			.map(|(a, b)| (
 				a,
@@ -54,21 +54,21 @@ pub async fn get_external_search(
 				}).collect()
 			))
 			.collect()
-	}))
+	})))
 }
 
 
 #[get("/external/{source}")]
 pub async fn get_external_item(
 	path: web::Path<Source>
-) -> WebResult<web::Json<api::ExternalSourceItemResponse>> {
+) -> WebResult<JsonResponse<api::ExternalSourceItemResponse>> {
 	if let Some(meta) = metadata::get_metadata_by_source(&*path, true).await? {
-		Ok(web::Json(api::ExternalSourceItemResponse {
+		Ok(web::Json(api::WrappingResponse::new(api::ExternalSourceItemResponse {
 			item: Some(meta.meta.into()),
-		}))
+		})))
 	} else {
-		Ok(web::Json(api::ExternalSourceItemResponse {
+		Ok(web::Json(api::WrappingResponse::new(api::ExternalSourceItemResponse {
 			item: None,
-		}))
+		})))
 	}
 }

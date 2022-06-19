@@ -1,7 +1,7 @@
 use actix_web::{get, web, HttpRequest};
-use librarian_common::search::{self, BookSearchResponse, PublicBook};
+use librarian_common::{search::{self, BookSearchResponse, PublicBook}, api};
 
-use crate::{WebResult, database::Database, model::BookModel};
+use crate::{WebResult, database::Database, model::BookModel, http::JsonResponse};
 
 
 // TODO: Author Search
@@ -12,7 +12,7 @@ pub async fn public_search(
 	req: HttpRequest,
 	query: web::Query<search::GetSearchQuery>,
 	db: web::Data<Database>,
-) -> WebResult<web::Json<BookSearchResponse>> {
+) -> WebResult<JsonResponse<BookSearchResponse>> {
 	let offset = query.offset.unwrap_or(0);
 	let limit = query.limit.unwrap_or(25);
 
@@ -37,7 +37,7 @@ pub async fn public_search(
 		req.headers().get("host").unwrap().to_str().unwrap()
 	);
 
-	Ok(web::Json(BookSearchResponse {
+	Ok(web::Json(api::WrappingResponse::new(BookSearchResponse {
 		offset,
 		limit,
 		total,
@@ -56,5 +56,5 @@ pub async fn public_search(
 				book
 			})
 			.collect()
-	}))
+	})))
 }

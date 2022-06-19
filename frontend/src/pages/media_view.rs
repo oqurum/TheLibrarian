@@ -1,6 +1,6 @@
 use js_sys::Date;
-use librarian_common::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse, MetadataBookItem}, Either, TagType, LANGUAGES, util::string_to_upper_case, BookId, TagId, item::edit::BookEdit, TagFE, ImageIdType};
-use wasm_bindgen::{JsCast, JsValue};
+use librarian_common::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse, MetadataBookItem, self}, Either, TagType, LANGUAGES, util::string_to_upper_case, BookId, TagId, item::edit::BookEdit, TagFE, ImageIdType};
+use wasm_bindgen::{JsCast, JsValue, UnwrapThrowExt};
 use web_sys::{HtmlInputElement, HtmlTextAreaElement, HtmlSelectElement};
 use yew::{prelude::*, html::Scope};
 
@@ -14,13 +14,13 @@ use crate::{
 #[derive(Clone)]
 pub enum Msg {
 	// Retrive
-	RetrieveMediaView(Box<MediaViewResponse>),
-	RetrievePosters(GetPostersResponse),
+	RetrieveMediaView(Box<api::WrappingResponse<MediaViewResponse>>),
+	RetrievePosters(api::WrappingResponse<GetPostersResponse>),
 
 	MultiselectToggle(bool, TagId),
 	MultiselectCreate(TagType, MultiselectNewItem),
 	MultiCreateResponse(TagFE),
-	AllTagsResponse(GetTagsResponse),
+	AllTagsResponse(api::WrappingResponse<GetTagsResponse>),
 
 	ReloadPosters,
 
@@ -42,8 +42,8 @@ pub struct Property {
 }
 
 pub struct MediaView {
-	media: Option<MediaViewResponse>,
-	cached_posters: Option<GetPostersResponse>,
+	media: Option<api::WrappingResponse<MediaViewResponse>>,
+	cached_posters: Option<api::WrappingResponse<GetPostersResponse>>,
 
 	media_popup: Option<DisplayOverlay>,
 
@@ -81,7 +81,7 @@ impl Component for MediaView {
 			Msg::Ignore => return false,
 
 			// Multiselect
-			Msg::MultiselectToggle(inserted, tag_id) => if let Some(curr_book) = self.media.as_ref() {
+			Msg::MultiselectToggle(inserted, tag_id) => if let Some(curr_book) = self.media.as_ref().and_then(|v| v.resp.as_ref()) {
 				if inserted {
 					// If the tag is in the db model.
 					if curr_book.tags.iter().any(|bt| bt.tag.id == tag_id) {
@@ -109,9 +109,19 @@ impl Component for MediaView {
 						.send_future(async move {
 							let tag_resp = request::new_tag(item.name.clone(), type_of).await;
 
-							item.register.emit(*tag_resp.id);
+							match tag_resp.ok() {
+								Ok(tag_resp) => {
+									item.register.emit(*tag_resp.id);
 
-							Msg::MultiCreateResponse(tag_resp)
+									Msg::MultiCreateResponse(tag_resp)
+								}
+
+								Err(err) => {
+									log::error!("{err}");
+
+									Msg::Ignore
+								}
+							}
 						});
 					}
 
@@ -135,6 +145,8 @@ impl Component for MediaView {
 			}
 
 			Msg::AllTagsResponse(resp) => {
+				let resp = resp.ok().unwrap_throw();
+
 				self.cached_tags = resp.items.into_iter()
 					.map(|v| CachedTag {
 						id: v.id,
@@ -147,8 +159,8 @@ impl Component for MediaView {
 			}
 
 
-			Msg::ReloadPosters => {
-				let book_id = self.media.as_ref().unwrap().metadata.id;
+			Msg::ReloadPosters => if let Some(curr_book) = self.media.as_ref().and_then(|v| v.resp.as_ref()) {
+				let book_id = curr_book.metadata.id;
 
 				ctx.link()
 				.send_future(async move {
@@ -170,11 +182,11 @@ impl Component for MediaView {
 				self.is_editing = !self.is_editing;
 			}
 
-			Msg::SaveEdits => {
+			Msg::SaveEdits => if let Some(curr_book) = self.media.as_ref().and_then(|v| v.resp.as_ref()) {
 				let edit = self.editing_item.clone();
 				self.editing_item = BookEdit::default();
 
-				let book_id = self.media.as_ref().unwrap().metadata.id;
+				let book_id = curr_book.metadata.id;
 
 				ctx.link()
 				.send_future(async move {
@@ -239,7 +251,9 @@ impl Component for MediaView {
 	fn view(&self, ctx: &Context<Self>) -> Html {
 		let editing = &self.editing_item;
 
-		if let Some(book_resp @ MediaViewResponse { people, metadata: book_model, tags }) = self.media.as_ref() {
+		if let Some(resp) = self.media.as_ref() {
+			let book_resp @ MediaViewResponse { people, metadata: book_model, tags } = crate::continue_or_html_err!(resp);
+
 			let book_id = book_model.id;
 
 			let on_click_more = ctx.link().callback(move |e: MouseEvent| {
@@ -488,54 +502,61 @@ impl Component for MediaView {
 						{ // Posters
 							if self.is_editing {
 								if let Some(resp) = self.cached_posters.as_ref() {
-									html! {
-										<section>
-											<h2>{ "Posters" }</h2>
-											<div class="posters-container">
-												<UploadModule
-													id={Either::Left(BookId::from(ctx.props().id))}
-													class="add-poster"
-													title="Add Poster"
-													on_upload={ctx.link().callback(|_| Msg::ReloadPosters)}
-												>
-													<span class="material-icons">{ "add" }</span>
-												</UploadModule>
+									match resp.as_ok() {
+										Ok(resp) => html! {
+											<section>
+												<h2>{ "Posters" }</h2>
+												<div class="posters-container">
+													<UploadModule
+														id={Either::Left(BookId::from(ctx.props().id))}
+														class="add-poster"
+														title="Add Poster"
+														on_upload={ctx.link().callback(|_| Msg::ReloadPosters)}
+													>
+														<span class="material-icons">{ "add" }</span>
+													</UploadModule>
 
-												{
-													for resp.items.iter().map(move |poster| {
-														let url_or_id = poster.id.map(Either::Right).unwrap_or_else(|| Either::Left(poster.path.clone()));
-														let is_selected = poster.selected;
+													{
+														for resp.items.iter().map(move |poster| {
+															let url_or_id = poster.id.map(Either::Right).unwrap_or_else(|| Either::Left(poster.path.clone()));
+															let is_selected = poster.selected;
 
-														html! {
-															<div
-																class={ classes!("poster", { if is_selected { "selected" } else { "" } }) }
-																onclick={ctx.link().callback_future(move |_| {
-																	let url_or_id = url_or_id.clone();
+															html! {
+																<div
+																	class={ classes!("poster", { if is_selected { "selected" } else { "" } }) }
+																	onclick={ctx.link().callback_future(move |_| {
+																		let url_or_id = url_or_id.clone();
 
-																	async move {
-																		if is_selected {
-																			Msg::Ignore
-																		} else {
-																			request::change_poster_for_meta(ImageIdType::new_book(book_id), url_or_id).await;
+																		async move {
+																			if is_selected {
+																				Msg::Ignore
+																			} else {
+																				request::change_poster_for_meta(ImageIdType::new_book(book_id), url_or_id).await;
 
-																			Msg::ReloadPosters
+																				Msg::ReloadPosters
+																			}
 																		}
-																	}
-																})}
-															>
-																<div class="top-right">
-																	<span
-																		class="material-icons"
-																	>{ "delete" }</span>
+																	})}
+																>
+																	<div class="top-right">
+																		<span
+																			class="material-icons"
+																		>{ "delete" }</span>
+																	</div>
+																	<img src={poster.path.clone()} />
 																</div>
-																<img src={poster.path.clone()} />
-															</div>
-														}
-													})
-												}
-											</div>
-										</section>
+															}
+														})
+													}
+												</div>
+											</section>
+										},
+
+										Err(e) => html! {
+											<h2>{ e }</h2>
+										}
 									}
+
 								} else {
 									html! {}
 								}
@@ -610,12 +631,18 @@ impl Component for MediaView {
 								}
 
 								DisplayOverlay::Edit(resp) => {
-									html! {
-										<PopupEditMetadata
-											on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
-											classes={ classes!("popup-book-edit") }
-											media_resp={ (&**resp).clone() }
-										/>
+									match resp.as_ok() {
+										Ok(resp) => html! {
+											<PopupEditMetadata
+												on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
+												classes={ classes!("popup-book-edit") }
+												media_resp={ resp.clone() }
+											/>
+										},
+
+										Err(e) => html! {
+											<h2>{ e }</h2>
+										}
 									}
 								}
 
@@ -652,7 +679,8 @@ impl Component for MediaView {
 											{input_value}
 											on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
 											on_select={ ctx.link().callback_future(|source| async {
-												let resp = request::get_external_source_item(source).await;
+												let resp = request::get_external_source_item(source).await.ok().unwrap_throw();
+
 												Msg::ShowPopup(DisplayOverlay::EditFromMetadata(Box::new(resp.item.unwrap())))
 											}) }
 										/>
@@ -749,7 +777,7 @@ pub enum ChangingType {
 
 #[derive(Clone)]
 pub enum DisplayOverlay {
-	Edit(Box<MediaViewResponse>),
+	Edit(Box<api::WrappingResponse<MediaViewResponse>>),
 
 	EditFromMetadata(Box<MetadataBookItem>),
 

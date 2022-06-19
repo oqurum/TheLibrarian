@@ -11,9 +11,9 @@ use crate::pages::home::MediaItem;
 #[derive(Clone)]
 pub enum Msg {
 	// Retrive
-	RetrieveMediaView(Box<GetPersonResponse>),
+	RetrieveMediaView(Box<api::WrappingResponse<GetPersonResponse>>),
 	RetrievePosters(GetPostersResponse),
-	BooksListResults(api::GetBookListResponse),
+	BooksListResults(api::WrappingResponse<api::GetBookListResponse>),
 
 	UpdatedPoster,
 
@@ -35,9 +35,9 @@ pub struct Property {
 }
 
 pub struct AuthorView {
-	media: Option<GetPersonResponse>,
+	media: Option<api::WrappingResponse<GetPersonResponse>>,
 	cached_posters: Option<GetPostersResponse>,
-	cached_books: Option<api::GetBookListResponse>,
+	cached_books: Option<api::WrappingResponse<api::GetBookListResponse>>,
 
 	media_popup: Option<DisplayOverlay>,
 
@@ -88,8 +88,8 @@ impl Component for AuthorView {
 				self.cached_books = Some(resp);
 			}
 
-			Msg::UpdatedPoster => {
-				let meta_id = self.media.as_ref().unwrap().person.id;
+			Msg::UpdatedPoster => if let Some(book) = self.media.as_ref().and_then(|v| v.resp.as_ref()) {
+				let meta_id = book.person.id;
 
 				// ctx.link()
 				// .send_future(async move {
@@ -100,12 +100,12 @@ impl Component for AuthorView {
 			}
 
 			// Edits
-			Msg::ToggleEdit => {
+			Msg::ToggleEdit => if let Some(book) = self.media.as_ref().and_then(|v| v.resp.as_ref()) {
 				if self.editing_item.is_none() {
-					self.editing_item = self.media.clone();
+					self.editing_item = Some(book.clone());
 
 					if self.cached_posters.is_none() {
-						let metadata_id = self.media.as_ref().unwrap().person.id;
+						let metadata_id = book.person.id;
 
 						// ctx.link()
 						// .send_future(async move {
@@ -118,9 +118,9 @@ impl Component for AuthorView {
 			}
 
 			Msg::SaveEdits => {
-				self.media = self.editing_item.clone();
+				self.media = self.editing_item.clone().map(api::WrappingResponse::new);
 
-				let metadata = self.media.as_ref().unwrap().person.clone();
+				let metadata = self.media.as_ref().and_then(|v| v.resp.as_ref()).unwrap().person.clone();
 				let meta_id = metadata.id;
 
 				// ctx.link()
@@ -178,7 +178,12 @@ impl Component for AuthorView {
 	}
 
 	fn view(&self, ctx: &Context<Self>) -> Html {
-		let resp = self.editing_item.as_ref().or(self.media.as_ref());
+		let media = match self.media.as_ref() {
+			Some(v) => Some(crate::continue_or_html_err!(v)),
+			None => None,
+		};
+
+		let resp = self.editing_item.as_ref().or(media);
 
 		if let Some(GetPersonResponse { person }) = resp {
 			html! {
@@ -351,16 +356,22 @@ impl Component for AuthorView {
 									// </div>
 									{
 										if let Some(resp) = self.cached_books.as_ref() {
-											html! {{
-												for resp.items.iter().map(|item| {
-													html! {
-														<MediaItem
-															is_editing=false
-															item={item.clone()}
-														/>
-													}
-												})
-											}}
+											match resp.as_ok() {
+												Ok(resp) => html! {{
+													for resp.items.iter().map(|item| {
+														html! {
+															<MediaItem
+																is_editing=false
+																item={item.clone()}
+															/>
+														}
+													})
+												}},
+
+												Err(e) => html! {
+													<h2>{ e }</h2>
+												}
+											}
 										} else {
 											html! {}
 										}

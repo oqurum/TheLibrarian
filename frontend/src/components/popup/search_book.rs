@@ -1,4 +1,4 @@
-use librarian_common::{api::{ExternalSearchResponse, SearchItem}, SearchType, Source};
+use librarian_common::{api::{ExternalSearchResponse, SearchItem, self}, SearchType, Source};
 use gloo_utils::document;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlInputElement;
@@ -22,7 +22,7 @@ pub struct Property {
 
 
 pub enum Msg {
-	BookSearchResponse(String, ExternalSearchResponse),
+	BookSearchResponse(String, api::WrappingResponse<ExternalSearchResponse>),
 
 	SearchFor(String),
 
@@ -33,7 +33,7 @@ pub enum Msg {
 
 
 pub struct PopupSearchBook {
-	cached_posters: Option<LoadingItem<ExternalSearchResponse>>,
+	cached_posters: Option<LoadingItem<api::WrappingResponse<ExternalSearchResponse>>>,
 	input_value: String,
 }
 
@@ -106,17 +106,26 @@ impl Component for PopupSearchBook {
 					{
 						if let Some(resp) = self.cached_posters.as_ref() {
 							match resp {
-								LoadingItem::Loaded(resp) => html! {
-									<>
-										<h2>{ "Results" }</h2>
-										<div class="book-search-items">
-										{
-											for resp.items.iter()
-												.flat_map(|(name, values)| values.iter().map(|v| (name.clone(), v)))
-												.map(|(site, item)| Self::render_poster_container(site, item, ctx))
+								LoadingItem::Loaded(resp) => {
+									match resp.as_ok() {
+										Ok(resp) => html! {
+											<>
+												<h2>{ "Results" }</h2>
+												<div class="book-search-items">
+												{
+													for resp.items.iter()
+														.flat_map(|(name, values)| values.iter().map(|v| (name.clone(), v)))
+														.map(|(site, item)| Self::render_poster_container(site, item, ctx))
+												}
+												</div>
+											</>
+										},
+
+										Err(e) => html! {
+											<h2>{ e }</h2>
 										}
-										</div>
-									</>
+									}
+
 								},
 
 								LoadingItem::Loading => html! {

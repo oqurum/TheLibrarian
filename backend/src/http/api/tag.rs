@@ -1,7 +1,7 @@
 use actix_web::{get, web, post, delete};
 use librarian_common::{api::{self, NewTagBody}, TagId, BookId};
 
-use crate::{database::Database, WebResult, model::{TagModel, NewTagModel, BookTagWithTagModel, BookTagModel}};
+use crate::{database::Database, WebResult, model::{TagModel, NewTagModel, BookTagWithTagModel, BookTagModel}, http::JsonResponse};
 
 
 
@@ -12,32 +12,32 @@ use crate::{database::Database, WebResult, model::{TagModel, NewTagModel, BookTa
 async fn get_tag_by_id(
 	tag_id: web::Path<TagId>,
 	db: web::Data<Database>
-) -> WebResult<web::Json<api::GetTagResponse>> {
-	Ok(web::Json(api::GetTagResponse {
+) -> WebResult<JsonResponse<api::GetTagResponse>> {
+	Ok(web::Json(api::WrappingResponse::new(api::GetTagResponse {
 		value: TagModel::get_by_id(*tag_id, &db).await?.map(|v| v.into()),
-	}))
+	})))
 }
 
 #[post("/tag")]
 async fn create_new_tag(
 	body: web::Json<api::NewTagBody>,
 	db: web::Data<Database>
-) -> WebResult<web::Json<api::NewTagResponse>> {
+) -> WebResult<JsonResponse<api::NewTagResponse>> {
 	let NewTagBody { name, type_of } = body.into_inner();
 
 	let model = NewTagModel { name, type_of };
 
-	Ok(web::Json(model.insert(&db).await?.into()))
+	Ok(web::Json(api::WrappingResponse::new(model.insert(&db).await?.into())))
 }
 
 #[get("/tags")]
-async fn get_tags(db: web::Data<Database>) -> WebResult<web::Json<api::GetTagsResponse>> {
-	Ok(web::Json(api::GetTagsResponse {
+async fn get_tags(db: web::Data<Database>) -> WebResult<JsonResponse<api::GetTagsResponse>> {
+	Ok(web::Json(api::WrappingResponse::new(api::GetTagsResponse {
 		items: TagModel::get_all(&db).await?
 			.into_iter()
 			.map(|v| v.into())
 			.collect(),
-	}))
+	})))
 }
 
 
@@ -50,20 +50,20 @@ async fn get_tags(db: web::Data<Database>) -> WebResult<web::Json<api::GetTagsRe
 async fn get_book_tag(
 	id: web::Path<(TagId, BookId)>,
 	db: web::Data<Database>
-) -> WebResult<web::Json<api::GetBookTagResponse>> {
-	Ok(web::Json(api::GetBookTagResponse {
+) -> WebResult<JsonResponse<api::GetBookTagResponse>> {
+	Ok(web::Json(api::WrappingResponse::new(api::GetBookTagResponse {
 		value: BookTagWithTagModel::get_by_book_id_and_tag_id(id.1, id.0, &db).await?.map(|v| v.into()),
-	}))
+	})))
 }
 
 #[delete("/tag/{tag_id}/book/{book_id}")]
 async fn delete_book_tag(
 	id: web::Path<(TagId, BookId)>,
 	db: web::Data<Database>
-) -> WebResult<web::Json<api::DeletionResponse>> {
-	Ok(web::Json(api::DeletionResponse {
+) -> WebResult<JsonResponse<api::DeletionResponse>> {
+	Ok(web::Json(api::WrappingResponse::new(api::DeletionResponse {
 		amount: BookTagModel::remove(id.1, id.0, &db).await?,
-	}))
+	})))
 }
 
 
@@ -71,13 +71,13 @@ async fn delete_book_tag(
 async fn get_tags_for_book_id(
 	book_id: web::Path<BookId>,
 	db: web::Data<Database>
-) -> WebResult<web::Json<api::GetBookTagsResponse>> {
-	Ok(web::Json(api::GetBookTagsResponse {
+) -> WebResult<JsonResponse<api::GetBookTagsResponse>> {
+	Ok(web::Json(api::WrappingResponse::new(api::GetBookTagsResponse {
 		items: BookTagWithTagModel::get_by_book_id(*book_id, &db).await?
 			.into_iter()
 			.map(|v| v.into())
 			.collect(),
-	}))
+	})))
 }
 
 
@@ -86,8 +86,8 @@ async fn add_book_tag(
 	book_id: web::Path<BookId>,
 	body: web::Json<api::NewBookTagBody>,
 	db: web::Data<Database>
-) -> WebResult<web::Json<api::NewBookTagResponse>> {
-	Ok(web::Json(api::NewBookTagResponse {
+) -> WebResult<JsonResponse<api::NewBookTagResponse>> {
+	Ok(web::Json(api::WrappingResponse::new(api::NewBookTagResponse {
 		id: BookTagModel::insert(*book_id, body.tag_id, body.index, &db).await?.id,
-	}))
+	})))
 }

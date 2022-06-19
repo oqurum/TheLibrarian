@@ -5,7 +5,7 @@ use actix_web::{get, post, web, HttpResponse, Responder};
 use futures::TryStreamExt;
 use librarian_common::{Poster, api, Either, ImageIdType, ImageType, BookId};
 
-use crate::{WebResult, Error, store_image, database::Database, model::{BookModel, ImageLinkModel, UploadedImageModel}};
+use crate::{WebResult, Error, store_image, database::Database, model::{BookModel, ImageLinkModel, UploadedImageModel}, http::JsonResponse};
 
 
 
@@ -22,7 +22,7 @@ async fn get_local_image(id: web::Path<String>) -> impl Responder {
 async fn get_poster_list(
 	image: web::Path<ImageIdType>,
 	db: web::Data<Database>
-) -> WebResult<web::Json<api::GetPostersResponse>> {
+) -> WebResult<JsonResponse<api::GetPostersResponse>> {
 	let items: Vec<Poster> = match image.type_of {
 		ImageType::Book => {
 			let book = BookModel::get_by_id(BookId::from(image.id), &db).await?.unwrap();
@@ -47,9 +47,9 @@ async fn get_poster_list(
 		}
 	};
 
-	Ok(web::Json(api::GetPostersResponse {
+	Ok(web::Json(api::WrappingResponse::new(api::GetPostersResponse {
 		items
-	}))
+	})))
 }
 
 

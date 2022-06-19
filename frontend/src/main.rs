@@ -26,12 +26,25 @@ pub fn is_signed_in() -> bool {
 }
 
 
+#[macro_export]
+macro_rules! continue_or_html_err {
+	($value:ident) => {
+		match $value.as_ok() {
+			Ok(v) => v,
+			Err(e) => return html! { <> { "An Error Occured: " } { e } </> }
+		}
+	};
+}
+
+
+
 enum Msg {
-	LoadMemberSelf(api::GetMemberSelfResponse)
+	LoadMemberSelf(api::WrappingResponse<api::GetMemberSelfResponse>)
 }
 
 struct Model {
-	has_loaded_member: bool
+	has_loaded_member: bool,
+	error: Option<api::ApiErrorResponse>,
 }
 
 impl Component for Model {
@@ -46,14 +59,24 @@ impl Component for Model {
 
 		Self {
 			has_loaded_member: false,
+			error: None,
 		}
 	}
 
 	fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
 		match msg {
 			Msg::LoadMemberSelf(member) => {
-				*MEMBER_SELF.lock().unwrap() = member.member;
-				self.has_loaded_member = true;
+				match member.ok() {
+					Ok(resp) => {
+						*MEMBER_SELF.lock().unwrap() = resp.member;
+						self.has_loaded_member = true;
+					}
+
+					Err(e) => {
+						self.error = Some(e);
+					}
+				}
+
 			}
 		}
 
@@ -68,6 +91,12 @@ impl Component for Model {
 					if self.has_loaded_member {
 						html! {
 							<Switch<Route> render={Switch::render(switch)} />
+						}
+					} else if let Some(err) = self.error.as_ref() {
+						html! {
+							<div>
+								<h1>{ err.description.clone() }</h1>
+							</div>
 						}
 					} else {
 						html! {

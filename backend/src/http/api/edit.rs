@@ -3,7 +3,7 @@ use std::ops::Neg;
 use actix_web::{web, get, post};
 use librarian_common::{api, EditId, item::edit::*};
 
-use crate::{database::Database, WebResult, model::{EditModel, BookModel, MemberModel, EditVoteModel, NewEditVoteModel}, http::MemberCookie};
+use crate::{database::Database, WebResult, model::{EditModel, BookModel, MemberModel, EditVoteModel, NewEditVoteModel}, http::{MemberCookie, JsonResponse}};
 
 
 // Get List Of Edits
@@ -12,7 +12,7 @@ pub async fn load_edit_list(
 	db: web::Data<Database>,
 	this_member: MemberCookie,
 	query: web::Query<api::SimpleListQuery>,
-) -> WebResult<web::Json<api::GetEditListResponse>> {
+) -> WebResult<JsonResponse<api::GetEditListResponse>> {
 	let offset = query.offset.unwrap_or(0);
 	let limit = query.offset.unwrap_or(25);
 
@@ -68,25 +68,25 @@ pub async fn load_edit_list(
 		items.push(item);
 	}
 
-	Ok(web::Json(api::GetEditListResponse {
+	Ok(web::Json(api::WrappingResponse::new(api::GetEditListResponse {
 		offset,
 		limit,
 		total: EditModel::get_count(&db).await?,
 		items
-	}))
+	})))
 }
 
 
 // Edit
 #[get("/edit/{id}")]
-async fn load_edit(edit_id: web::Path<EditId>, db: web::Data<Database>) -> WebResult<web::Json<api::GetEditResponse>> {
+async fn load_edit(edit_id: web::Path<EditId>, db: web::Data<Database>) -> WebResult<JsonResponse<api::GetEditResponse>> {
 	let model = EditModel::get_by_id(*edit_id, &db).await?.unwrap();
 
 	let member = MemberModel::get_by_id(model.member_id, &db).await?;
 
-	Ok(web::Json(api::GetEditResponse {
+	Ok(web::Json(api::WrappingResponse::new(api::GetEditResponse {
 		model: model.into_shared_edit(member)?
-	}))
+	})))
 }
 
 
@@ -96,7 +96,7 @@ async fn update_edit(
 	json: web::Json<UpdateEditModel>,
 	member: MemberCookie,
 	db: web::Data<Database>
-) -> WebResult<web::Json<api::PostEditResponse>> {
+) -> WebResult<JsonResponse<api::PostEditResponse>> {
 	let mut update = json.into_inner();
 
 	update.ended_at = None;
@@ -106,15 +106,14 @@ async fn update_edit(
 
 	let mut edit_model = match EditModel::get_by_id(*edit_id, &db).await? {
 		Some(value) => value,
-		// TODO: Error.
-		_ => return Ok(web::Json(api::PostEditResponse::default())),
+		_ => return Ok(web::Json(api::WrappingResponse::error("Unable to find Edit Model."))),
 	};
 
 
 	// Check that we're pending.
+	// TODO: Add Admin Override.
 	if !edit_model.status.is_pending() {
-		// TODO: Error.
-		return Ok(web::Json(api::PostEditResponse::default()));
+		return Ok(web::Json(api::WrappingResponse::error("Edit Model is not currently pending!")));
 	}
 
 
@@ -125,8 +124,7 @@ async fn update_edit(
 	// Only an Admin can change the status.
 	if let Some(new_status) = update.status {
 		if !member_is_admin {
-			// TODO: Error.
-			return Ok(web::Json(api::PostEditResponse::default()));
+			return Ok(web::Json(api::WrappingResponse::error("You cannot do this! Not Admin!")));
 		}
 
 		edit_model.process_status_change(new_status, &db).await?;
@@ -136,7 +134,7 @@ async fn update_edit(
 	let vote_model = if let Some(vote_amount) = update.vote.as_mut() {
 		match *vote_amount {
 			// TODO: Error.
-			0 => return Ok(web::Json(api::PostEditResponse::default())),
+			0 => return Ok(web::Json(api::WrappingResponse::error("You cannot do this! Invalid Vote!"))),
 
 			i32::MIN..=-1 => {
 				*vote_amount = -1;
@@ -149,7 +147,7 @@ async fn update_edit(
 
 		if !member.permissions.has_voting_perms() {
 			// TODO: Error.
-			return Ok(web::Json(api::PostEditResponse::default()));
+			return Ok(web::Json(api::WrappingResponse::error("You cannot do this! No Permissions!")));
 		}
 
 		if let Some(mut vote_model) = EditVoteModel::find_one(*edit_id, member.id, &db).await? {
@@ -191,7 +189,7 @@ async fn update_edit(
 
 	EditModel::update_by_id(*edit_id, update, &db).await?;
 
-	Ok(web::Json(api::PostEditResponse {
+	Ok(web::Json(api::WrappingResponse::new(api::PostEditResponse {
 		edit_model: Some(edit_model.into_shared_edit(Some(member))?),
 
 		vote: vote_model.map(|v| {
@@ -203,5 +201,5 @@ async fn update_edit(
 
 			shared
 		}),
-	}))
+	})))
 }

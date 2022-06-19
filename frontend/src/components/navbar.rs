@@ -12,14 +12,14 @@ use crate::{Route, request, util};
 pub enum Msg {
 	Close,
 	SearchFor(String),
-	SearchResults(GetBookListResponse),
+	SearchResults(api::WrappingResponse<GetBookListResponse>),
 }
 
 pub struct NavbarModule {
 	left_items: Vec<(Route, DisplayType)>,
 	right_items: Vec<(Route, DisplayType)>,
 
-	search_results: Option<GetBookListResponse>,
+	search_results: Option<api::WrappingResponse<GetBookListResponse>>,
 	#[allow(clippy::type_complexity)]
 	closure: Arc<Mutex<Option<Closure<dyn FnMut(MouseEvent)>>>>,
 }
@@ -151,6 +151,8 @@ impl NavbarModule {
 
 	fn render_dropdown_results(&self) -> Html {
 		if let Some(resp) = self.search_results.as_ref() {
+			let resp = crate::continue_or_html_err!(resp);
+
 			html! {
 				<div class="search-dropdown">
 					{

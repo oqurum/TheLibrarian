@@ -3,7 +3,7 @@ use actix_web::{get, web, HttpResponse, post};
 use librarian_common::item::edit::BookEdit;
 use librarian_common::{api, DisplayItem, BookId, PersonId};
 
-use crate::http::MemberCookie;
+use crate::http::{MemberCookie, JsonResponse};
 use crate::metadata::MetadataReturned;
 use crate::model::{NewUploadedImageModel, BookPersonModel, BookModel, BookTagWithTagModel, PersonModel, NewEditModel, ImageLinkModel};
 use crate::{WebResult, metadata, Error};
@@ -60,7 +60,7 @@ pub async fn add_new_book(
 pub async fn load_book_list(
 	query: web::Query<api::BookListQuery>,
 	db: web::Data<Database>,
-) -> WebResult<web::Json<api::GetBookListResponse>> {
+) -> WebResult<JsonResponse<api::GetBookListResponse>> {
 	let (items, count) = if let Some(search) = query.search_query() {
 		let search = search?;
 
@@ -114,21 +114,21 @@ pub async fn load_book_list(
 		(items, count)
 	};
 
-	Ok(web::Json(api::GetBookListResponse {
+	Ok(web::Json(api::WrappingResponse::new(api::GetBookListResponse {
 		items,
 		count,
-	}))
+	})))
 }
 
 
 
 #[get("/book/{id}")]
-pub async fn get_book_info(book_id: web::Path<BookId>, db: web::Data<Database>) -> WebResult<web::Json<api::MediaViewResponse>> {
+pub async fn get_book_info(book_id: web::Path<BookId>, db: web::Data<Database>) -> WebResult<JsonResponse<api::MediaViewResponse>> {
 	let book = BookModel::get_by_id(*book_id, &db).await?.unwrap();
 	let people = PersonModel::get_all_by_book_id(book.id, &db).await?;
 	let tags = BookTagWithTagModel::get_by_book_id(book.id, &db).await?;
 
-	Ok(web::Json(api::MediaViewResponse {
+	Ok(web::Json(api::WrappingResponse::new(api::MediaViewResponse {
 		metadata: book.into(),
 		people: people.into_iter()
 			.map(|p| p.into())
@@ -136,7 +136,7 @@ pub async fn get_book_info(book_id: web::Path<BookId>, db: web::Data<Database>) 
 		tags: tags.into_iter()
 			.map(|t| t.into())
 			.collect(),
-	}))
+	})))
 }
 
 

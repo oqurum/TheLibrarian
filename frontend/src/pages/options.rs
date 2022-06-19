@@ -5,13 +5,13 @@ use crate::request;
 
 pub enum Msg {
 	// Request Results
-	SettingsResults(api::GetSettingsResponse),
+	SettingsResults(api::WrappingResponse<api::GetSettingsResponse>),
 
 	Ignore,
 }
 
 pub struct OptionsPage {
-	resp: Option<api::GetSettingsResponse>,
+	resp: Option<api::WrappingResponse<api::GetSettingsResponse>>,
 }
 
 impl Component for OptionsPage {
@@ -37,7 +37,9 @@ impl Component for OptionsPage {
 	}
 
 	fn view(&self, ctx: &Context<Self>) -> Html {
-		if let Some(_resp) = self.resp.as_ref() {
+		if let Some(resp) = self.resp.as_ref() {
+			crate::continue_or_html_err!(resp);
+
 			html! {
 				<div class="settings-view-container">
 					<div class="main-content-view">
