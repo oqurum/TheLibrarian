@@ -41,7 +41,7 @@ pub struct Property {
 	pub id: BookId
 }
 
-pub struct MediaView {
+pub struct BookView {
 	media: Option<api::WrappingResponse<MediaViewResponse>>,
 	cached_posters: Option<api::WrappingResponse<GetPostersResponse>>,
 
@@ -55,7 +55,7 @@ pub struct MediaView {
 	cached_tags: Vec<CachedTag>,
 }
 
-impl Component for MediaView {
+impl Component for BookView {
 	type Message = Msg;
 	type Properties = Property;
 
@@ -713,7 +713,7 @@ impl Component for MediaView {
 	}
 }
 
-impl MediaView {
+impl BookView {
 	fn on_change_select(scope: &Scope<Self>, updating: ChangingType) -> Callback<Event> {
 		scope.callback(move |e: Event| {
 			Msg::UpdateEditing(updating, e.target().unwrap().dyn_into::<HtmlSelectElement>().unwrap().value())

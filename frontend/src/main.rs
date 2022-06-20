@@ -151,7 +151,7 @@ fn switch(route: &Route) -> Html {
 		}
 
 		Route::ViewMeta { meta_id } => {
-			html! { <pages::MediaView id={meta_id} /> }
+			html! { <pages::BookView id={meta_id} /> }
 		}
 
 		Route::People => {
