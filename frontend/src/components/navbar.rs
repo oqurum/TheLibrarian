@@ -33,6 +33,7 @@ impl Component for NavbarModule {
 			left_items: vec![
 				(Route::Home, DisplayType::Icon("home", "Home")),
 				(Route::People, DisplayType::Icon("person", "Authors")),
+				(Route::EditList, DisplayType::Icon("fact_check", "Edits")),
 			],
 			right_items: vec![
 				(Route::Options, DisplayType::Icon("settings", "Settings")),
