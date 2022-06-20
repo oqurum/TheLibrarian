@@ -950,6 +950,10 @@ hr {
 		display: flex;
 		flex-direction: row;
 
+		> .poster {
+			flex-shrink: 0;
+		}
+
 		> .metadata {
 			flex-grow: 1;
 			margin-left: 1em;
