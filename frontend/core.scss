@@ -1,3 +1,6 @@
+// TODO: un-nest the deeply nested classes.
+// TODO: Seperate into own files.
+
 @use "sass:math";
 
 @font-face {
@@ -954,24 +957,31 @@ hr {
 			flex-shrink: 0;
 		}
 
-		> .metadata {
-			flex-grow: 1;
-			margin-left: 1em;
+		> .metadata-container {
 			display: flex;
-			flex-direction: column;
+			flex-direction: row;
+			flex-wrap: wrap;
+			width: 100%;
 
-			> .title {
-				max-inline-size: var(--size-header-3);
-			}
+			> .metadata {
+				flex-grow: 1;
+				margin-left: 1em;
+				display: flex;
+				flex-direction: column;
 
-			> .description {
-				max-inline-size: var(--text-size-content-4);
-				white-space: pre-wrap;
-			}
+				> .title {
+					max-inline-size: var(--size-header-3);
+				}
 
-			// Editing
-			> input.title {
-				margin-bottom: 10px;
+				> .description {
+					max-inline-size: var(--text-size-content-4);
+					white-space: pre-wrap;
+				}
+
+				// Editing
+				> input.title {
+					margin-bottom: 10px;
+				}
 			}
 		}
 	}

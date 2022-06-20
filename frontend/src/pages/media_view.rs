@@ -310,193 +310,195 @@ impl Component for MediaView {
 								<img src={ book_model.get_thumb_url() } />
 							</div>
 
-							<div class="metadata">
-								{ // Book Display Info
+							<div class="metadata-container">
+								<div class="metadata">
+									{ // Book Display Info
+										if self.is_editing {
+											html! {
+												<>
+													<h5>{ "Book Display Info" }</h5>
+
+													<span class="sub-title">{"Publicity"}</span>
+													<select
+														class="title"
+														type="text"
+														onchange={Self::on_change_select(ctx.link(), ChangingType::Publicity)}
+													>
+														<option selected={editing.is_public.unwrap_or(book_model.is_public)} value="true">
+															{"Public"}
+														</option>
+														<option selected={!editing.is_public.unwrap_or(book_model.is_public)} value="false">
+															{"Private"}
+														</option>
+													</select>
+
+													<span class="sub-title">{"Title"}</span>
+													<input class="title" type="text"
+														onchange={Self::on_change_input(ctx.link(), ChangingType::Title)}
+														value={ editing.title.clone().or_else(|| book_model.title.clone()).unwrap_or_default() }
+													/>
+
+													<span class="sub-title">{"Original Title"}</span>
+													<input class="title" type="text"
+														onchange={Self::on_change_input(ctx.link(), ChangingType::OriginalTitle)}
+														value={ editing.clean_title.clone().or_else(|| book_model.clean_title.clone()).unwrap_or_default() }
+													/>
+
+													<span class="sub-title">{"Description"}</span>
+													<textarea
+														rows="9"
+														cols="30"
+														class="description"
+														onchange={Self::on_change_textarea(ctx.link(), ChangingType::Description)}
+														value={ editing.description.clone().or_else(|| book_model.description.clone()).unwrap_or_default() }
+													/>
+												</>
+											}
+										} else {
+											html! {
+												<>
+													<h3 class="title">{ book_model.get_title() }</h3>
+													<p class="description">{ book_model.description.clone().unwrap_or_default() }</p>
+												</>
+											}
+										}
+									}
+								</div>
+
+								{ // Book Info
 									if self.is_editing {
 										html! {
-											<>
-												<h5>{ "Book Display Info" }</h5>
+											<div class="metadata">
+												<h5>{ "Book Info" }</h5>
 
-												<span class="sub-title">{"Publicity"}</span>
+												<span class="sub-title">{"Available At"}</span>
+												<input class="title" type="text"
+													placeholder="YYYY-MM-DD"
+													onchange={Self::on_change_input(ctx.link(), ChangingType::AvailableAt)}
+													value={ editing.available_at.clone().or_else(|| book_model.available_at.clone()).unwrap_or_default() }
+												/>
+
+												<span class="sub-title">{"ISBN 10"}</span>
+												<input class="title" type="text"
+													onchange={Self::on_change_input(ctx.link(), ChangingType::Isbn10)}
+													value={ editing.isbn_10.clone().or_else(|| book_model.isbn_10.clone()).unwrap_or_default() }
+												/>
+
+												<span class="sub-title">{"ISBN 13"}</span>
+												<input class="title" type="text"
+													onchange={Self::on_change_input(ctx.link(), ChangingType::Isbn13)}
+													value={ editing.isbn_13.clone().or_else(|| book_model.isbn_13.clone()).unwrap_or_default() }
+												/>
+
+												<span class="sub-title">{"Publisher"}</span>
+												<input class="title" type="text" />
+
+												<span class="sub-title">{"Language"}</span>
 												<select
 													class="title"
 													type="text"
-													onchange={Self::on_change_select(ctx.link(), ChangingType::Publicity)}
+													onchange={Self::on_change_select(ctx.link(), ChangingType::Language)}
 												>
-													<option selected={editing.is_public.unwrap_or(book_model.is_public)} value="true">
-														{"Public"}
-													</option>
-													<option selected={!editing.is_public.unwrap_or(book_model.is_public)} value="false">
-														{"Private"}
-													</option>
+													<option value="-1" selected={editing.language.or(book_model.language).is_none()}>{ "Unknown" }</option>
+													{
+														for LANGUAGES.iter()
+															.enumerate()
+															.map(|(index, lang)| {
+																let selected = editing.language.or(book_model.language).filter(|v| index as u16 == *v).is_some();
+
+																html! {
+																	<option
+																		{selected}
+																		value={index.to_string()}
+																	>
+																		{ string_to_upper_case(lang.to_string()) }
+																	</option>
+																}
+															})
+													}
 												</select>
-
-												<span class="sub-title">{"Title"}</span>
-												<input class="title" type="text"
-													onchange={Self::on_change_input(ctx.link(), ChangingType::Title)}
-													value={ editing.title.clone().or_else(|| book_model.title.clone()).unwrap_or_default() }
-												/>
-
-												<span class="sub-title">{"Original Title"}</span>
-												<input class="title" type="text"
-													onchange={Self::on_change_input(ctx.link(), ChangingType::OriginalTitle)}
-													value={ editing.clean_title.clone().or_else(|| book_model.clean_title.clone()).unwrap_or_default() }
-												/>
-
-												<span class="sub-title">{"Description"}</span>
-												<textarea
-													rows="9"
-													cols="30"
-													class="description"
-													onchange={Self::on_change_textarea(ctx.link(), ChangingType::Description)}
-													value={ editing.description.clone().or_else(|| book_model.description.clone()).unwrap_or_default() }
-												/>
-											</>
+											</div>
 										}
 									} else {
+										html! {}
+									}
+								}
+
+								{ // Sources
+									if self.is_editing {
 										html! {
-											<>
-												<h3 class="title">{ book_model.get_title() }</h3>
-												<p class="description">{ book_model.description.clone().unwrap_or_default() }</p>
-											</>
+											<div class="metadata">
+												<h5>{ "Sources" }</h5>
+
+												<span class="sub-title">{ "Good Reads URL" }</span>
+												<input class="title" type="text" />
+
+												<span class="sub-title">{ "Open Library URL" }</span>
+												<input class="title" type="text" />
+
+												<span class="sub-title">{ "Google Books URL" }</span>
+												<input class="title" type="text" />
+
+												<h5>{ "Tags" }</h5>
+
+												<span class="sub-title">{ "Genre" }</span>
+												<MultiselectModule
+													on_create_item={ctx.link().callback(|v| Msg::MultiselectCreate(TagType::Genre, v))}
+													on_toggle_item={ctx.link().callback(|(a, b)| Msg::MultiselectToggle(a, TagId::from(b)))}
+												>
+													{
+														for self.cached_tags
+															.iter()
+															.filter(|v| v.type_of.into_u8() == TagType::Genre.into_u8())
+															.map(|tag| {
+																let mut filtered_tags = tags.iter()
+																	// We only need the tag ids
+																	.map(|bt| bt.tag.id)
+																	// Filter out editing "removed tags"
+																	.filter(|tag_id| !editing.removed_tags.as_ref().map(|v| v.iter().any(|r| r == tag_id)).unwrap_or_default())
+																	// Chain into editing "added tags"
+																	.chain(editing.added_tags.iter().flat_map(|v| v.iter()).copied());
+
+																html_nested! {
+																	// TODO: Remove deref
+																	<MultiselectItem name={tag.name.clone()} id={*tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
+																}
+															})
+													}
+												</MultiselectModule>
+
+												<span class="sub-title">{ "Subject" }</span>
+												<MultiselectModule
+													on_create_item={ctx.link().callback(|v| Msg::MultiselectCreate(TagType::Subject, v))}
+													on_toggle_item={ctx.link().callback(|(a, b)| Msg::MultiselectToggle(a, TagId::from(b)))}
+												>
+													{
+														for self.cached_tags
+															.iter()
+															.filter(|v| v.type_of.into_u8() == TagType::Subject.into_u8())
+															.map(|tag| {
+																let mut filtered_tags = tags.iter()
+																	// We only need the tag ids
+																	.map(|bt| bt.tag.id)
+																	// Filter out editing "removed tags"
+																	.filter(|tag_id| !editing.removed_tags.as_ref().map(|v| v.iter().any(|r| r == tag_id)).unwrap_or_default())
+																	// Chain into editing "added tags"
+																	.chain(editing.added_tags.iter().flat_map(|v| v.iter()).copied());
+
+																html_nested! {
+																	// TODO: Remove deref
+																	<MultiselectItem name={tag.name.clone()} id={*tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
+																}
+															})
+													}
+												</MultiselectModule>
+											</div>
 										}
+									} else {
+										html! {}
 									}
 								}
 							</div>
-
-							{ // Book Info
-								if self.is_editing {
-									html! {
-										<div class="metadata">
-											<h5>{ "Book Info" }</h5>
-
-											<span class="sub-title">{"Available At"}</span>
-											<input class="title" type="text"
-												placeholder="YYYY-MM-DD"
-												onchange={Self::on_change_input(ctx.link(), ChangingType::AvailableAt)}
-												value={ editing.available_at.clone().or_else(|| book_model.available_at.clone()).unwrap_or_default() }
-											/>
-
-											<span class="sub-title">{"ISBN 10"}</span>
-											<input class="title" type="text"
-												onchange={Self::on_change_input(ctx.link(), ChangingType::Isbn10)}
-												value={ editing.isbn_10.clone().or_else(|| book_model.isbn_10.clone()).unwrap_or_default() }
-											/>
-
-											<span class="sub-title">{"ISBN 13"}</span>
-											<input class="title" type="text"
-												onchange={Self::on_change_input(ctx.link(), ChangingType::Isbn13)}
-												value={ editing.isbn_13.clone().or_else(|| book_model.isbn_13.clone()).unwrap_or_default() }
-											/>
-
-											<span class="sub-title">{"Publisher"}</span>
-											<input class="title" type="text" />
-
-											<span class="sub-title">{"Language"}</span>
-											<select
-												class="title"
-												type="text"
-												onchange={Self::on_change_select(ctx.link(), ChangingType::Language)}
-											>
-												<option value="-1" selected={editing.language.or(book_model.language).is_none()}>{ "Unknown" }</option>
-												{
-													for LANGUAGES.iter()
-														.enumerate()
-														.map(|(index, lang)| {
-															let selected = editing.language.or(book_model.language).filter(|v| index as u16 == *v).is_some();
-
-															html! {
-																<option
-																	{selected}
-																	value={index.to_string()}
-																>
-																	{ string_to_upper_case(lang.to_string()) }
-																</option>
-															}
-														})
-												}
-											</select>
-										</div>
-									}
-								} else {
-									html! {}
-								}
-							}
-
-							{ // Sources
-								if self.is_editing {
-									html! {
-										<div class="metadata">
-											<h5>{ "Sources" }</h5>
-
-											<span class="sub-title">{ "Good Reads URL" }</span>
-											<input class="title" type="text" />
-
-											<span class="sub-title">{ "Open Library URL" }</span>
-											<input class="title" type="text" />
-
-											<span class="sub-title">{ "Google Books URL" }</span>
-											<input class="title" type="text" />
-
-											<h5>{ "Tags" }</h5>
-
-											<span class="sub-title">{ "Genre" }</span>
-											<MultiselectModule
-												on_create_item={ctx.link().callback(|v| Msg::MultiselectCreate(TagType::Genre, v))}
-												on_toggle_item={ctx.link().callback(|(a, b)| Msg::MultiselectToggle(a, TagId::from(b)))}
-											>
-												{
-													for self.cached_tags
-														.iter()
-														.filter(|v| v.type_of.into_u8() == TagType::Genre.into_u8())
-														.map(|tag| {
-															let mut filtered_tags = tags.iter()
-																// We only need the tag ids
-																.map(|bt| bt.tag.id)
-																// Filter out editing "removed tags"
-																.filter(|tag_id| !editing.removed_tags.as_ref().map(|v| v.iter().any(|r| r == tag_id)).unwrap_or_default())
-																// Chain into editing "added tags"
-																.chain(editing.added_tags.iter().flat_map(|v| v.iter()).copied());
-
-															html_nested! {
-																// TODO: Remove deref
-																<MultiselectItem name={tag.name.clone()} id={*tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
-															}
-														})
-												}
-											</MultiselectModule>
-
-											<span class="sub-title">{ "Subject" }</span>
-											<MultiselectModule
-												on_create_item={ctx.link().callback(|v| Msg::MultiselectCreate(TagType::Subject, v))}
-												on_toggle_item={ctx.link().callback(|(a, b)| Msg::MultiselectToggle(a, TagId::from(b)))}
-											>
-												{
-													for self.cached_tags
-														.iter()
-														.filter(|v| v.type_of.into_u8() == TagType::Subject.into_u8())
-														.map(|tag| {
-															let mut filtered_tags = tags.iter()
-																// We only need the tag ids
-																.map(|bt| bt.tag.id)
-																// Filter out editing "removed tags"
-																.filter(|tag_id| !editing.removed_tags.as_ref().map(|v| v.iter().any(|r| r == tag_id)).unwrap_or_default())
-																// Chain into editing "added tags"
-																.chain(editing.added_tags.iter().flat_map(|v| v.iter()).copied());
-
-															html_nested! {
-																// TODO: Remove deref
-																<MultiselectItem name={tag.name.clone()} id={*tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
-															}
-														})
-												}
-											</MultiselectModule>
-										</div>
-									}
-								} else {
-									html! {}
-								}
-							}
 						</div>
 
 						{ // Posters
