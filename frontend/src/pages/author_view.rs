@@ -219,81 +219,83 @@ impl Component for AuthorView {
 								<img src={ person.get_thumb_url() } />
 							</div>
 
-							<div class="metadata">
-								{ // Book Display Info
+							<div class="metadata-container">
+								<div class="metadata">
+									{ // Book Display Info
+										if self.is_editing() {
+											html! {
+												<>
+													<h5>{ "Book Display Info" }</h5>
+
+													<span class="sub-title">{"Name"}</span>
+													<input class="title" type="text"
+														onchange={Self::on_change_input(ctx.link(), ChangingType::Name)}
+														value={ person.name.clone() }
+													/>
+
+													<span class="sub-title">{"Description"}</span>
+													<textarea
+														rows="9"
+														cols="30"
+														class="description"
+														onchange={Self::on_change_textarea(ctx.link(), ChangingType::Description)}
+														value={ person.description.clone().unwrap_or_default() }
+													/>
+												</>
+											}
+										} else {
+											html! {
+												<>
+													<h3 class="title">{ person.name.clone() }</h3>
+													<p class="description">{ person.description.clone().unwrap_or_default() }</p>
+												</>
+											}
+										}
+									}
+								</div>
+
+								{ // Book Info
 									if self.is_editing() {
 										html! {
-											<>
-												<h5>{ "Book Display Info" }</h5>
+											<div class="metadata">
+												<h5>{ "Book Info" }</h5>
 
-												<span class="sub-title">{"Name"}</span>
+												<span class="sub-title">{"Birth Date"}</span>
 												<input class="title" type="text"
-													onchange={Self::on_change_input(ctx.link(), ChangingType::Name)}
-													value={ person.name.clone() }
+													placeholder="YYYY"
+													onchange={Self::on_change_input(ctx.link(), ChangingType::BirthDate)}
+													value={ person.birth_date.clone().unwrap_or_default() }
 												/>
-
-												<span class="sub-title">{"Description"}</span>
-												<textarea
-													rows="9"
-													cols="30"
-													class="description"
-													onchange={Self::on_change_textarea(ctx.link(), ChangingType::Description)}
-													value={ person.description.clone().unwrap_or_default() }
-												/>
-											</>
+											</div>
 										}
 									} else {
+										html! {}
+									}
+								}
+
+								{ // Sources
+									if self.is_editing() {
 										html! {
-											<>
-												<h3 class="title">{ person.name.clone() }</h3>
-												<p class="description">{ person.description.clone().unwrap_or_default() }</p>
-											</>
+											<div class="metadata">
+												<h5>{ "Sources" }</h5>
+
+												<span class="sub-title">{ "Good Reads URL" }</span>
+												<input class="title" type="text" />
+
+												<span class="sub-title">{ "Open Library URL" }</span>
+												<input class="title" type="text" />
+
+												<span class="sub-title">{ "Google Books URL" }</span>
+												<input class="title" type="text" />
+
+												<h5>{ "Tags" }</h5>
+											</div>
 										}
+									} else {
+										html! {}
 									}
 								}
 							</div>
-
-							{ // Book Info
-								if self.is_editing() {
-									html! {
-										<div class="metadata">
-											<h5>{ "Book Info" }</h5>
-
-											<span class="sub-title">{"Birth Date"}</span>
-											<input class="title" type="text"
-												placeholder="YYYY"
-												onchange={Self::on_change_input(ctx.link(), ChangingType::BirthDate)}
-												value={ person.birth_date.clone().unwrap_or_default() }
-											/>
-										</div>
-									}
-								} else {
-									html! {}
-								}
-							}
-
-							{ // Sources
-								if self.is_editing() {
-									html! {
-										<div class="metadata">
-											<h5>{ "Sources" }</h5>
-
-											<span class="sub-title">{ "Good Reads URL" }</span>
-											<input class="title" type="text" />
-
-											<span class="sub-title">{ "Open Library URL" }</span>
-											<input class="title" type="text" />
-
-											<span class="sub-title">{ "Google Books URL" }</span>
-											<input class="title" type="text" />
-
-											<h5>{ "Tags" }</h5>
-										</div>
-									}
-								} else {
-									html! {}
-								}
-							}
 						</div>
 
 						{ // Posters
