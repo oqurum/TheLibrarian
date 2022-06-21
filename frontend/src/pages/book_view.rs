@@ -1,11 +1,11 @@
 use js_sys::Date;
-use librarian_common::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse, MetadataBookItem, self}, Either, TagType, LANGUAGES, util::string_to_upper_case, BookId, TagId, item::edit::BookEdit, TagFE, ImageIdType};
+use librarian_common::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse, MetadataBookItem, self}, Either, TagType, LANGUAGES, util::string_to_upper_case, BookId, TagId, item::edit::BookEdit, TagFE, ImageIdType, SearchType};
 use wasm_bindgen::{JsCast, JsValue, UnwrapThrowExt};
 use web_sys::{HtmlInputElement, HtmlTextAreaElement, HtmlSelectElement};
 use yew::{prelude::*, html::Scope};
 
 use crate::{
-	components::{MultiselectModule, MultiselectItem, MultiselectNewItem, UploadModule, Popup, PopupBookUpdateWithMeta, PopupEditMetadata, PopupSearchBook, PopupType},
+	components::{MultiselectModule, MultiselectItem, MultiselectNewItem, UploadModule, Popup, PopupBookUpdateWithMeta, PopupEditMetadata, PopupSearch, PopupType},
 	request
 };
 
@@ -677,8 +677,9 @@ impl Component for BookView {
 									let input_value = input_value.trim().to_string();
 
 									html! {
-										<PopupSearchBook
+										<PopupSearch
 											{input_value}
+											search_for={ SearchType::Book }
 											on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
 											on_select={ ctx.link().callback_future(|source| async {
 												let resp = request::get_external_source_item(source).await.ok().unwrap_throw();

@@ -18,6 +18,7 @@ pub struct Property {
 	pub on_select: Callback<Source>,
 
 	pub input_value: String,
+	pub search_for: SearchType,
 }
 
 
@@ -32,12 +33,12 @@ pub enum Msg {
 }
 
 
-pub struct PopupSearchBook {
+pub struct PopupSearch {
 	cached_posters: Option<LoadingItem<api::WrappingResponse<ExternalSearchResponse>>>,
 	input_value: String,
 }
 
-impl Component for PopupSearchBook {
+impl Component for PopupSearch {
 	type Message = Msg;
 	type Properties = Property;
 
@@ -57,9 +58,11 @@ impl Component for PopupSearchBook {
 			Msg::SearchFor(search) => {
 				self.cached_posters = Some(LoadingItem::Loading);
 
+				let search_for = ctx.props().search_for;
+
 				ctx.link()
 				.send_future(async move {
-					let resp = request::external_search_for(&search, SearchType::Book).await;
+					let resp = request::external_search_for(&search, search_for).await;
 
 					Msg::BookSearchResponse(search, resp)
 				});
@@ -142,7 +145,7 @@ impl Component for PopupSearchBook {
 	}
 }
 
-impl PopupSearchBook {
+impl PopupSearch {
 	fn render_poster_container(site: String, item: &SearchItem, ctx: &Context<Self>) -> Html {
 		let item = item.as_book();
 

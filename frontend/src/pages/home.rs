@@ -1,12 +1,12 @@
 use std::{rc::Rc, sync::Mutex};
 
-use librarian_common::{api, DisplayItem, BookId};
+use librarian_common::{api, DisplayItem, BookId, SearchType};
 use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
 use web_sys::{HtmlElement, UrlSearchParams, HtmlInputElement};
 use yew::{prelude::*, html::Scope};
 use yew_router::prelude::Link;
 
-use crate::{Route, request, components::{PopupSearchBook, MassSelectBar}};
+use crate::{Route, request, components::{PopupSearch, MassSelectBar}};
 
 
 #[derive(Clone)]
@@ -183,8 +183,9 @@ impl Component for HomePage {
 								};
 
 								html! {
-									<PopupSearchBook
+									<PopupSearch
 										{input_value}
+										search_for={ SearchType::Book }
 										on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
 										on_select={ ctx.link().callback_future(|source| async {
 											request::new_book(source).await;

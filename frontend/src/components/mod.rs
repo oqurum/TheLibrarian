@@ -8,7 +8,7 @@ pub use navbar::NavbarModule;
 pub use popup::{
 	Popup, PopupType,
 	edit_metadata::PopupEditMetadata,
-	search_book::PopupSearchBook,
+	search::PopupSearch,
 	button::ButtonPopup, button::ButtonPopupPosition,
 	book_update_with_meta::PopupBookUpdateWithMeta,
 };

@@ -444,7 +444,7 @@ impl MetadataItemCached {
 	}
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum SearchType {
 	Book,
 	Person
