@@ -1,10 +1,9 @@
-use librarian_common::{api::{self, GetPostersResponse, GetPersonResponse}, Either, TagType, PersonId};
+use librarian_common::{api::{self, GetPostersResponse, GetPersonResponse}, Either, TagType, PersonId, ImageIdType};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::{prelude::*, html::Scope};
 
-use crate::request;
-use crate::pages::home::MediaItem;
+use crate::{request, components::UploadModule, pages::home::MediaItem};
 
 
 
@@ -12,7 +11,7 @@ use crate::pages::home::MediaItem;
 pub enum Msg {
 	// Retrive
 	RetrieveMediaView(Box<api::WrappingResponse<GetPersonResponse>>),
-	RetrievePosters(GetPostersResponse),
+	RetrievePosters(api::WrappingResponse<GetPostersResponse>),
 	BooksListResults(api::WrappingResponse<api::GetBookListResponse>),
 
 	UpdatedPoster,
@@ -36,7 +35,7 @@ pub struct Property {
 
 pub struct AuthorView {
 	media: Option<api::WrappingResponse<GetPersonResponse>>,
-	cached_posters: Option<GetPostersResponse>,
+	cached_posters: Option<api::WrappingResponse<GetPostersResponse>>,
 	cached_books: Option<api::WrappingResponse<api::GetBookListResponse>>,
 
 	media_popup: Option<DisplayOverlay>,
@@ -89,12 +88,12 @@ impl Component for AuthorView {
 			}
 
 			Msg::UpdatedPoster => if let Some(book) = self.media.as_ref().and_then(|v| v.resp.as_ref()) {
-				let meta_id = book.person.id;
+				let person_id = ImageIdType::new_person(book.person.id);
 
-				// ctx.link()
-				// .send_future(async move {
-				// 	Msg::RetrievePosters(request::get_posters_for_meta(meta_id).await)
-				// });
+				ctx.link()
+				.send_future(async move {
+					Msg::RetrievePosters(request::get_posters_for_meta(person_id).await)
+				});
 
 				return false;
 			}
@@ -105,12 +104,12 @@ impl Component for AuthorView {
 					self.editing_item = Some(book.clone());
 
 					if self.cached_posters.is_none() {
-						let metadata_id = book.person.id;
+						let person_id = ImageIdType::new_person(book.person.id);
 
-						// ctx.link()
-						// .send_future(async move {
-						// 	Msg::RetrievePosters(request::get_posters_for_meta(metadata_id).await)
-						// });
+						ctx.link()
+						.send_future(async move {
+							Msg::RetrievePosters(request::get_posters_for_meta(person_id).await)
+						});
 					}
 				} else {
 					self.editing_item = None;
@@ -301,46 +300,63 @@ impl Component for AuthorView {
 						{ // Posters
 							if self.is_editing() {
 								if let Some(resp) = self.cached_posters.as_ref() {
-									html! {
-										<section>
-											<h2>{ "Posters" }</h2>
-											<div class="posters-container">
-												<div class="add-poster" title="Add Poster">
-													<span class="material-icons">{ "add" }</span>
-												</div>
-												{
-													for resp.items.iter().map(move |poster| {
-														let url_or_id = poster.id.map(Either::Right).unwrap_or_else(|| Either::Left(poster.path.clone()));
-														let is_selected = poster.selected;
+									let person_id = person.id;
 
-														html! {
-															<div
-																class={ classes!("poster", { if is_selected { "selected" } else { "" } }) }
-																onclick={ctx.link().callback_future(move |_| {
-																	let url_or_id = url_or_id.clone();
+									match resp.as_ok() {
+										Ok(resp) => html! {
+											<section>
+												<h2>{ "Posters" }</h2>
+												<div class="posters-container">
+													<UploadModule
+														id={Either::Right(ctx.props().id)}
+														class="add-poster"
+														title="Add Poster"
+														on_upload={ctx.link().callback(|_| Msg::UpdatedPoster)}
+													>
+														<span class="material-icons">{ "add" }</span>
+													</UploadModule>
 
-																	async move {
-																		if is_selected {
-																			Msg::Ignore
-																		} else {
-																			// request::change_poster_for_meta(meta_id, url_or_id).await;
+													{
+														for resp.items.iter().map(move |poster| {
+															let url_or_id = poster.id.map(Either::Right).unwrap_or_else(|| Either::Left(poster.path.clone()));
+															let is_selected = poster.selected;
 
-																			Msg::UpdatedPoster
+															html! {
+																<div
+																	class={ classes!("poster", { if is_selected { "selected" } else { "" } }) }
+																	onclick={ctx.link().callback_future(move |_| {
+																		let url_or_id = url_or_id.clone();
+
+																		async move {
+																			if is_selected {
+																				Msg::Ignore
+																			} else {
+																				request::change_poster_for_meta(ImageIdType::new_person(person_id), url_or_id).await;
+
+																				Msg::UpdatedPoster
+																			}
 																		}
-																	}
-																})}
-															>
-																<div class="top-right">
-																	<span class="material-icons">{ "delete" }</span>
+																	})}
+																>
+																	<div class="top-right">
+																		<span
+																			class="material-icons"
+																		>{ "delete" }</span>
+																	</div>
+																	<img src={poster.path.clone()} />
 																</div>
-																<img src={poster.path.clone()} />
-															</div>
-														}
-													})
-												}
-											</div>
-										</section>
+															}
+														})
+													}
+												</div>
+											</section>
+										},
+
+										Err(e) => html! {
+											<h2>{ e }</h2>
+										}
 									}
+
 								} else {
 									html! {}
 								}
