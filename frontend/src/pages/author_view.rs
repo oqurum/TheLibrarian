@@ -308,7 +308,7 @@ impl Component for AuthorView {
 												<h2>{ "Posters" }</h2>
 												<div class="posters-container">
 													<UploadModule
-														id={Either::Right(ctx.props().id)}
+														id={ ImageIdType::new_person(ctx.props().id) }
 														class="add-poster"
 														title="Add Poster"
 														on_upload={ctx.link().callback(|_| Msg::UpdatedPoster)}

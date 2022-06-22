@@ -510,7 +510,7 @@ impl Component for BookView {
 												<h2>{ "Posters" }</h2>
 												<div class="posters-container">
 													<UploadModule
-														id={Either::Left(BookId::from(ctx.props().id))}
+														id={ ImageIdType::new_book(ctx.props().id) }
 														class="add-poster"
 														title="Add Poster"
 														on_upload={ctx.link().callback(|_| Msg::ReloadPosters)}
