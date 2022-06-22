@@ -3,9 +3,9 @@ use std::io::Write;
 use actix_files::NamedFile;
 use actix_web::{get, post, web, HttpResponse, Responder};
 use futures::TryStreamExt;
-use librarian_common::{Poster, api, Either, ImageIdType, ImageType, BookId};
+use librarian_common::{Poster, api, Either, ImageIdType, ImageType, BookId, PersonId};
 
-use crate::{WebResult, Error, store_image, database::Database, model::{BookModel, ImageLinkModel, UploadedImageModel}, http::{JsonResponse, MemberCookie}};
+use crate::{WebResult, Error, store_image, database::Database, model::{BookModel, ImageLinkModel, UploadedImageModel, PersonModel}, http::{JsonResponse, MemberCookie}};
 
 
 
@@ -23,29 +23,23 @@ async fn get_poster_list(
 	image: web::Path<ImageIdType>,
 	db: web::Data<Database>
 ) -> WebResult<JsonResponse<api::GetPostersResponse>> {
-	let items: Vec<Poster> = match image.type_of {
-		ImageType::Book => {
-			let book = BookModel::get_by_id(BookId::from(image.id), &db).await?.unwrap();
-
-			ImageLinkModel::get_by_linked_id(image.id, image.type_of, &db).await?
-				.into_iter()
-				.map(|poster| Poster {
-					id: Some(poster.image_id),
-
-					selected: poster.path == book.thumb_path,
-
-					path: poster.path.as_url(),
-
-					created_at: poster.created_at,
-				})
-				.collect()
-		}
-
-		ImageType::Person => {
-			// TODO
-			Vec::new()
-		}
+	let current_thumb = match image.type_of {
+		ImageType::Book => BookModel::get_by_id(BookId::from(image.id), &db).await?.unwrap().thumb_path,
+		ImageType::Person => PersonModel::get_by_id(PersonId::from(image.id), &db).await?.unwrap().thumb_url,
 	};
+
+	let items = ImageLinkModel::get_by_linked_id(image.id, image.type_of, &db).await?
+		.into_iter()
+		.map(|poster| Poster {
+			id: Some(poster.image_id),
+
+			selected: poster.path == current_thumb,
+
+			path: poster.path.as_url(),
+
+			created_at: poster.created_at,
+		})
+		.collect();
 
 	Ok(web::Json(api::WrappingResponse::new(api::GetPostersResponse {
 		items
