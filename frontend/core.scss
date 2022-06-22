@@ -268,6 +268,17 @@ hr {
 	}
 }
 
+.tab-bar {
+	height: 3em;
+	display: flex;
+	flex-direction: row;
+
+	.tab-bar-item {
+		background-color: var(--surface-1);
+		cursor: pointer;
+		padding: 5px;
+	}
+}
 
 
 /* MULTI SELECTION */
@@ -801,7 +812,6 @@ hr {
 		}
 
 		> .book-search-items {
-			max-height: 25em;
 			overflow-y: auto;
 			background-color: var(--surface-1);
 			margin-right: 10px;
@@ -836,18 +846,6 @@ hr {
 
 	.footer {
 		//
-	}
-
-	.tab-bar {
-		height: 3em;
-		display: flex;
-		flex-direction: row;
-
-		.tab-bar-item {
-			background-color: var(--surface-1);
-			cursor: pointer;
-			padding: 5px;
-		}
 	}
 
 	.content {
