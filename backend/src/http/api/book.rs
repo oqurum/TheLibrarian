@@ -14,8 +14,15 @@ use crate::database::Database;
 #[post("/book")]
 pub async fn add_new_book(
 	body: web::Json<api::NewBookBody>,
+	member: MemberCookie,
 	db: web::Data<Database>,
 ) -> WebResult<HttpResponse> {
+	let member = member.fetch(&db).await?.unwrap();
+
+	if !member.permissions.has_editing_perms() {
+		return Ok(HttpResponse::InternalServerError().json(api::WrappingResponse::<()>::error("You cannot do this! No Permissions!")));
+	}
+
 	if let Some(mut meta) = metadata::get_metadata_by_source(&body.source, true).await? {
 		let (main_author, author_ids) = meta.add_or_ignore_authors_into_database(&db).await?;
 
@@ -149,12 +156,18 @@ pub async fn update_book_id(
 ) -> WebResult<HttpResponse> {
 	let body = body.into_inner();
 
+	let member = member.fetch(&db).await?.unwrap();
+
+	if !member.permissions.has_editing_perms() {
+		return Ok(HttpResponse::InternalServerError().json(api::WrappingResponse::<()>::error("You cannot do this! No Permissions!")));
+	}
+
 	let current_book = BookModel::get_by_id(*book_id, &db).await?;
 
 	if let Some((updated_book, current_book)) = Some(body).zip(current_book) {
 		// Make sure we have something we're updating.
 		if !updated_book.is_empty() {
-			let model = NewEditModel::from_book_modify(member.member_id(), current_book, updated_book)?;
+			let model = NewEditModel::from_book_modify(member.id, current_book, updated_book)?;
 
 			if !model.data.is_empty() {
 				model.insert(&db).await?;

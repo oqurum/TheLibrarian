@@ -1,7 +1,7 @@
 use actix_web::{get, web, post, delete};
 use librarian_common::{api::{self, NewTagBody}, TagId, BookId};
 
-use crate::{database::Database, WebResult, model::{TagModel, NewTagModel, BookTagWithTagModel, BookTagModel}, http::JsonResponse};
+use crate::{database::Database, WebResult, model::{TagModel, NewTagModel, BookTagWithTagModel, BookTagModel}, http::{JsonResponse, MemberCookie}};
 
 
 
@@ -21,8 +21,15 @@ async fn get_tag_by_id(
 #[post("/tag")]
 async fn create_new_tag(
 	body: web::Json<api::NewTagBody>,
+	member: MemberCookie,
 	db: web::Data<Database>
 ) -> WebResult<JsonResponse<api::NewTagResponse>> {
+	let member = member.fetch(&db).await?.unwrap();
+
+	if !member.permissions.has_editing_perms() {
+		return Ok(web::Json(api::WrappingResponse::error("You cannot do this! No Permissions!")));
+	}
+
 	let NewTagBody { name, type_of } = body.into_inner();
 
 	let model = NewTagModel { name, type_of };
@@ -59,8 +66,15 @@ async fn get_book_tag(
 #[delete("/tag/{tag_id}/book/{book_id}")]
 async fn delete_book_tag(
 	id: web::Path<(TagId, BookId)>,
+	member: MemberCookie,
 	db: web::Data<Database>
 ) -> WebResult<JsonResponse<api::DeletionResponse>> {
+	let member = member.fetch(&db).await?.unwrap();
+
+	if !member.permissions.has_editing_perms() {
+		return Ok(web::Json(api::WrappingResponse::error("You cannot do this! No Permissions!")));
+	}
+
 	Ok(web::Json(api::WrappingResponse::new(api::DeletionResponse {
 		amount: BookTagModel::remove(id.1, id.0, &db).await?,
 	})))
@@ -84,9 +98,16 @@ async fn get_tags_for_book_id(
 #[post("/tag/book/{id}")]
 async fn add_book_tag(
 	book_id: web::Path<BookId>,
+	member: MemberCookie,
 	body: web::Json<api::NewBookTagBody>,
 	db: web::Data<Database>
 ) -> WebResult<JsonResponse<api::NewBookTagResponse>> {
+	let member = member.fetch(&db).await?.unwrap();
+
+	if !member.permissions.has_editing_perms() {
+		return Ok(web::Json(api::WrappingResponse::error("You cannot do this! No Permissions!")));
+	}
+
 	Ok(web::Json(api::WrappingResponse::new(api::NewBookTagResponse {
 		id: BookTagModel::insert(*book_id, body.tag_id, body.index, &db).await?.id,
 	})))

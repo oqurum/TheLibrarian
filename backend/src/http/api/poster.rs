@@ -5,7 +5,7 @@ use actix_web::{get, post, web, HttpResponse, Responder};
 use futures::TryStreamExt;
 use librarian_common::{Poster, api, Either, ImageIdType, ImageType, BookId};
 
-use crate::{WebResult, Error, store_image, database::Database, model::{BookModel, ImageLinkModel, UploadedImageModel}, http::JsonResponse};
+use crate::{WebResult, Error, store_image, database::Database, model::{BookModel, ImageLinkModel, UploadedImageModel}, http::{JsonResponse, MemberCookie}};
 
 
 
@@ -57,8 +57,15 @@ async fn get_poster_list(
 async fn post_change_poster(
 	image: web::Path<ImageIdType>,
 	body: web::Json<api::ChangePosterBody>,
+	member: MemberCookie,
 	db: web::Data<Database>
 ) -> WebResult<HttpResponse> {
+	let member = member.fetch(&db).await?.unwrap();
+
+	if !member.permissions.has_editing_perms() {
+		return Ok(HttpResponse::InternalServerError().json(api::WrappingResponse::<()>::error("You cannot do this! No Permissions!")));
+	}
+
 	match image.type_of {
 		ImageType::Book => {
 			let mut book = BookModel::get_by_id(BookId::from(image.id), &db).await?.unwrap();
@@ -105,8 +112,15 @@ async fn post_change_poster(
 async fn post_upload_poster(
 	image: web::Path<ImageIdType>,
 	mut body: web::Payload,
+	member: MemberCookie,
 	db: web::Data<Database>,
 ) -> WebResult<HttpResponse> {
+	let member = member.fetch(&db).await?.unwrap();
+
+	if !member.permissions.has_editing_perms() {
+		return Ok(HttpResponse::InternalServerError().json(api::WrappingResponse::<()>::error("You cannot do this! No Permissions!")));
+	}
+
 	match image.type_of {
 		ImageType::Book => {
 			let book = BookModel::get_by_id(BookId::from(image.id), &db).await?.unwrap();

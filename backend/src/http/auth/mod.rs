@@ -7,7 +7,7 @@ use futures::{future::LocalBoxFuture, FutureExt};
 use librarian_common::MemberId;
 use serde::{Deserialize, Serialize};
 
-use crate::Result;
+use crate::{Result, model::MemberModel, Database};
 
 pub mod password;
 pub mod passwordless;
@@ -42,6 +42,10 @@ pub struct MemberCookie(CookieAuth);
 impl MemberCookie {
 	pub fn member_id(&self) -> MemberId {
 		self.0.member_id
+	}
+
+	pub async fn fetch(&self, db: &Database) -> Result<Option<MemberModel>> {
+		MemberModel::get_by_id(self.member_id(), db).await
 	}
 }
 

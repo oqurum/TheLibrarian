@@ -133,7 +133,6 @@ async fn update_edit(
 	// Has Voting Or Admin Perms.
 	let vote_model = if let Some(vote_amount) = update.vote.as_mut() {
 		match *vote_amount {
-			// TODO: Error.
 			0 => return Ok(web::Json(api::WrappingResponse::error("You cannot do this! Invalid Vote!"))),
 
 			i32::MIN..=-1 => {
@@ -146,7 +145,6 @@ async fn update_edit(
 		}
 
 		if !member.permissions.has_voting_perms() {
-			// TODO: Error.
 			return Ok(web::Json(api::WrappingResponse::error("You cannot do this! No Permissions!")));
 		}
 

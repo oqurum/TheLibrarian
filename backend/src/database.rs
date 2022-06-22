@@ -174,6 +174,7 @@ pub async fn init() -> Result<Database> {
 		[]
 	)?;
 
+	// Image Link
 	conn.execute(
 		r#"CREATE TABLE IF NOT EXISTS "image_link" (
 			"image_id"		INTEGER NOT NULL,
@@ -249,6 +250,11 @@ pub async fn init() -> Result<Database> {
 		);"#,
 		[]
 	)?;
+
+	// TODO: Tables
+	// Recent/Queued Metadata Searches (prevent continuous searching)
+	// Fingerprints
+	// Custom Book (Fingerprint) Stylings
 
 	drop(conn);
 
