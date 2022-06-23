@@ -15,6 +15,8 @@ pub struct Property {
 	pub on_close: Callback<()>,
 	pub on_submit: Callback<BookEdit>,
 
+	// TODO: Replace both with BookEdit.
+	// TODO: Rename book_resp to left_edit, metadata to right_edit
 	pub book_resp: MediaViewResponse,
 	pub metadata: MetadataBookItem,
 }
