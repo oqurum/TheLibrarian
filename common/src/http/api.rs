@@ -9,7 +9,7 @@ use crate::{
 	SearchType, Source, Member, Poster,
 	Result, TagFE, BookTag, TagType, PersonId, TagId, ImageId, BookTagId,
 	MetadataItemCached,
-	item::edit::{SharedEditModel, SharedEditVoteModel},
+	item::edit::{SharedEditModel, SharedEditVoteModel, BookEdit},
 };
 
 
@@ -414,6 +414,22 @@ pub struct MetadataBookItem {
 
 	pub available_at: Option<String>,
 	pub language: Option<u16>
+}
+
+impl From<MetadataBookItem> for BookEdit {
+	fn from(value: MetadataBookItem) -> Self {
+		Self {
+			title: value.title,
+			description: value.description,
+			rating: Some(value.rating),
+			isbn_10: value.isbn_10,
+			isbn_13: value.isbn_13,
+			available_at: value.available_at,
+			language: value.language,
+
+			.. Self::default()
+		}
+	}
 }
 
 

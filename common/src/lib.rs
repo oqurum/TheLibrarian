@@ -4,6 +4,7 @@
 use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
+use item::edit::BookEdit;
 use serde::{Serialize, Deserialize};
 
 use util::*;
@@ -302,6 +303,22 @@ impl Default for DisplayMetaItem {
 			language: Default::default(),
 			is_public: Default::default(),
 			edition_count: Default::default(),
+		}
+	}
+}
+
+impl From<DisplayMetaItem> for BookEdit {
+	fn from(value: DisplayMetaItem) -> Self {
+		Self {
+			title: value.title,
+			description: value.description,
+			rating: Some(value.rating),
+			isbn_10: value.isbn_10,
+			isbn_13: value.isbn_13,
+			available_at: value.available_at,
+			language: value.language,
+
+			.. Self::default()
 		}
 	}
 }

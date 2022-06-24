@@ -657,8 +657,8 @@ impl Component for BookView {
 												Msg::Ignore
 											}) }
 											classes={ classes!("popup-book-edit") }
-											book_resp={ book_resp.clone() }
-											metadata={ (&**new_meta).clone() }
+											left_edit={ BookEdit::from(book_resp.metadata.clone()) }
+											right_edit={ BookEdit::from((&**new_meta).clone()) }
 										/>
 									}
 								}

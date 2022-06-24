@@ -1,6 +1,6 @@
 use std::fmt;
 
-use librarian_common::{api::{MediaViewResponse, MetadataBookItem}, item::edit::BookEdit};
+use librarian_common::item::edit::BookEdit;
 use yew::{prelude::*, html::Scope};
 
 use super::{Popup, PopupType};
@@ -15,10 +15,8 @@ pub struct Property {
 	pub on_close: Callback<()>,
 	pub on_submit: Callback<BookEdit>,
 
-	// TODO: Replace both with BookEdit.
-	// TODO: Rename book_resp to left_edit, metadata to right_edit
-	pub book_resp: MediaViewResponse,
-	pub metadata: MetadataBookItem,
+	pub left_edit: BookEdit,
+	pub right_edit: BookEdit,
 }
 
 
@@ -47,13 +45,13 @@ impl Component for PopupBookUpdateWithMeta {
 	}
 
 	fn changed(&mut self, ctx: &Context<Self>) -> bool {
-		let MediaViewResponse { metadata, .. } = &ctx.props().book_resp;
+		let left_edit = &ctx.props().left_edit;
 
-		self.edits.title = metadata.title.clone();
-		self.edits.description = metadata.description.clone();
-		self.edits.isbn_10 = metadata.isbn_10.clone();
-		self.edits.isbn_13 = metadata.isbn_13.clone();
-		self.edits.available_at = metadata.available_at.clone();
+		self.edits.title = left_edit.title.clone();
+		self.edits.description = left_edit.description.clone();
+		self.edits.isbn_10 = left_edit.isbn_10.clone();
+		self.edits.isbn_13 = left_edit.isbn_13.clone();
+		self.edits.available_at = left_edit.available_at.clone();
 
 		true
 	}
@@ -64,18 +62,18 @@ impl Component for PopupBookUpdateWithMeta {
 
 			Msg::OnClose => ctx.props().on_close.emit(()),
 			Msg::OnSubmit => {
-				let MediaViewResponse { metadata: old_meta, .. } = &ctx.props().book_resp;
+				let left_edit = &ctx.props().left_edit;
 
 				let edits = self.edits.clone();
 
 				ctx.props().on_submit.emit(BookEdit {
-					title: edits.title.or_else(|| old_meta.title.clone()),
-					clean_title: edits.clean_title.or_else(|| old_meta.clean_title.clone()),
-					description: edits.description.or_else(|| old_meta.description.clone()),
-					rating: edits.rating.or(Some(old_meta.rating)),
-					isbn_10: edits.isbn_10.or_else(|| old_meta.isbn_10.clone()),
-					isbn_13: edits.isbn_13.or_else(|| old_meta.isbn_13.clone()),
-					available_at: edits.available_at.or_else(|| old_meta.available_at.clone()),
+					title: edits.title.or_else(|| left_edit.title.clone()),
+					clean_title: edits.clean_title.or_else(|| left_edit.clean_title.clone()),
+					description: edits.description.or_else(|| left_edit.description.clone()),
+					rating: edits.rating.or(left_edit.rating),
+					isbn_10: edits.isbn_10.or_else(|| left_edit.isbn_10.clone()),
+					isbn_13: edits.isbn_13.or_else(|| left_edit.isbn_13.clone()),
+					available_at: edits.available_at.or_else(|| left_edit.available_at.clone()),
 
 					// TODO: Currently need these since BookEdit is sent to backend. If we don't have it it'll think it's unset.
 					is_public: edits.is_public,
@@ -94,16 +92,16 @@ impl Component for PopupBookUpdateWithMeta {
 			},
 
 			Msg::UpdateNew(value, is_set) => {
-				let MediaViewResponse { metadata: old_meta, .. } = &ctx.props().book_resp;
-				let new_meta = &ctx.props().metadata;
+				let left_edit = &ctx.props().left_edit;
+				let right_edit = &ctx.props().right_edit;
 
 				// TODO: Use then_some after stable.
 				match value {
-					UpdateValue::Title => self.edits.title = is_set.then(|| 0).map_or_else(|| old_meta.title.clone(), |_| new_meta.title.clone()),
-					UpdateValue::Description => self.edits.description = is_set.then(|| 0).map_or_else(|| old_meta.description.clone(), |_| new_meta.description.clone()),
-					UpdateValue::Isbn10 => self.edits.isbn_10 = is_set.then(|| 0).map_or_else(|| old_meta.isbn_10.clone(), |_| new_meta.isbn_10.clone()),
-					UpdateValue::Isbn13 => self.edits.isbn_13 = is_set.then(|| 0).map_or_else(|| old_meta.isbn_13.clone(), |_| new_meta.isbn_13.clone()),
-					UpdateValue::AvailableAt => self.edits.available_at = is_set.then(|| 0).map_or_else(|| old_meta.available_at.clone(), |_| new_meta.available_at.clone()),
+					UpdateValue::Title => self.edits.title = is_set.then(|| 0).map_or_else(|| left_edit.title.clone(), |_| right_edit.title.clone()),
+					UpdateValue::Description => self.edits.description = is_set.then(|| 0).map_or_else(|| left_edit.description.clone(), |_| right_edit.description.clone()),
+					UpdateValue::Isbn10 => self.edits.isbn_10 = is_set.then(|| 0).map_or_else(|| left_edit.isbn_10.clone(), |_| right_edit.isbn_10.clone()),
+					UpdateValue::Isbn13 => self.edits.isbn_13 = is_set.then(|| 0).map_or_else(|| left_edit.isbn_13.clone(), |_| right_edit.isbn_13.clone()),
+					UpdateValue::AvailableAt => self.edits.available_at = is_set.then(|| 0).map_or_else(|| left_edit.available_at.clone(), |_| right_edit.available_at.clone()),
 				}
 			}
 		}
@@ -135,16 +133,16 @@ impl Component for PopupBookUpdateWithMeta {
 
 impl PopupBookUpdateWithMeta {
 	fn render_body(&self, ctx: &Context<Self>) -> Html {
-		let MediaViewResponse { metadata, .. } = &ctx.props().book_resp;
-		let new_meta = &ctx.props().metadata;
+		let left_edit = &ctx.props().left_edit;
+		let right_edit = &ctx.props().right_edit;
 
 		html! {
 			<div class="body">
-				{ Self::display_row("Title", &metadata.title, &new_meta.title, UpdateValue::Title, self.edits.title.is_none(), ctx.link()) }
-				{ Self::display_row("Description", &metadata.description, &new_meta.description, UpdateValue::Description, self.edits.description.is_none(), ctx.link()) }
-				{ Self::display_row("ISBN 10", &metadata.isbn_10, &new_meta.isbn_10, UpdateValue::Isbn10, self.edits.isbn_10.is_none(), ctx.link()) }
-				{ Self::display_row("ISBN 13", &metadata.isbn_13, &new_meta.isbn_13, UpdateValue::Isbn13, self.edits.isbn_13.is_none(), ctx.link()) }
-				{ Self::display_row("Available At", &metadata.available_at, &new_meta.available_at, UpdateValue::AvailableAt, self.edits.available_at.is_none(), ctx.link()) }
+				{ Self::display_row("Title", &left_edit.title, &right_edit.title, UpdateValue::Title, self.edits.title.is_none(), ctx.link()) }
+				{ Self::display_row("Description", &left_edit.description, &right_edit.description, UpdateValue::Description, self.edits.description.is_none(), ctx.link()) }
+				{ Self::display_row("ISBN 10", &left_edit.isbn_10, &right_edit.isbn_10, UpdateValue::Isbn10, self.edits.isbn_10.is_none(), ctx.link()) }
+				{ Self::display_row("ISBN 13", &left_edit.isbn_13, &right_edit.isbn_13, UpdateValue::Isbn13, self.edits.isbn_13.is_none(), ctx.link()) }
+				{ Self::display_row("Available At", &left_edit.available_at, &right_edit.available_at, UpdateValue::AvailableAt, self.edits.available_at.is_none(), ctx.link()) }
 			</div>
 		}
 	}

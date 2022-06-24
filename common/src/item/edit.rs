@@ -129,7 +129,7 @@ mod book_edit {
 	pub type BookEditData = InnerEditData<DisplayMetaItem, BookEdit, UpdatedBookEdit>;
 
 	// TODO: Option<Option<_>> Values. Allows for only updating specific values.
-	#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+	#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 	pub struct BookEdit {
 		#[serde(skip_serializing_if = "Option::is_none")]
 		pub title: Option<String>,
