@@ -126,6 +126,14 @@ mod book_edit {
 	use crate::{DisplayMetaItem, ImageId};
 	use super::*;
 
+
+	#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+	pub enum NewOrCachedImage {
+		Url(String),
+		Id(ImageId),
+	}
+
+
 	pub type BookEditData = InnerEditData<DisplayMetaItem, BookEdit, UpdatedBookEdit>;
 
 	// TODO: Option<Option<_>> Values. Allows for only updating specific values.
@@ -168,7 +176,7 @@ mod book_edit {
 		pub removed_tags: Option<Vec<TagId>>,
 
 		#[serde(skip_serializing_if = "Option::is_none")]
-		pub added_images: Option<Vec<ImageId>>,
+		pub added_images: Option<Vec<NewOrCachedImage>>,
 		#[serde(skip_serializing_if = "Option::is_none")]
 		pub removed_images: Option<Vec<ImageId>>,
 	}

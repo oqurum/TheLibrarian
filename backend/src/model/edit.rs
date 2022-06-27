@@ -490,7 +490,21 @@ pub async fn accept_register_book_data_overwrites(
 
 	// Images
 	if let Some(values) = new.added_images {
-		for image_id in values {
+		for id_or_url in values {
+			let image_id = match id_or_url {
+				NewOrCachedImage::Id(v) => v,
+				NewOrCachedImage::Url(url) => {
+					let resp = reqwest::get(url)
+						.await?
+						.bytes()
+						.await?;
+
+					let model = crate::store_image(resp.to_vec(), db).await?;
+
+					model.id
+				}
+			};
+
 			ImageLinkModel::new_book(image_id, book_model.id)
 				.insert(db).await?;
 		}
