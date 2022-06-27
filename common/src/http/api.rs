@@ -9,7 +9,7 @@ use crate::{
 	SearchType, Source, Member, Poster,
 	Result, TagFE, BookTag, TagType, PersonId, TagId, ImageId, BookTagId,
 	MetadataItemCached,
-	item::edit::{SharedEditModel, SharedEditVoteModel, BookEdit},
+	item::edit::{SharedEditModel, SharedEditVoteModel, BookEdit, NewOrCachedImage},
 };
 
 
@@ -426,6 +426,8 @@ impl From<MetadataBookItem> for BookEdit {
 			isbn_13: value.isbn_13,
 			available_at: value.available_at,
 			language: value.language,
+
+			added_images: Some(value.thumbnails.into_iter().map(NewOrCachedImage::Url).collect::<Vec<_>>()).filter(|v| !v.is_empty()),
 
 			.. Self::default()
 		}
