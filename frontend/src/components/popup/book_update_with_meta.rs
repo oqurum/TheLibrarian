@@ -1,7 +1,7 @@
 use std::fmt;
 
 use librarian_common::item::edit::{BookEdit, NewOrCachedImage};
-use yew::{prelude::*, html::Scope};
+use yew::prelude::*;
 
 use super::{Popup, PopupType};
 
@@ -140,14 +140,14 @@ impl PopupBookUpdateWithMeta {
 
 		html! {
 			<div class="body">
-				{ Self::display_value_row("Title", &left_edit.title, &right_edit.title, UpdateValue::Title, self.edits.title.is_none(), ctx.link()) }
-				{ Self::display_value_row("Description", &left_edit.description, &right_edit.description, UpdateValue::Description, self.edits.description.is_none(), ctx.link()) }
-				{ Self::display_value_row("Rating", &left_edit.rating, &right_edit.rating, UpdateValue::Rating, self.edits.rating.is_none(), ctx.link()) }
-				{ Self::display_value_row("ISBN 10", &left_edit.isbn_10, &right_edit.isbn_10, UpdateValue::Isbn10, self.edits.isbn_10.is_none(), ctx.link()) }
-				{ Self::display_value_row("ISBN 13", &left_edit.isbn_13, &right_edit.isbn_13, UpdateValue::Isbn13, self.edits.isbn_13.is_none(), ctx.link()) }
-				{ Self::display_value_row("Available At", &left_edit.available_at, &right_edit.available_at, UpdateValue::AvailableAt, self.edits.available_at.is_none(), ctx.link()) }
+				{ Self::display_value_row("Title", &left_edit.title, &right_edit.title, UpdateValue::Title, self.edits.title.is_none(), ctx) }
+				{ Self::display_value_row("Description", &left_edit.description, &right_edit.description, UpdateValue::Description, self.edits.description.is_none(), ctx) }
+				{ Self::display_value_row("Rating", &left_edit.rating, &right_edit.rating, UpdateValue::Rating, self.edits.rating.is_none(), ctx) }
+				{ Self::display_value_row("ISBN 10", &left_edit.isbn_10, &right_edit.isbn_10, UpdateValue::Isbn10, self.edits.isbn_10.is_none(), ctx) }
+				{ Self::display_value_row("ISBN 13", &left_edit.isbn_13, &right_edit.isbn_13, UpdateValue::Isbn13, self.edits.isbn_13.is_none(), ctx) }
+				{ Self::display_value_row("Available At", &left_edit.available_at, &right_edit.available_at, UpdateValue::AvailableAt, self.edits.available_at.is_none(), ctx) }
 
-				{ Self::display_image_row("Images", &left_edit.added_images, &right_edit.added_images, UpdateValue::AddedImages, self.edits.added_images.is_none(), ctx.link()) }
+				{ Self::display_image_row("Images", &left_edit.added_images, &right_edit.added_images, UpdateValue::AddedImages, self.edits.added_images.is_none(), ctx) }
 			</div>
 		}
 	}
@@ -158,19 +158,18 @@ impl PopupBookUpdateWithMeta {
 		new: &Option<V>,
 		updating: UpdateValue,
 		is_old: bool,
-		scope: &Scope<Self>,
+		ctx: &Context<Self>,
 	) -> Html {
 		let old_selected = is_old.then(|| "selected");
 		let new_selected = (!is_old).then(|| "selected");
 
 		match (current, new) {
-			// TODO: show_equal_rows
-			(Some(old_value), Some(new_value)) if old_value != new_value => {
+			(Some(old_value), Some(new_value)) if old_value != new_value || ctx.props().show_equal_rows => {
 				html! {
 					<div class="comparison-row">
 						<div class="row-title"><span>{ title }</span></div>
-						<div class={ classes!("row-grow", old_selected) } onclick={ scope.callback(move |_| Msg::UpdateNew(updating, false)) }><div class="label">{ old_value.clone() }</div></div>
-						<div class={ classes!("row-grow", new_selected) } onclick={ scope.callback(move |_| Msg::UpdateNew(updating, true)) }><div class="label">{ new_value.clone() }</div></div>
+						<div class={ classes!("row-grow", old_selected) } onclick={ ctx.link().callback(move |_| Msg::UpdateNew(updating, false)) }><div class="label">{ old_value.clone() }</div></div>
+						<div class={ classes!("row-grow", new_selected) } onclick={ ctx.link().callback(move |_| Msg::UpdateNew(updating, true)) }><div class="label">{ new_value.clone() }</div></div>
 					</div>
 				}
 			}
@@ -179,8 +178,8 @@ impl PopupBookUpdateWithMeta {
 				html! {
 					<div class="comparison-row">
 						<div class="row-title"><span>{ title }</span></div>
-						<div class={ classes!("row-grow", old_selected) } onclick={ scope.callback(move |_| Msg::UpdateNew(updating, false)) }><div class="label">{ "(Empty)" }</div></div>
-						<div class={ classes!("row-grow", new_selected) } onclick={ scope.callback(move |_| Msg::UpdateNew(updating, true)) }><div class="label">{ new_value.clone() }</div></div>
+						<div class={ classes!("row-grow", old_selected) } onclick={ ctx.link().callback(move |_| Msg::UpdateNew(updating, false)) }><div class="label">{ "(Empty)" }</div></div>
+						<div class={ classes!("row-grow", new_selected) } onclick={ ctx.link().callback(move |_| Msg::UpdateNew(updating, true)) }><div class="label">{ new_value.clone() }</div></div>
 					</div>
 				}
 			}
@@ -195,17 +194,17 @@ impl PopupBookUpdateWithMeta {
 		new: &Option<Vec<NewOrCachedImage>>,
 		updating: UpdateValue,
 		is_old: bool,
-		scope: &Scope<Self>,
+		ctx: &Context<Self>,
 	) -> Html {
 		let old_selected = is_old.then(|| "selected");
 		let new_selected = (!is_old).then(|| "selected");
 
 		match (current, new) {
-			(Some(old_images), Some(new_images)) if old_images != new_images => {
+			(Some(old_images), Some(new_images)) if old_images != new_images || ctx.props().show_equal_rows => {
 				html! {
 					<div class="comparison-row">
 						<div class="row-title"><span>{ title }</span></div>
-						<div class={ classes!("row-grow", old_selected) } onclick={ scope.callback(move |_| Msg::UpdateNew(updating, false)) }>
+						<div class={ classes!("row-grow", old_selected) } onclick={ ctx.link().callback(move |_| Msg::UpdateNew(updating, false)) }>
 							{
 								for old_images.iter().map(|v| {
 									html! {
@@ -218,7 +217,7 @@ impl PopupBookUpdateWithMeta {
 								})
 							}
 						</div>
-						<div class={ classes!("row-grow", new_selected) } onclick={ scope.callback(move |_| Msg::UpdateNew(updating, true)) }>
+						<div class={ classes!("row-grow", new_selected) } onclick={ ctx.link().callback(move |_| Msg::UpdateNew(updating, true)) }>
 						{
 							for new_images.iter().map(|v| {
 								html! {
@@ -239,10 +238,10 @@ impl PopupBookUpdateWithMeta {
 				html! {
 					<div class="comparison-row">
 						<div class="row-title"><span>{ title }</span></div>
-						<div class={ classes!("row-grow", old_selected) } onclick={ scope.callback(move |_| Msg::UpdateNew(updating, false)) }>
+						<div class={ classes!("row-grow", old_selected) } onclick={ ctx.link().callback(move |_| Msg::UpdateNew(updating, false)) }>
 							<div class="label">{ "(Empty)" }</div>
 						</div>
-						<div class={ classes!("row-grow", new_selected) } onclick={ scope.callback(move |_| Msg::UpdateNew(updating, true)) }>
+						<div class={ classes!("row-grow", new_selected) } onclick={ ctx.link().callback(move |_| Msg::UpdateNew(updating, true)) }>
 						{
 							for new_images.iter().map(|v| {
 								html! {
