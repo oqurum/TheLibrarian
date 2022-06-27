@@ -421,7 +421,7 @@ impl From<MetadataBookItem> for BookEdit {
 		Self {
 			title: value.title,
 			description: value.description,
-			rating: Some(value.rating),
+			rating: Some(value.rating).filter(|v|*v != 0.0),
 			isbn_10: value.isbn_10,
 			isbn_13: value.isbn_13,
 			available_at: value.available_at,
