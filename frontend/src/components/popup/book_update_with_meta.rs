@@ -97,6 +97,7 @@ impl Component for PopupBookUpdateWithMeta {
 				// TODO: Use then_some after stable.
 				match value {
 					UpdateValue::Title => self.edits.title = is_set.then(|| 0).map_or_else(|| left_edit.title.clone(), |_| right_edit.title.clone()),
+					UpdateValue::CleanTitle => self.edits.clean_title = is_set.then(|| 0).map_or_else(|| left_edit.clean_title.clone(), |_| right_edit.clean_title.clone()),
 					UpdateValue::Description => self.edits.description = is_set.then(|| 0).map_or_else(|| left_edit.description.clone(), |_| right_edit.description.clone()),
 					UpdateValue::Rating => self.edits.rating = is_set.then(|| 0).map_or_else(|| left_edit.rating, |_| right_edit.rating),
 					UpdateValue::Isbn10 => self.edits.isbn_10 = is_set.then(|| 0).map_or_else(|| left_edit.isbn_10.clone(), |_| right_edit.isbn_10.clone()),
@@ -141,6 +142,7 @@ impl PopupBookUpdateWithMeta {
 		html! {
 			<div class="body">
 				{ Self::display_value_row("Title", &left_edit.title, &right_edit.title, UpdateValue::Title, self.edits.title.is_none(), ctx) }
+				{ Self::display_value_row("Clean Title", &left_edit.clean_title, &right_edit.clean_title, UpdateValue::CleanTitle, self.edits.clean_title.is_none(), ctx) }
 				{ Self::display_value_row("Description", &left_edit.description, &right_edit.description, UpdateValue::Description, self.edits.description.is_none(), ctx) }
 				{ Self::display_value_row("Rating", &left_edit.rating, &right_edit.rating, UpdateValue::Rating, self.edits.rating.is_none(), ctx) }
 				{ Self::display_value_row("ISBN 10", &left_edit.isbn_10, &right_edit.isbn_10, UpdateValue::Isbn10, self.edits.isbn_10.is_none(), ctx) }
@@ -267,6 +269,7 @@ impl PopupBookUpdateWithMeta {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum UpdateValue {
 	Title,
+	CleanTitle,
 	Description,
 	Rating,
 	Isbn10,
