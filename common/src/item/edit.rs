@@ -123,6 +123,8 @@ fn is_false(value: &bool) -> bool {
 
 
 mod book_edit {
+	use std::borrow::Cow;
+
 	use crate::{DisplayMetaItem, ImageId};
 	use super::*;
 
@@ -131,6 +133,15 @@ mod book_edit {
 	pub enum NewOrCachedImage {
 		Url(String),
 		Id(ImageId),
+	}
+
+	impl NewOrCachedImage {
+		pub fn as_url(&self) -> Cow<str> {
+			match self {
+				Self::Url(v) => Cow::Borrowed(v.as_str()),
+				Self::Id(v) => Cow::Owned(format!("/api/v1/book/{v}/thumbnail")),
+			}
+		}
 	}
 
 
