@@ -1,6 +1,6 @@
 use std::fmt;
 
-use librarian_common::item::edit::BookEdit;
+use librarian_common::item::edit::{BookEdit, NewOrCachedImage};
 use yew::{prelude::*, html::Scope};
 
 use super::{Popup, PopupType};
@@ -17,6 +17,9 @@ pub struct Property {
 
 	pub left_edit: BookEdit,
 	pub right_edit: BookEdit,
+
+	#[prop_or_default]
+	pub show_equal_rows: bool,
 }
 
 
@@ -47,11 +50,7 @@ impl Component for PopupBookUpdateWithMeta {
 	fn changed(&mut self, ctx: &Context<Self>) -> bool {
 		let left_edit = &ctx.props().left_edit;
 
-		self.edits.title = left_edit.title.clone();
-		self.edits.description = left_edit.description.clone();
-		self.edits.isbn_10 = left_edit.isbn_10.clone();
-		self.edits.isbn_13 = left_edit.isbn_13.clone();
-		self.edits.available_at = left_edit.available_at.clone();
+		self.edits = left_edit.clone();
 
 		true
 	}
@@ -84,7 +83,7 @@ impl Component for PopupBookUpdateWithMeta {
 					// removed_people: edits.removed_people,
 					// added_tags: edits.added_tags,
 					// removed_tags: edits.removed_tags,
-					// added_images: edits.added_images,
+					added_images: edits.added_images.or_else(|| left_edit.added_images.clone()),
 					// removed_images: edits.removed_images,
 
 					.. BookEdit::default()
@@ -99,9 +98,12 @@ impl Component for PopupBookUpdateWithMeta {
 				match value {
 					UpdateValue::Title => self.edits.title = is_set.then(|| 0).map_or_else(|| left_edit.title.clone(), |_| right_edit.title.clone()),
 					UpdateValue::Description => self.edits.description = is_set.then(|| 0).map_or_else(|| left_edit.description.clone(), |_| right_edit.description.clone()),
+					UpdateValue::Rating => self.edits.rating = is_set.then(|| 0).map_or_else(|| left_edit.rating, |_| right_edit.rating),
 					UpdateValue::Isbn10 => self.edits.isbn_10 = is_set.then(|| 0).map_or_else(|| left_edit.isbn_10.clone(), |_| right_edit.isbn_10.clone()),
 					UpdateValue::Isbn13 => self.edits.isbn_13 = is_set.then(|| 0).map_or_else(|| left_edit.isbn_13.clone(), |_| right_edit.isbn_13.clone()),
 					UpdateValue::AvailableAt => self.edits.available_at = is_set.then(|| 0).map_or_else(|| left_edit.available_at.clone(), |_| right_edit.available_at.clone()),
+
+					UpdateValue::AddedImages => self.edits.added_images = is_set.then(|| 0).map_or_else(|| left_edit.added_images.clone(), |_| right_edit.added_images.clone()),
 				}
 			}
 		}
@@ -138,16 +140,19 @@ impl PopupBookUpdateWithMeta {
 
 		html! {
 			<div class="body">
-				{ Self::display_row("Title", &left_edit.title, &right_edit.title, UpdateValue::Title, self.edits.title.is_none(), ctx.link()) }
-				{ Self::display_row("Description", &left_edit.description, &right_edit.description, UpdateValue::Description, self.edits.description.is_none(), ctx.link()) }
-				{ Self::display_row("ISBN 10", &left_edit.isbn_10, &right_edit.isbn_10, UpdateValue::Isbn10, self.edits.isbn_10.is_none(), ctx.link()) }
-				{ Self::display_row("ISBN 13", &left_edit.isbn_13, &right_edit.isbn_13, UpdateValue::Isbn13, self.edits.isbn_13.is_none(), ctx.link()) }
-				{ Self::display_row("Available At", &left_edit.available_at, &right_edit.available_at, UpdateValue::AvailableAt, self.edits.available_at.is_none(), ctx.link()) }
+				{ Self::display_value_row("Title", &left_edit.title, &right_edit.title, UpdateValue::Title, self.edits.title.is_none(), ctx.link()) }
+				{ Self::display_value_row("Description", &left_edit.description, &right_edit.description, UpdateValue::Description, self.edits.description.is_none(), ctx.link()) }
+				{ Self::display_value_row("Rating", &left_edit.rating, &right_edit.rating, UpdateValue::Rating, self.edits.rating.is_none(), ctx.link()) }
+				{ Self::display_value_row("ISBN 10", &left_edit.isbn_10, &right_edit.isbn_10, UpdateValue::Isbn10, self.edits.isbn_10.is_none(), ctx.link()) }
+				{ Self::display_value_row("ISBN 13", &left_edit.isbn_13, &right_edit.isbn_13, UpdateValue::Isbn13, self.edits.isbn_13.is_none(), ctx.link()) }
+				{ Self::display_value_row("Available At", &left_edit.available_at, &right_edit.available_at, UpdateValue::AvailableAt, self.edits.available_at.is_none(), ctx.link()) }
+
+				{ Self::display_image_row("Images", &left_edit.added_images, &right_edit.added_images, UpdateValue::AddedImages, self.edits.added_images.is_none(), ctx.link()) }
 			</div>
 		}
 	}
 
-	fn display_row<V: Clone + Default + fmt::Display + PartialEq + fmt::Debug>(
+	fn display_value_row<V: Clone + Default + fmt::Display + PartialEq + fmt::Debug>(
 		title: &'static str,
 		current: &Option<V>,
 		new: &Option<V>,
@@ -159,6 +164,7 @@ impl PopupBookUpdateWithMeta {
 		let new_selected = (!is_old).then(|| "selected");
 
 		match (current, new) {
+			// TODO: show_equal_rows
 			(Some(old_value), Some(new_value)) if old_value != new_value => {
 				html! {
 					<div class="comparison-row">
@@ -182,6 +188,80 @@ impl PopupBookUpdateWithMeta {
 			_ => html! {},
 		}
 	}
+
+	fn display_image_row(
+		title: &'static str,
+		current: &Option<Vec<NewOrCachedImage>>,
+		new: &Option<Vec<NewOrCachedImage>>,
+		updating: UpdateValue,
+		is_old: bool,
+		scope: &Scope<Self>,
+	) -> Html {
+		let old_selected = is_old.then(|| "selected");
+		let new_selected = (!is_old).then(|| "selected");
+
+		match (current, new) {
+			(Some(old_images), Some(new_images)) if old_images != new_images => {
+				html! {
+					<div class="comparison-row">
+						<div class="row-title"><span>{ title }</span></div>
+						<div class={ classes!("row-grow", old_selected) } onclick={ scope.callback(move |_| Msg::UpdateNew(updating, false)) }>
+							{
+								for old_images.iter().map(|v| {
+									html! {
+										<div class="label">
+											<div class="poster">
+												<img src={ v.as_url().into_owned() } />
+											</div>
+										</div>
+									}
+								})
+							}
+						</div>
+						<div class={ classes!("row-grow", new_selected) } onclick={ scope.callback(move |_| Msg::UpdateNew(updating, true)) }>
+						{
+							for new_images.iter().map(|v| {
+								html! {
+									<div class="label">
+										<div class="poster">
+											<img src={ v.as_url().into_owned() } />
+										</div>
+									</div>
+								}
+							})
+						}
+						</div>
+					</div>
+				}
+			}
+
+			(None, Some(new_images)) => {
+				html! {
+					<div class="comparison-row">
+						<div class="row-title"><span>{ title }</span></div>
+						<div class={ classes!("row-grow", old_selected) } onclick={ scope.callback(move |_| Msg::UpdateNew(updating, false)) }>
+							<div class="label">{ "(Empty)" }</div>
+						</div>
+						<div class={ classes!("row-grow", new_selected) } onclick={ scope.callback(move |_| Msg::UpdateNew(updating, true)) }>
+						{
+							for new_images.iter().map(|v| {
+								html! {
+									<div class="label">
+										<div class="poster">
+											<img src={ v.as_url().into_owned() } />
+										</div>
+									</div>
+								}
+							})
+						}
+						</div>
+					</div>
+				}
+			}
+
+			_ => html! {},
+		}
+	}
 }
 
 
@@ -189,7 +269,10 @@ impl PopupBookUpdateWithMeta {
 pub enum UpdateValue {
 	Title,
 	Description,
+	Rating,
 	Isbn10,
 	Isbn13,
 	AvailableAt,
+
+	AddedImages,
 }

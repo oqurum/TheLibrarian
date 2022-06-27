@@ -880,12 +880,8 @@ hr {
 .popup-comparison-edit {
 	width: 58%;
 
-	.header {
-		//
-	}
-
-	.footer {
-		//
+	.body {
+		overflow-y: auto;
 	}
 
 	.content {
