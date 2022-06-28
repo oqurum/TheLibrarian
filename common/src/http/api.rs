@@ -196,7 +196,7 @@ pub struct GetLibrariesResponse {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NewBookBody {
-	pub source: Source,
+	pub value: Either<Source, BookEdit>,
 }
 
 

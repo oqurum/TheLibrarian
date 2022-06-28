@@ -1,11 +1,12 @@
 use actix_web::{get, web, HttpResponse, post};
 
-use librarian_common::item::edit::BookEdit;
-use librarian_common::{api, DisplayItem, BookId, PersonId};
+use chrono::Utc;
+use librarian_common::item::edit::{BookEdit, NewOrCachedImage};
+use librarian_common::{api, DisplayItem, BookId, PersonId, Either, MetadataItemCached, ThumbnailStore};
 
 use crate::http::{MemberCookie, JsonResponse};
 use crate::metadata::MetadataReturned;
-use crate::model::{NewUploadedImageModel, BookPersonModel, BookModel, BookTagWithTagModel, PersonModel, NewEditModel, ImageLinkModel};
+use crate::model::{NewUploadedImageModel, BookPersonModel, BookModel, BookTagWithTagModel, PersonModel, NewEditModel, ImageLinkModel, UploadedImageModel};
 use crate::{WebResult, metadata, Error};
 use crate::database::Database;
 
@@ -17,46 +18,118 @@ pub async fn add_new_book(
 	member: MemberCookie,
 	db: web::Data<Database>,
 ) -> WebResult<HttpResponse> {
+	let body = body.into_inner();
+
 	let member = member.fetch(&db).await?.unwrap();
 
 	if !member.permissions.has_editing_perms() {
 		return Ok(HttpResponse::InternalServerError().json(api::WrappingResponse::<()>::error("You cannot do this! No Permissions!")));
 	}
 
-	if let Some(mut meta) = metadata::get_metadata_by_source(&body.source, true).await? {
-		let (main_author, author_ids) = meta.add_or_ignore_authors_into_database(&db).await?;
+	match body.value {
+		Either::Left(source) => {
+			if let Some(mut meta) = metadata::get_metadata_by_source(&source, true).await? {
+				let (main_author, author_ids) = meta.add_or_ignore_authors_into_database(&db).await?;
 
-		let MetadataReturned { mut meta, publisher, .. } = meta;
-		let mut posters_to_add = Vec::new();
+				let MetadataReturned { mut meta, publisher, .. } = meta;
+				let mut posters_to_add = Vec::new();
 
-		for item in meta.thumb_locations.iter_mut().filter(|v| v.is_url()) {
-			item.download(&db).await?;
+				for item in meta.thumb_locations.iter_mut().filter(|v| v.is_url()) {
+					item.download(&db).await?;
 
-			if let Some(v) = item.as_local_value().cloned() {
-				posters_to_add.push(v);
+					if let Some(v) = item.as_local_value().cloned() {
+						posters_to_add.push(v);
+					}
+				}
+
+				let mut db_book: BookModel = meta.into();
+
+				db_book.cached = db_book.cached.publisher_optional(publisher).author_optional(main_author);
+
+				db_book.add_or_update_book(&db).await?;
+
+				for path in posters_to_add {
+					let model = NewUploadedImageModel::new(path).insert(&db).await?;
+					ImageLinkModel::new_book(model.id, db_book.id).insert(&db).await?;
+				}
+
+				for person_id in author_ids {
+					let model = BookPersonModel {
+						book_id: db_book.id,
+						person_id,
+					};
+
+					model.insert(&db).await?;
+				}
 			}
 		}
 
-		let mut db_book: BookModel = meta.into();
+		Either::Right(book) => {
+			let mut thumb_path = ThumbnailStore::None;
 
-		db_book.cached = db_book.cached.publisher_optional(publisher).author_optional(main_author);
+			// Used to link to the newly created book
+			let mut uploaded_images = Vec::new();
 
-		db_book.add_or_update_book(&db).await?;
+			// Upload images and set the new book image.
+			if let Some(added_images) = book.added_images.as_ref() {
+				for id_or_url in added_images {
+					match id_or_url {
+						&NewOrCachedImage::Id(id) => {
+							uploaded_images.push(id);
 
-		for path in posters_to_add {
-			let model = NewUploadedImageModel::new(path).insert(&db).await?;
-			ImageLinkModel::new_book(model.id, db_book.id).insert(&db).await?;
-		}
+							if thumb_path.is_none() {
+								let image = UploadedImageModel::get_by_id(id, &db).await?.unwrap();
 
-		for person_id in author_ids {
-			let model = BookPersonModel {
-				book_id: db_book.id,
-				person_id,
+								thumb_path = image.path;
+							}
+						}
+
+						NewOrCachedImage::Url(url) => {
+							let resp = reqwest::get(url)
+								.await.map_err(Error::from)?
+								.bytes()
+								.await.map_err(Error::from)?;
+
+							let model = crate::store_image(resp.to_vec(), &db).await?;
+
+							if thumb_path.is_none() {
+								thumb_path = model.path;
+							}
+
+							uploaded_images.push(model.id);
+						}
+					}
+				}
+			}
+
+			let mut book_model = BookModel {
+				id: BookId::none(),
+				title: book.title,
+				clean_title: book.clean_title,
+				description: book.description,
+				rating: book.rating.unwrap_or_default(),
+				thumb_path: ThumbnailStore::None,
+				cached: MetadataItemCached::default().publisher_optional(book.publisher),
+				isbn_10: book.isbn_10,
+				isbn_13: book.isbn_13,
+				is_public: book.is_public.unwrap_or_default(),
+				available_at: book.available_at,
+				language: book.language,
+				edition_count: 0,
+				created_at: Utc::now(),
+				updated_at: Utc::now(),
+				deleted_at: None,
 			};
 
-			model.insert(&db).await?;
+			book_model.add_or_update_book(&db).await?;
+
+			for image_id in uploaded_images {
+				ImageLinkModel::new_book(image_id, book_model.id)
+					.insert(&db).await?;
+			}
 		}
 	}
+
 
 	Ok(HttpResponse::Ok().finish())
 }

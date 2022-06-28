@@ -187,8 +187,9 @@ impl Component for HomePage {
 										{input_value}
 										search_for={ SearchType::Book }
 										on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
-										on_select={ ctx.link().callback_future(|source| async {
-											request::new_book(source).await;
+										on_select={ ctx.link().callback_future(|value| async {
+											request::new_book(value).await;
+
 											Msg::Ignore
 										}) }
 									/>

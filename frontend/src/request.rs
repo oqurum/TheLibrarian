@@ -228,12 +228,12 @@ pub async fn get_person(id: PersonId) -> WrappingResponse<GetPersonResponse> {
 
 // Books
 
-pub async fn new_book(value: Source) {
+pub async fn new_book(value: Either<Source, BookEdit>) {
 	let _: Option<String> = fetch(
 		"POST",
 		"/api/v1/book",
 		Some(&NewBookBody {
-			source: value
+			value
 		})
 	).await.ok();
 }

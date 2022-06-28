@@ -1,4 +1,4 @@
-use librarian_common::{api::{ExternalSearchResponse, SearchItem, self}, SearchType, Source, util::string_to_upper_case, item::edit::BookEdit};
+use librarian_common::{api::{SearchItem, self}, SearchType, Source, util::string_to_upper_case, item::edit::BookEdit, Either};
 use gloo_utils::document;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlInputElement;
@@ -6,7 +6,7 @@ use yew::prelude::*;
 
 use crate::{request, util::{self, LoadingItem}};
 
-use super::{Popup, PopupType, YEW_CLOSE_POPUP};
+use super::{Popup, PopupType, book_update_with_meta::PopupBookUpdateWithMeta};
 
 
 #[derive(Properties, PartialEq)]
@@ -15,7 +15,7 @@ pub struct Property {
     pub classes: Classes,
 
 	pub on_close: Callback<()>,
-	pub on_select: Callback<Source>,
+	pub on_select: Callback<Either<Source, BookEdit>>,
 
 	pub input_value: String,
 	pub search_for: SearchType,
@@ -23,26 +23,32 @@ pub struct Property {
 
 
 pub enum Msg {
-	BookSearchResponse(String, api::WrappingResponse<ExternalSearchResponse>),
+	BookSearchResponse(String, api::WrappingResponse<api::ExternalSearchResponse>),
+	BookItemResponse(Source, api::WrappingResponse<api::ExternalSourceItemResponse>),
 
 	SearchFor(String),
 
 	OnChangeTab(String),
 
-	OnSelect(Source),
+	OnSelectItem(Source),
+
+	OnSubmitSingle,
+	OnSubmitCompare(BookEdit),
 
 	Ignore,
 }
 
 
 pub struct PopupSearch {
-	cached_posters: Option<LoadingItem<api::WrappingResponse<ExternalSearchResponse>>>,
+	cached_posters: Option<LoadingItem<api::WrappingResponse<api::ExternalSearchResponse>>>,
 	input_value: String,
 
-	left_edit: Option<BookEdit>,
-	right_edit: Option<BookEdit>,
+	left_edit: Option<(BookEdit, Source)>,
+	right_edit: Option<(BookEdit, Source)>,
 
 	selected_tab: String,
+
+	waiting_item_resp: bool,
 }
 
 impl Component for PopupSearch {
@@ -58,6 +64,8 @@ impl Component for PopupSearch {
 			right_edit: None,
 
 			selected_tab: String::new(),
+
+			waiting_item_resp: false,
 		}
 	}
 
@@ -89,8 +97,38 @@ impl Component for PopupSearch {
 				self.input_value = search;
 			}
 
-			Msg::OnSelect(source) => {
-				ctx.props().on_select.emit(source);
+			Msg::BookItemResponse(source, resp) => {
+				if let Some(item) = resp.resp.and_then(|v| v.item) {
+					if self.left_edit.is_none() {
+						self.left_edit = Some((item.into(), source));
+					} else {
+						self.right_edit = Some((item.into(), source));
+					}
+				}
+
+				self.waiting_item_resp = false;
+			}
+
+			Msg::OnSelectItem(source) => {
+				if self.waiting_item_resp {
+					return false;
+				}
+
+				self.waiting_item_resp = true;
+
+				ctx.link().send_future(async move {
+					Msg::BookItemResponse(source.clone(), request::get_external_source_item(source).await)
+				});
+			}
+
+			Msg::OnSubmitSingle => {
+				if let Some((_, source)) = self.left_edit.as_ref() {
+					ctx.props().on_select.emit(Either::Left(source.clone()));
+				}
+			}
+
+			Msg::OnSubmitCompare(book) => {
+				ctx.props().on_select.emit(Either::Right(book));
 			}
 
 			Msg::OnChangeTab(name) => {
@@ -102,6 +140,16 @@ impl Component for PopupSearch {
 	}
 
 	fn view(&self, ctx: &Context<Self>) -> Html {
+		if let Some(((left, _), (right, _))) = self.left_edit.clone().zip(self.right_edit.clone()) {
+			self.render_compare(left, right, ctx)
+		} else {
+			self.render_main(ctx)
+		}
+	}
+}
+
+impl PopupSearch {
+	fn render_main(&self, ctx: &Context<Self>) -> Html {
 		let input_id = "external-book-search-input";
 
 		html! {
@@ -180,22 +228,35 @@ impl Component for PopupSearch {
 				<hr />
 
 				{
-					match (self.left_edit.is_some(), self.right_edit.is_some()) {
-						(true, false) => html! {
-							<>
-								<button>{ "Insert" }</button>
-							</>
-						},
+					if self.left_edit.is_some() {
+						html! {
+							<div>
+								<button onclick={ ctx.link().callback(|_| Msg::OnSubmitSingle) }>{ "Insert (Single)" }</button>
+								<button disabled={ true }>{ "Insert (Compared)" }</button>
 
-						_ => html! {}
+								<span class="yellow">{ "Select another to be able to compare and insert" }</span>
+							</div>
+						}
+					} else {
+						html! {}
 					}
 				}
 			</Popup>
 		}
 	}
-}
 
-impl PopupSearch {
+	fn render_compare(&self, left_edit: BookEdit, right_edit: BookEdit, ctx: &Context<Self>) -> Html {
+		html! {
+			<PopupBookUpdateWithMeta
+				{left_edit}
+				{right_edit}
+				show_equal_rows={ true }
+				on_close={ ctx.props().on_close.clone() }
+				on_submit={ ctx.link().callback(Msg::OnSubmitCompare) }
+			/>
+		}
+	}
+
 	fn render_poster_container(site: &str, item: &SearchItem, ctx: &Context<Self>) -> Html {
 		let item = item.as_book();
 
@@ -204,8 +265,7 @@ impl PopupSearch {
 		html! {
 			<div
 				class="book-search-item"
-				{YEW_CLOSE_POPUP}
-				onclick={ ctx.link().callback(move |_| Msg::OnSelect(source.clone())) }
+				onclick={ ctx.link().callback(move |_| Msg::OnSelectItem(source.clone())) }
 			>
 				<img src={ item.thumbnail_url.to_string() } />
 				<div class="book-info">

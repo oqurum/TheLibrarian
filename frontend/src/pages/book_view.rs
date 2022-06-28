@@ -1,5 +1,5 @@
 use js_sys::Date;
-use librarian_common::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse, MetadataBookItem, self}, Either, TagType, LANGUAGES, util::string_to_upper_case, BookId, TagId, item::edit::BookEdit, TagFE, ImageIdType, SearchType};
+use librarian_common::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse, self}, Either, TagType, LANGUAGES, util::string_to_upper_case, BookId, TagId, item::edit::BookEdit, TagFE, ImageIdType, SearchType};
 use wasm_bindgen::{JsCast, JsValue, UnwrapThrowExt};
 use web_sys::{HtmlInputElement, HtmlTextAreaElement, HtmlSelectElement};
 use yew::{prelude::*, html::Scope};
@@ -658,7 +658,7 @@ impl Component for BookView {
 											}) }
 											classes={ classes!("popup-book-edit") }
 											left_edit={ BookEdit::from(book_resp.metadata.clone()) }
-											right_edit={ BookEdit::from((&**new_meta).clone()) }
+											right_edit={ new_meta.clone() }
 										/>
 									}
 								}
@@ -681,10 +681,18 @@ impl Component for BookView {
 											{input_value}
 											search_for={ SearchType::Book }
 											on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
-											on_select={ ctx.link().callback_future(|source| async {
-												let resp = request::get_external_source_item(source).await.ok().unwrap_throw();
+											on_select={ ctx.link().callback_future(|value| async {
+												Msg::ShowPopup(DisplayOverlay::EditFromMetadata(
+													match value {
+														Either::Left(source) => {
+															let resp = request::get_external_source_item(source).await.ok().unwrap_throw();
 
-												Msg::ShowPopup(DisplayOverlay::EditFromMetadata(Box::new(resp.item.unwrap())))
+															resp.item.unwrap().into()
+														}
+
+														Either::Right(book) => book,
+													}
+												))
 											}) }
 										/>
 									}
@@ -782,7 +790,7 @@ pub enum ChangingType {
 pub enum DisplayOverlay {
 	Edit(Box<api::WrappingResponse<MediaViewResponse>>),
 
-	EditFromMetadata(Box<MetadataBookItem>),
+	EditFromMetadata(BookEdit),
 
 	More {
 		book_id: BookId,
