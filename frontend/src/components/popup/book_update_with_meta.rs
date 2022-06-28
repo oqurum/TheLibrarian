@@ -41,16 +41,14 @@ impl Component for PopupBookUpdateWithMeta {
 	type Message = Msg;
 	type Properties = Property;
 
-	fn create(_ctx: &Context<Self>) -> Self {
+	fn create(ctx: &Context<Self>) -> Self {
 		Self {
-			edits: BookEdit::default(),
+			edits: ctx.props().left_edit.clone(),
 		}
 	}
 
 	fn changed(&mut self, ctx: &Context<Self>) -> bool {
-		let left_edit = &ctx.props().left_edit;
-
-		self.edits = left_edit.clone();
+		self.edits = ctx.props().left_edit.clone();
 
 		true
 	}
@@ -120,7 +118,7 @@ impl Component for PopupBookUpdateWithMeta {
 				classes={ classes!("popup-comparison-edit") }
 			>
 				<div class="header">
-					<h2>{ "Book Update" }</h2>
+					<h2>{ "Book Comparison" }</h2>
 				</div>
 
 				{ self.render_body(ctx) }
@@ -149,7 +147,7 @@ impl PopupBookUpdateWithMeta {
 				{ Self::display_value_row("ISBN 13", &left_edit.isbn_13, &right_edit.isbn_13, UpdateValue::Isbn13, self.edits.isbn_13.is_none(), ctx) }
 				{ Self::display_value_row("Available At", &left_edit.available_at, &right_edit.available_at, UpdateValue::AvailableAt, self.edits.available_at.is_none(), ctx) }
 
-				{ Self::display_image_row("Images", &left_edit.added_images, &right_edit.added_images, UpdateValue::AddedImages, self.edits.added_images.is_none(), ctx) }
+				{ Self::display_image_row("Images", &left_edit.added_images, &right_edit.added_images, &self.edits.added_images, UpdateValue::AddedImages, ctx) }
 			</div>
 		}
 	}
@@ -192,16 +190,16 @@ impl PopupBookUpdateWithMeta {
 
 	fn display_image_row(
 		title: &'static str,
-		current: &Option<Vec<NewOrCachedImage>>,
-		new: &Option<Vec<NewOrCachedImage>>,
+		left_value: &Option<Vec<NewOrCachedImage>>,
+		right_value: &Option<Vec<NewOrCachedImage>>,
+		current_value: &Option<Vec<NewOrCachedImage>>,
 		updating: UpdateValue,
-		is_old: bool,
 		ctx: &Context<Self>,
 	) -> Html {
-		let old_selected = is_old.then(|| "selected");
-		let new_selected = (!is_old).then(|| "selected");
+		let old_selected = (current_value == left_value).then(|| "selected");
+		let new_selected = (current_value != left_value).then(|| "selected");
 
-		match (current, new) {
+		match (left_value, right_value) {
 			(Some(old_images), Some(new_images)) if old_images != new_images || ctx.props().show_equal_rows => {
 				html! {
 					<div class="comparison-row">
