@@ -3,17 +3,6 @@ use yew::prelude::*;
 use super::{Popup, PopupType};
 
 
-// TODO: Implement.
-#[derive(Clone, Copy)]
-pub enum ButtonPopupPosition {
-	Top,
-	Bottom,
-	Left,
-	Right,
-}
-
-
-
 #[derive(Properties, PartialEq)]
 pub struct Property {
 	#[prop_or_default]

@@ -3,7 +3,7 @@ use std::{rc::Rc, sync::Mutex};
 use librarian_common::{api, DisplayItem, BookId, SearchType};
 use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
 use web_sys::{HtmlElement, UrlSearchParams, HtmlInputElement};
-use yew::{prelude::*, html::Scope};
+use yew::prelude::*;
 use yew_router::prelude::Link;
 
 use crate::{Route, request, components::{PopupSearch, MassSelectBar}};
@@ -242,25 +242,6 @@ impl Component for HomePage {
 }
 
 impl HomePage {
-	/// A Callback which calls "prevent_default" and "stop_propagation"
-	///
-	/// Also will prevent any more same events downstream from activating
-	fn on_click_prevdef_stopprop(scope: &Scope<Self>, msg: Msg) -> Callback<MouseEvent> {
-		scope.callback(move |e: MouseEvent| {
-			e.prevent_default();
-			e.stop_propagation();
-			msg.clone()
-		})
-	}
-
-	/// A Callback which calls "prevent_default"
-	fn on_click_prevdef(scope: &Scope<Self>, msg: Msg) -> Callback<MouseEvent> {
-		scope.callback(move |e: MouseEvent| {
-			e.prevent_default();
-			msg.clone()
-		})
-	}
-
 	// fn render_placeholder_item() -> Html {
 	// 	html! {
 	// 		<div class="library-item placeholder">
@@ -370,20 +351,6 @@ impl Component for MediaItem {
 	}
 }
 
-
-
-
-#[derive(Clone)]
-pub enum PosterItem {
-	// Poster Specific Buttons
-	ShowPopup(DisplayOverlay),
-
-	// Popup Events
-	UpdateMetaBySource(usize),
-
-	// Popup Events
-	UpdateMetaByFiles(usize),
-}
 
 #[derive(Clone)]
 pub enum DisplayOverlay {

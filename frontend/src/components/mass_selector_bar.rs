@@ -28,9 +28,6 @@ impl PartialEq for Property {
 
 #[derive(Clone)]
 pub enum Msg {
-	Ignore,
-	TogglePopup,
-
 	UpdateMetaByFiles,
 }
 
@@ -53,14 +50,10 @@ impl Component for MassSelectBar {
 
 	fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
 		match msg {
-			Msg::TogglePopup => {
-				self.popup_open = !self.popup_open;
-			}
-
 			Msg::UpdateMetaByFiles => {
 				self.popup_open = false;
 
-				let meta_ids = {
+				let _meta_ids = {
 					let items = ctx.props().editing_items.lock().unwrap();
 					items.clone()
 				};
@@ -74,8 +67,6 @@ impl Component for MassSelectBar {
 				// 	Msg::Ignore
 				// });
 			}
-
-			Msg::Ignore => return false,
 		}
 
 		true

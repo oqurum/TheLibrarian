@@ -34,8 +34,6 @@ pub enum Msg {
 
 	OnSubmitSingle,
 	OnSubmitCompare(BookEdit),
-
-	Ignore,
 }
 
 
@@ -71,10 +69,6 @@ impl Component for PopupSearch {
 
 	fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
 		match msg {
-			Msg::Ignore => {
-				return false;
-			}
-
 			Msg::SearchFor(search) => {
 				self.cached_posters = Some(LoadingItem::Loading);
 

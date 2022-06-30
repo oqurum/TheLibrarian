@@ -32,7 +32,6 @@ pub enum Msg {
 	ShowPopup(DisplayOverlay),
 	ClosePopup,
 
-	Update,
 	Ignore
 }
 
@@ -77,7 +76,6 @@ impl Component for BookView {
 
 	fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
 		match msg {
-			Msg::Update => (),
 			Msg::Ignore => return false,
 
 			// Multiselect
@@ -205,8 +203,8 @@ impl Component for BookView {
 					ChangingType::Title => updating.title = value,
 					ChangingType::OriginalTitle => updating.clean_title = value,
 					ChangingType::Description => updating.description = value,
-					ChangingType::Rating => updating.rating = value.and_then(|v| v.parse().ok()),
-					ChangingType::ThumbPath => todo!(),
+					// ChangingType::Rating => updating.rating = value.and_then(|v| v.parse().ok()),
+					// ChangingType::ThumbPath => todo!(),
 					ChangingType::AvailableAt => updating.available_at = value.map(|v| {
 						let date = Date::new(&JsValue::from_str(&v));
 						format!("{}-{}-{}", date.get_full_year(), date.get_month() + 1, date.get_date())
@@ -749,14 +747,6 @@ impl BookView {
 			msg.clone()
 		})
 	}
-
-	/// A Callback which calls "prevent_default"
-	fn on_click_prevdef(scope: &Scope<Self>, msg: Msg) -> Callback<MouseEvent> {
-		scope.callback(move |e: MouseEvent| {
-			e.prevent_default();
-			msg.clone()
-		})
-	}
 }
 
 
@@ -774,8 +764,8 @@ pub enum ChangingType {
 	Title,
 	OriginalTitle,
 	Description,
-	Rating,
-	ThumbPath,
+	// Rating,
+	// ThumbPath,
 	AvailableAt,
 	Language,
 	Isbn10,

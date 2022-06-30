@@ -21,8 +21,6 @@ pub enum Msg {
 	EditListResults(api::WrappingResponse<api::GetEditListResponse>),
 
 	EditItemUpdate(Box<api::WrappingResponse<api::PostEditResponse>>),
-
-	Ignore,
 }
 
 pub struct EditListPage {
@@ -98,8 +96,6 @@ impl Component for EditListPage {
 					}
 				}
 			}
-
-			Msg::Ignore => return false,
 		}
 
 		true

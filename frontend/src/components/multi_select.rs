@@ -21,9 +21,6 @@ impl PartialEq for Property {
 
 
 pub enum Msg {
-	Update,
-	Ignore,
-
 	OnUnfocus,
 	OnFocus,
 	SetFocus,
@@ -65,9 +62,6 @@ impl Component for MultiselectModule {
 
 	fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
 		match msg {
-			Msg::Update => (),
-			Msg::Ignore => return false,
-
 			Msg::OnHover(id) => {
 				if id != 0 {
 					if let Some(index) = self.get_child_index_by_id(id, ctx) {

@@ -139,9 +139,9 @@ impl Component for NavbarModule {
 impl NavbarModule {
 	fn render_item(route: Route, name: &DisplayType) -> Html {
 		match name {
-			DisplayType::Text(v) => html! {
-				<Link<Route> to={route}>{ v }</Link<Route>>
-			},
+			// DisplayType::Text(v) => html! {
+			// 	<Link<Route> to={route}>{ v }</Link<Route>>
+			// },
 			DisplayType::Icon(icon, title) => html! {
 				<Link<Route> to={route}>
 					<span class="material-icons" title={ *title }>{ icon }</span>
@@ -179,6 +179,6 @@ impl NavbarModule {
 }
 
 pub enum DisplayType {
-	Text(&'static str),
+	// Text(&'static str),
 	Icon(&'static str, &'static str),
 }

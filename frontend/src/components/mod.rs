@@ -9,7 +9,7 @@ pub use popup::{
 	Popup, PopupType,
 	edit_metadata::PopupEditMetadata,
 	search::PopupSearch,
-	button::ButtonPopup, button::ButtonPopupPosition,
+	button::ButtonPopup,
 	book_update_with_meta::PopupBookUpdateWithMeta,
 };
 pub use mass_selector_bar::MassSelectBar;

@@ -24,8 +24,6 @@ pub struct Property {
 
 
 pub enum Msg {
-	Ignore,
-
 	OnClose,
 	OnSubmit,
 
@@ -55,8 +53,6 @@ impl Component for PopupBookUpdateWithMeta {
 
 	fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
 		match msg {
-			Msg::Ignore => return false,
-
 			Msg::OnClose => ctx.props().on_close.emit(()),
 			Msg::OnSubmit => {
 				let left_edit = &ctx.props().left_edit;

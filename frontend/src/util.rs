@@ -1,34 +1,4 @@
-use std::ops::{Deref, DerefMut};
-
-use gloo_utils::window;
 use web_sys::Element;
-
-
-// TODO: Better names
-
-pub fn as_local_path_with_http(value: &str) -> String {
-	format!(
-		"{}/{}",
-		window().location().origin().unwrap(),
-		if let Some(v) = value.strip_prefix('/') {
-			v
-		} else {
-			value
-		}
-	)
-}
-
-pub fn as_local_path_without_http(value: &str) -> String {
-	format!(
-		"{}/{}",
-		window().location().hostname().unwrap(),
-		if let Some(v) = value.strip_prefix('/') {
-			v
-		} else {
-			value
-		}
-	)
-}
 
 
 /// Truncate string based off of char indices instead of bytes.
@@ -45,50 +15,6 @@ pub enum LoadingItem<V> {
 	Loading,
 	Loaded(V),
 }
-
-
-
-// TODO: Implement for Frontend Editing.
-pub struct EditManager<T: Clone + PartialEq> {
-	changed: T,
-	original: T,
-}
-
-impl<T: Clone + PartialEq> EditManager<T> {
-	pub fn new(value: T) -> Self {
-		Self {
-			original: value.clone(),
-			changed: value,
-		}
-	}
-
-	pub fn is_edited(&self) -> bool {
-		self.changed != self.original
-	}
-
-	pub fn into_changed(self) -> T {
-		self.changed
-	}
-
-	pub fn into_value(self) -> T {
-		self.original
-	}
-}
-
-impl<T: Clone + PartialEq> Deref for EditManager<T> {
-	type Target = T;
-
-	fn deref(&self) -> &Self::Target {
-		&self.changed
-	}
-}
-
-impl<T: Clone + PartialEq> DerefMut for EditManager<T> {
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		&mut self.changed
-	}
-}
-
 
 
 pub fn does_parent_contain_class(element: &Element, value: &str) -> bool {

@@ -1,3 +1,6 @@
+// TODO: Temporary. Some of the dead_code in here will be used.
+#![allow(dead_code)]
+
 use librarian_common::{api::{self, GetPostersResponse, GetPersonResponse}, Either, TagType, PersonId, ImageIdType};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
@@ -21,10 +24,6 @@ pub enum Msg {
 	SaveEdits,
 	UpdateEditing(ChangingType, String),
 
-	ShowPopup(DisplayOverlay),
-	ClosePopup,
-
-	Update,
 	Ignore
 }
 
@@ -42,9 +41,6 @@ pub struct AuthorView {
 
 	/// If we're currently editing. This'll be set.
 	editing_item: Option<GetPersonResponse>,
-
-	// Multiselect Values
-	cached_tags: Vec<CachedTag>,
 }
 
 impl Component for AuthorView {
@@ -73,14 +69,11 @@ impl Component for AuthorView {
 
 			media_popup: None,
 			editing_item: None,
-
-			cached_tags: Vec::new(),
 		}
 	}
 
 	fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
 		match msg {
-			Msg::Update => (),
 			Msg::Ignore => return false,
 
 			Msg::BooksListResults(resp) => {
@@ -119,8 +112,8 @@ impl Component for AuthorView {
 			Msg::SaveEdits => {
 				self.media = self.editing_item.clone().map(api::WrappingResponse::new);
 
-				let metadata = self.media.as_ref().and_then(|v| v.resp.as_ref()).unwrap().person.clone();
-				let meta_id = metadata.id;
+				// let metadata = self.media.as_ref().and_then(|v| v.resp.as_ref()).unwrap().person.clone();
+				// let meta_id = metadata.id;
 
 				// ctx.link()
 				// .send_future(async move {
@@ -145,24 +138,6 @@ impl Component for AuthorView {
 					ChangingType::ThumbPath => todo!(),
 				}
 			}
-
-			// Popup
-			Msg::ClosePopup => {
-				self.media_popup = None;
-			}
-
-			Msg::ShowPopup(new_disp) => {
-				if let Some(old_disp) = self.media_popup.as_mut() {
-					if *old_disp == new_disp {
-						self.media_popup = None;
-					} else {
-						self.media_popup = Some(new_disp);
-					}
-				} else {
-					self.media_popup = Some(new_disp);
-				}
-			}
-
 
 			Msg::RetrievePosters(value) => {
 				self.cached_posters = Some(value);

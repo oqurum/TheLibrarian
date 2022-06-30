@@ -1,12 +1,11 @@
+#![allow(dead_code)]
+
 use serde::{Serialize, Deserialize};
 use wasm_bindgen::{JsValue, JsCast};
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{RequestInit, Request, RequestMode, Response, Headers, FormData};
+use web_sys::{RequestInit, Request, RequestMode, Response, Headers};
 
 use librarian_common::{api::*, SearchType, Either, Source, TagType, PersonId, BookId, TagId, ImageId, EditId, item::edit::{UpdateEditModel, BookEdit}, ImageIdType};
-
-// TODO: Manage Errors.
-
 
 
 // Edits
@@ -318,26 +317,6 @@ async fn fetch<V: for<'a> Deserialize<'a>>(method: &str, url: &str, body: Option
 
 	Ok(text.into_serde().unwrap())
 }
-
-
-async fn fetch_url_encoded<V: for<'a> Deserialize<'a>>(method: &str, url: &str, form_data: FormData) -> Result<V, JsValue> {
-	let mut opts = RequestInit::new();
-	opts.method(method);
-	opts.mode(RequestMode::Cors);
-
-	opts.body(Some(&form_data));
-
-	let request = Request::new_with_str_and_init(url, &opts)?;
-
-	let window = gloo_utils::window();
-	let resp_value = JsFuture::from(window.fetch_with_request(&request)).await?;
-	let resp: Response = resp_value.dyn_into().unwrap();
-
-	let text = JsFuture::from(resp.json()?).await?;
-
-	Ok(text.into_serde().unwrap())
-}
-
 
 fn def<V>(e: JsValue) -> WrappingResponse<V> {
 	WrappingResponse {

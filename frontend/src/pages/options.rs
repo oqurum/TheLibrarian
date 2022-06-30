@@ -6,8 +6,6 @@ use crate::request;
 pub enum Msg {
 	// Request Results
 	SettingsResults(api::WrappingResponse<api::GetSettingsResponse>),
-
-	Ignore,
 }
 
 pub struct OptionsPage {
@@ -24,19 +22,17 @@ impl Component for OptionsPage {
 		}
 	}
 
-	fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+	fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
 		match msg {
 			Msg::SettingsResults(resp) => {
 				self.resp = Some(resp);
 			}
-
-			Msg::Ignore => ()
 		}
 
 		true
 	}
 
-	fn view(&self, ctx: &Context<Self>) -> Html {
+	fn view(&self, _ctx: &Context<Self>) -> Html {
 		if let Some(resp) = self.resp.as_ref() {
 			crate::continue_or_html_err!(resp);
 
@@ -68,8 +64,4 @@ impl Component for OptionsPage {
 			});
 		}
 	}
-}
-
-impl OptionsPage {
-	//
 }
