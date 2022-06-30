@@ -20,7 +20,7 @@ pub enum Msg {
 	// Results
 	EditListResults(api::WrappingResponse<api::GetEditListResponse>),
 
-	EditItemUpdate(api::WrappingResponse<api::PostEditResponse>),
+	EditItemUpdate(Box<api::WrappingResponse<api::PostEditResponse>>),
 
 	Ignore,
 }
@@ -258,7 +258,7 @@ impl EditListPage {
 															.. UpdateEditModel::default()
 														}).await;
 
-														Msg::EditItemUpdate(resp)
+														Msg::EditItemUpdate(Box::new(resp))
 													})}
 												><span class="material-icons">{ "keyboard_arrow_down" }</span></button>
 											}
@@ -280,7 +280,7 @@ impl EditListPage {
 															.. UpdateEditModel::default()
 														}).await;
 
-														Msg::EditItemUpdate(resp)
+														Msg::EditItemUpdate(Box::new(resp))
 													})}
 												><span class="material-icons">{ "keyboard_arrow_up" }</span></button>
 											}
@@ -308,7 +308,7 @@ impl EditListPage {
 												.. UpdateEditModel::default()
 											}).await;
 
-											Msg::EditItemUpdate(resp)
+											Msg::EditItemUpdate(Box::new(resp))
 										})}
 									>{ "Force Reject" }</button>
 
@@ -320,7 +320,7 @@ impl EditListPage {
 												.. UpdateEditModel::default()
 											}).await;
 
-											Msg::EditItemUpdate(resp)
+											Msg::EditItemUpdate(Box::new(resp))
 										})}
 									>{ "Force Accept" }</button>
 								</>

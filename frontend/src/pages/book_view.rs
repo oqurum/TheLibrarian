@@ -658,7 +658,7 @@ impl Component for BookView {
 											}) }
 											classes={ classes!("popup-book-edit") }
 											left_edit={ BookEdit::from(book_resp.metadata.clone()) }
-											right_edit={ new_meta.clone() }
+											right_edit={ (**new_meta).clone() }
 										/>
 									}
 								}
@@ -687,10 +687,10 @@ impl Component for BookView {
 														Either::Left(source) => {
 															let resp = request::get_external_source_item(source).await.ok().unwrap_throw();
 
-															resp.item.unwrap().into()
+															Box::new(resp.item.unwrap().into())
 														}
 
-														Either::Right(book) => book,
+														Either::Right(book) => Box::new(book),
 													}
 												))
 											}) }
@@ -790,7 +790,7 @@ pub enum ChangingType {
 pub enum DisplayOverlay {
 	Edit(Box<api::WrappingResponse<MediaViewResponse>>),
 
-	EditFromMetadata(BookEdit),
+	EditFromMetadata(Box<BookEdit>),
 
 	More {
 		book_id: BookId,
