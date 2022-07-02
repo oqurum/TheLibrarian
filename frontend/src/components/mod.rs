@@ -6,10 +6,8 @@ pub mod upload;
 
 pub use navbar::NavbarModule;
 pub use popup::{
-	Popup, PopupType,
 	edit_metadata::PopupEditMetadata,
 	search::PopupSearch,
-	button::ButtonPopup,
 	book_update_with_meta::PopupBookUpdateWithMeta,
 };
 pub use mass_selector_bar::MassSelectBar;

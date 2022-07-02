@@ -1,9 +1,8 @@
 use std::fmt;
 
+use frontend_component::popup::{Popup, PopupType};
 use librarian_common::item::edit::{BookEdit, NewOrCachedImage};
 use yew::prelude::*;
-
-use super::{Popup, PopupType};
 
 
 

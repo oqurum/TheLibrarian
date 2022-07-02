@@ -868,6 +868,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "frontend-component"
+version = "0.1.0"
+source = "git+https://github.com/oqurum/frontend-components?rev=3d53af6#3d53af6cba08f535be3ce390ed7f88cc01af9c6f"
+dependencies = [
+ "gloo-file",
+ "gloo-timers",
+ "gloo-utils",
+ "log",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "yew",
+]
+
+[[package]]
 name = "futures"
 version = "0.3.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1494,6 +1509,7 @@ dependencies = [
  "anyhow",
  "base64",
  "chrono",
+ "frontend-component",
  "futures",
  "gloo-file",
  "gloo-timers",

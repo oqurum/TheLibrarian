@@ -1,3 +1,4 @@
+use frontend_component::popup::{Popup, PopupType};
 use js_sys::Date;
 use librarian_common::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse, self}, Either, TagType, LANGUAGES, util::string_to_upper_case, BookId, TagId, item::edit::BookEdit, TagFE, ImageIdType, SearchType};
 use wasm_bindgen::{JsCast, JsValue, UnwrapThrowExt};
@@ -5,7 +6,7 @@ use web_sys::{HtmlInputElement, HtmlTextAreaElement, HtmlSelectElement};
 use yew::{prelude::*, html::Scope};
 
 use crate::{
-	components::{MultiselectModule, MultiselectItem, MultiselectNewItem, UploadModule, Popup, PopupBookUpdateWithMeta, PopupEditMetadata, PopupSearch, PopupType},
+	components::{MultiselectModule, MultiselectItem, MultiselectNewItem, UploadModule, PopupBookUpdateWithMeta, PopupEditMetadata, PopupSearch},
 	request
 };
 

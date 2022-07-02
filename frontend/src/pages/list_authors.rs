@@ -1,3 +1,4 @@
+use frontend_component::popup::{Popup, PopupType, YEW_CLOSE_POPUP};
 use librarian_common::{api, Person, SearchType, PersonId};
 use gloo_utils::document;
 use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
@@ -5,7 +6,7 @@ use web_sys::{HtmlElement, HtmlInputElement};
 use yew::{prelude::*, html::Scope};
 use yew_router::prelude::Link;
 
-use crate::{request, components::{PopupType, Popup, popup::YEW_CLOSE_POPUP}, util, Route};
+use crate::{request, util, Route};
 
 
 #[derive(Properties, PartialEq)]

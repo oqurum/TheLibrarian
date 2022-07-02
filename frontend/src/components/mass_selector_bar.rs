@@ -3,10 +3,7 @@ use std::{rc::Rc, sync::Mutex};
 use web_sys::HtmlElement;
 use yew::{prelude::*, html::Scope};
 
-use crate::components::ButtonPopup;
-
-use super::popup::YEW_CLOSE_POPUP;
-
+use frontend_component::popup::{button::ButtonWithPopup, YEW_CLOSE_POPUP};
 
 static EDITING_CONTAINER_CLASS: &str = "editing-items-inside";
 
@@ -85,13 +82,13 @@ impl Component for MassSelectBar {
 							<span>{ items.len() } { " items selected" }</span>
 						</div>
 						<div class="center-content">
-							<ButtonPopup class="menu-list">
+							<ButtonWithPopup class="menu-list">
 								<div class="menu-item" {YEW_CLOSE_POPUP}>{ "Refresh Metadata" }</div>
 								<div class="menu-item" {YEW_CLOSE_POPUP} onclick={
 									Self::on_click_prevdef(ctx.link(), Msg::UpdateMetaByFiles)
 								}>{ "Quick Search By Files" }</div>
 								<div class="menu-item" {YEW_CLOSE_POPUP}>{ "Delete" }</div>
-							</ButtonPopup>
+							</ButtonWithPopup>
 						</div>
 						<div class="right-content">
 							<button onclick={ctx.props().on_deselect_all.clone()}>{ "Deselect All" }</button>

@@ -8,6 +8,8 @@ edition = "2021"
 [dependencies]
 librarian-common = { path = "../common" }
 
+frontend-component = { git = "https://github.com/oqurum/frontend-components", rev = "3d53af6"  }
+
 # reqwest = { version = "0.11", features = ["multipart"] }
 tokio = { version = "1.15", features = ["time"] }
 

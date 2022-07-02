@@ -1,9 +1,9 @@
+use frontend_component::popup::{Popup, PopupType};
 use librarian_common::{api, Either, ImageIdType};
 use yew::prelude::*;
 
 use crate::request;
 
-use super::{Popup, PopupType};
 
 
 #[derive(Clone, Copy)]

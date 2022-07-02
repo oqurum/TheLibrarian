@@ -1,3 +1,4 @@
+use frontend_component::popup::{Popup, PopupType};
 use librarian_common::{api::{SearchItem, self}, SearchType, Source, util::string_to_upper_case, item::edit::BookEdit, Either};
 use gloo_utils::document;
 use wasm_bindgen::JsCast;
@@ -6,7 +7,7 @@ use yew::prelude::*;
 
 use crate::{request, util::{self, LoadingItem}};
 
-use super::{Popup, PopupType, book_update_with_meta::PopupBookUpdateWithMeta};
+use super::book_update_with_meta::PopupBookUpdateWithMeta;
 
 
 #[derive(Properties, PartialEq)]
