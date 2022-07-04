@@ -141,10 +141,6 @@ pub enum Route {
 fn switch(route: &Route) -> Html {
 	log::info!("{:?}", route);
 
-	if !is_signed_in() {
-		return html! { <pages::LoginPage /> };
-	}
-
 	match route.clone() {
 		Route::Login => {
 			html! { <pages::LoginPage /> }
@@ -167,6 +163,11 @@ fn switch(route: &Route) -> Html {
 		}
 
 		Route::Options => {
+			// Require a sign in for the Options Page
+			if !is_signed_in() {
+				return html! { <pages::LoginPage /> };
+			}
+
 			html! { <pages::OptionsPage /> }
 		}
 

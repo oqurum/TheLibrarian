@@ -1,7 +1,5 @@
 use actix_web::{web, Scope, dev::{ServiceFactory, ServiceRequest, ServiceResponse}, HttpResponse};
 
-use super::LoginRequired;
-
 pub mod book;
 pub mod edit;
 pub mod external;
@@ -22,8 +20,6 @@ pub fn api_route() -> Scope<
 	>
 > {
 	web::scope("/api/v1")
-		.wrap(LoginRequired)
-
 		// Book
 		.service(book::add_new_book)
 		.service(book::load_book_list)
