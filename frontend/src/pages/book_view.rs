@@ -6,10 +6,11 @@ use web_sys::{HtmlInputElement, HtmlTextAreaElement, HtmlSelectElement};
 use yew::{prelude::*, html::Scope};
 
 use crate::{
-	components::{MultiselectModule, MultiselectItem, MultiselectNewItem, UploadModule, PopupBookUpdateWithMeta, PopupEditMetadata, PopupSearch},
+	components::{MultiselectModule, MultiselectItem, MultiselectNewItem, UploadModule, PopupEditMetadata, PopupSearch},
 	request
 };
 
+use frontend_component::popup::compare::{PopupComparison, Comparable};
 
 
 #[derive(Clone)]
@@ -649,15 +650,14 @@ impl Component for BookView {
 
 								DisplayOverlay::EditFromMetadata(new_meta) => {
 									html! {
-										<PopupBookUpdateWithMeta
+										<PopupComparison
 											on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
 											on_submit={ ctx.link().callback_future(move |v| async move {
-												request::update_book(book_id, &v).await;
+												request::update_book(book_id, &BookEdit::create_from_comparison(v).unwrap_throw()).await;
 												Msg::Ignore
 											}) }
 											classes={ classes!("popup-book-edit") }
-											left_edit={ BookEdit::from(book_resp.metadata.clone()) }
-											right_edit={ (**new_meta).clone() }
+											compare={ BookEdit::from(book_resp.metadata.clone()).create_comparison_with(&**new_meta).unwrap_throw() }
 										/>
 									}
 								}

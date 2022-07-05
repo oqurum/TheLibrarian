@@ -1,13 +1,11 @@
-use frontend_component::popup::{Popup, PopupType};
+use frontend_component::popup::{compare::{Comparable, PopupComparison}, Popup, PopupType};
 use librarian_common::{api::{SearchItem, self}, SearchType, Source, util::string_to_upper_case, item::edit::BookEdit, Either};
 use gloo_utils::document;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{JsCast, UnwrapThrowExt};
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 use crate::{request, util::{self, LoadingItem}};
-
-use super::book_update_with_meta::PopupBookUpdateWithMeta;
 
 
 #[derive(Properties, PartialEq)]
@@ -242,12 +240,11 @@ impl PopupSearch {
 
 	fn render_compare(&self, left_edit: BookEdit, right_edit: BookEdit, ctx: &Context<Self>) -> Html {
 		html! {
-			<PopupBookUpdateWithMeta
-				{left_edit}
-				{right_edit}
+			<PopupComparison
+				compare={ left_edit.create_comparison_with(&right_edit).unwrap_throw() }
 				show_equal_rows={ true }
 				on_close={ ctx.props().on_close.clone() }
-				on_submit={ ctx.link().callback(Msg::OnSubmitCompare) }
+				on_submit={ ctx.link().callback(|v| Msg::OnSubmitCompare(BookEdit::create_from_comparison(v).unwrap_throw())) }
 			/>
 		}
 	}

@@ -289,6 +289,99 @@ mod book_edit {
 			}
 		}
 	}
+
+
+	#[cfg(feature = "frontend")]
+	mod _bookedit_frontend {
+		use std::collections::HashMap;
+
+		use frontend_component::popup::compare::{Comparable, CompareContainer, CompareDisplay, MapContainer, morph_map_value};
+
+		use super::*;
+
+		impl Comparable for BookEdit {
+			fn create_comparison_with(&self, other: &Self) -> serde_json::Result<CompareContainer> {
+				log::debug!("create_comparison_with:");
+				log::debug!("{self:#?}");
+				log::debug!("{other:#?}");
+
+				Ok(CompareContainer::create(
+					vec![
+						("title", "Title", CompareDisplay::Text),
+						("clean_title", "Clean Title", CompareDisplay::Text),
+						("description", "Description", CompareDisplay::Text),
+						("rating", "Rating", CompareDisplay::Text),
+						("isbn_10", "ISBN 10", CompareDisplay::Text),
+						("isbn_13", "ISBN 13", CompareDisplay::Text),
+						("is_public", "Is Public", CompareDisplay::Text),
+						("available_at", "Available At", CompareDisplay::Text),
+						("language", "Language", CompareDisplay::Text),
+						("publisher", "Publisher", CompareDisplay::Text),
+
+						("added_people", "Added People", CompareDisplay::Text),
+						("removed_people", "Removed People", CompareDisplay::Text),
+						("added_tags", "Added Tags", CompareDisplay::Text),
+						("removed_tags", "Removed Tags", CompareDisplay::Text),
+						("added_images", "Added Images", CompareDisplay::Image),
+						("removed_images", "Removed Images", CompareDisplay::Image),
+					],
+					self.create_map()?,
+					other.create_map()?
+				))
+			}
+
+			fn create_from_comparison(mut map: HashMap<&'static str, serde_json::Value>) -> serde_json::Result<Self> where Self: Sized {
+				Ok(Self {
+					title: map.remove("title").map(serde_json::from_value).transpose()?,
+					clean_title: map.remove("clean_title").map(serde_json::from_value).transpose()?,
+					description: map.remove("description").map(serde_json::from_value).transpose()?,
+					rating: map.remove("rating").map(serde_json::from_value).transpose()?,
+					isbn_10: map.remove("isbn_10").map(serde_json::from_value).transpose()?,
+					isbn_13: map.remove("isbn_13").map(serde_json::from_value).transpose()?,
+					is_public: map.remove("is_public").map(serde_json::from_value).transpose()?,
+					available_at: map.remove("available_at").map(serde_json::from_value).transpose()?,
+					language: map.remove("language").map(serde_json::from_value).transpose()?,
+					publisher: map.remove("publisher").map(serde_json::from_value).transpose()?,
+
+					added_people: map.remove("added_people").map(serde_json::from_value).transpose()?,
+					removed_people: map.remove("removed_people").map(serde_json::from_value).transpose()?,
+					added_tags: map.remove("added_tags").map(serde_json::from_value).transpose()?,
+					removed_tags: map.remove("removed_tags").map(serde_json::from_value).transpose()?,
+					added_images: map.remove("added_images").map(serde_json::from_value).transpose()?,
+					removed_images: map.remove("removed_images").map(serde_json::from_value).transpose()?,
+				})
+			}
+
+			fn create_map(&self) -> serde_json::Result<MapContainer> {
+				let mut map = MapContainer::with_capacity(16);
+
+				self.title.clone().map(|v| Ok(map.insert("title", morph_map_value(v)?))).transpose()?;
+				self.clean_title.clone().map(|v| Ok(map.insert("clean_title", morph_map_value(v)?))).transpose()?;
+				self.description.clone().map(|v| Ok(map.insert("description", morph_map_value(v)?))).transpose()?;
+				self.rating.map(|v| Ok(map.insert("rating", morph_map_value(v)?))).transpose()?;
+				self.isbn_10.clone().map(|v| Ok(map.insert("isbn_10", morph_map_value(v)?))).transpose()?;
+				self.isbn_13.clone().map(|v| Ok(map.insert("isbn_13", morph_map_value(v)?))).transpose()?;
+				self.is_public.map(|v| Ok(map.insert("is_public", morph_map_value(v)?))).transpose()?;
+				self.available_at.clone().map(|v| Ok(map.insert("available_at", morph_map_value(v)?))).transpose()?;
+				self.language.map(|v| Ok(map.insert("language", morph_map_value(v)?))).transpose()?;
+				self.publisher.clone().map(|v| Ok(map.insert("publisher", morph_map_value(v)?))).transpose()?;
+
+				// TODO:
+				// self.added_people.clone().map(|v| Ok(map.insert("added_people", morph_map_value(v)?))).transpose()?;
+				// self.removed_people.clone().map(|v| Ok(map.insert("removed_people", morph_map_value(v)?))).transpose()?;
+				// self.added_tags.clone().map(|v| Ok(map.insert("added_tags", morph_map_value(v)?))).transpose()?;
+				// self.removed_tags.clone().map(|v| Ok(map.insert("removed_tags", morph_map_value(v)?))).transpose()?;
+				self.added_images.as_deref()
+					.map(|v| Ok(map.insert("added_images", morph_map_value(v.iter().map(|v| v.as_url().into_owned()).collect::<Vec<_>>())?)))
+					.transpose()?;
+				self.removed_images.as_deref()
+					.map(|v| Ok(map.insert("removed_images", morph_map_value(v.iter().map(|v| format!("/api/v1/book/{v}/thumbnail")).collect::<Vec<_>>())?)))
+					.transpose()?;
+
+				Ok(map)
+			}
+		}
+	}
 }
 
 mod person_edit {

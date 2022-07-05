@@ -6,9 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-librarian-common = { path = "../common" }
+librarian-common = { path = "../common", features = ["frontend"] }
 
-frontend-component = { git = "https://github.com/oqurum/frontend-components", rev = "3d53af6"  }
+frontend-component = { git = "https://github.com/oqurum/frontend-components", rev = "969d099"  }
 
 # reqwest = { version = "0.11", features = ["multipart"] }
 tokio = { version = "1.15", features = ["time"] }

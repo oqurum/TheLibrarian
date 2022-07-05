@@ -870,12 +870,15 @@ dependencies = [
 [[package]]
 name = "frontend-component"
 version = "0.1.0"
-source = "git+https://github.com/oqurum/frontend-components?rev=3d53af6#3d53af6cba08f535be3ce390ed7f88cc01af9c6f"
+source = "git+https://github.com/oqurum/frontend-components?rev=969d099#969d09913744e11665fa4624eb4f521c3548a315"
 dependencies = [
+ "futures",
  "gloo-file",
  "gloo-timers",
  "gloo-utils",
  "log",
+ "serde",
+ "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -1494,6 +1497,8 @@ version = "0.1.0"
 dependencies = [
  "bitflags",
  "chrono",
+ "frontend-component",
+ "log",
  "num_enum",
  "rusqlite",
  "serde",
