@@ -301,10 +301,6 @@ mod book_edit {
 
 		impl Comparable for BookEdit {
 			fn create_comparison_with(&self, other: &Self) -> serde_json::Result<CompareContainer> {
-				log::debug!("create_comparison_with:");
-				log::debug!("{self:#?}");
-				log::debug!("{other:#?}");
-
 				Ok(CompareContainer::create(
 					vec![
 						("title", "Title", CompareDisplay::Text),
