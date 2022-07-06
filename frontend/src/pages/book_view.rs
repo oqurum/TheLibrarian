@@ -6,11 +6,14 @@ use web_sys::{HtmlInputElement, HtmlTextAreaElement, HtmlSelectElement};
 use yew::{prelude::*, html::Scope};
 
 use crate::{
-	components::{MultiselectModule, MultiselectItem, MultiselectNewItem, UploadModule, PopupEditMetadata, PopupSearch},
+	components::{UploadModule, PopupEditMetadata, PopupSearch},
 	request
 };
 
-use frontend_component::popup::compare::{PopupComparison, Comparable};
+use frontend_component::{
+	multi_select::{MultiSelectEvent, MultiselectModule, MultiSelectItem, MultiselectNewItem},
+	popup::compare::{PopupComparison, Comparable}
+};
 
 
 #[derive(Clone)]
@@ -443,8 +446,17 @@ impl Component for BookView {
 
 												<span class="sub-title">{ "Genre" }</span>
 												<MultiselectModule
-													on_create_item={ctx.link().callback(|v| Msg::MultiselectCreate(TagType::Genre, v))}
-													on_toggle_item={ctx.link().callback(|(a, b)| Msg::MultiselectToggle(a, TagId::from(b)))}
+													on_event={
+														ctx.link().callback(|v| match v {
+															MultiSelectEvent::Toggle { toggle, id } => {
+																Msg::MultiselectToggle(toggle, TagId::from(id))
+															}
+
+															MultiSelectEvent::Create { name, register } => {
+																Msg::MultiselectCreate(TagType::Genre, MultiselectNewItem { name, register })
+															}
+														})
+													}
 												>
 													{
 														for self.cached_tags
@@ -461,16 +473,26 @@ impl Component for BookView {
 
 																html_nested! {
 																	// TODO: Remove deref
-																	<MultiselectItem name={tag.name.clone()} id={*tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
+																	<MultiSelectItem name={tag.name.clone()} id={*tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
 																}
 															})
 													}
 												</MultiselectModule>
 
 												<span class="sub-title">{ "Subject" }</span>
+
 												<MultiselectModule
-													on_create_item={ctx.link().callback(|v| Msg::MultiselectCreate(TagType::Subject, v))}
-													on_toggle_item={ctx.link().callback(|(a, b)| Msg::MultiselectToggle(a, TagId::from(b)))}
+													on_event={
+														ctx.link().callback(|v| match v {
+															MultiSelectEvent::Toggle { toggle, id } => {
+																Msg::MultiselectToggle(toggle, TagId::from(id))
+															}
+
+															MultiSelectEvent::Create { name, register } => {
+																Msg::MultiselectCreate(TagType::Subject, MultiselectNewItem { name, register })
+															}
+														})
+													}
 												>
 													{
 														for self.cached_tags
@@ -487,7 +509,7 @@ impl Component for BookView {
 
 																html_nested! {
 																	// TODO: Remove deref
-																	<MultiselectItem name={tag.name.clone()} id={*tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
+																	<MultiSelectItem name={tag.name.clone()} id={*tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
 																}
 															})
 													}
