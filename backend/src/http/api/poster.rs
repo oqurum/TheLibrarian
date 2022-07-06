@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::io::{Write, Cursor};
 
 use actix_files::NamedFile;
 use actix_web::{get, post, web, HttpResponse, Responder};
@@ -94,7 +94,35 @@ async fn post_change_poster(
 		}
 
 		ImageType::Person => {
-			// TODO
+			let mut person = PersonModel::get_by_id(PersonId::from(image.id), &db).await?.unwrap();
+
+			match body.into_inner().url_or_id {
+				Either::Left(url) => {
+					let resp = reqwest::get(url)
+						.await.map_err(Error::from)?
+						.bytes()
+						.await.map_err(Error::from)?;
+
+					let image_model = store_image(resp.to_vec(), &db).await?;
+
+					person.thumb_url = image_model.path;
+
+					ImageLinkModel::new_person(image_model.id, person.id)
+						.insert(&db).await?;
+				}
+
+				Either::Right(id) => {
+					let poster = UploadedImageModel::get_by_id(id, &db).await?.unwrap();
+
+					if person.thumb_url == poster.path {
+						return Ok(HttpResponse::Ok().finish());
+					}
+
+					person.thumb_url = poster.path;
+				}
+			}
+
+			person.update(&db).await?;
 		}
 	}
 
@@ -119,7 +147,7 @@ async fn post_upload_poster(
 		ImageType::Book => {
 			let book = BookModel::get_by_id(BookId::from(image.id), &db).await?.unwrap();
 
-			let mut file = std::io::Cursor::new(Vec::new());
+			let mut file = Cursor::new(Vec::new());
 
 			while let Some(item) = body.try_next().await? {
 				file.write_all(&item).map_err(Error::from)?;
@@ -132,7 +160,18 @@ async fn post_upload_poster(
 		}
 
 		ImageType::Person => {
-			// TODO
+			let person = PersonModel::get_by_id(PersonId::from(image.id), &db).await?.unwrap();
+
+			let mut file = Cursor::new(Vec::new());
+
+			while let Some(item) = body.try_next().await? {
+				file.write_all(&item).map_err(Error::from)?;
+			}
+
+			let image_model = store_image(file.into_inner(), &db).await?;
+
+			ImageLinkModel::new_person(image_model.id, person.id)
+				.insert(&db).await?;
 		}
 	}
 
