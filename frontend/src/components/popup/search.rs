@@ -18,6 +18,9 @@ pub struct Property {
 
 	pub input_value: String,
 	pub search_for: SearchType,
+
+	#[prop_or_default]
+	pub comparable: bool,
 }
 
 
@@ -103,12 +106,18 @@ impl Component for PopupSearch {
 			}
 
 			Msg::OnSelectItem(source) => {
+				if !ctx.props().comparable {
+					ctx.props().on_select.emit(Either::Left(source));
+					return false;
+				}
+
 				if self.waiting_item_resp {
 					return false;
 				}
 
 				self.waiting_item_resp = true;
 
+				// TODO: Only Request once we've selected both sources.
 				ctx.link().send_future(async move {
 					Msg::BookItemResponse(source.clone(), request::get_external_source_item(source).await)
 				});

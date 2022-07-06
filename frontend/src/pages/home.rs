@@ -185,6 +185,7 @@ impl Component for HomePage {
 								html! {
 									<PopupSearch
 										{input_value}
+										comparable=true
 										search_for={ SearchType::Book }
 										on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
 										on_select={ ctx.link().callback_future(|value| async {
