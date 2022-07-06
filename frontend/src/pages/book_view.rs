@@ -1,19 +1,20 @@
-use frontend_component::popup::{Popup, PopupType};
-use js_sys::Date;
+use frontend_component::{
+	upload::UploadModule,
+	multi_select::{MultiSelectEvent, MultiselectModule, MultiSelectItem, MultiselectNewItem},
+	popup::{Popup, PopupType, compare::{PopupComparison, Comparable}}
+};
 use librarian_common::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse, self}, Either, TagType, LANGUAGES, util::string_to_upper_case, BookId, TagId, item::edit::BookEdit, TagFE, ImageIdType, SearchType};
+
+use js_sys::Date;
 use wasm_bindgen::{JsCast, JsValue, UnwrapThrowExt};
 use web_sys::{HtmlInputElement, HtmlTextAreaElement, HtmlSelectElement};
 use yew::{prelude::*, html::Scope};
 
 use crate::{
-	components::{UploadModule, PopupEditMetadata, PopupSearch},
+	components::{PopupEditMetadata, PopupSearch},
 	request
 };
 
-use frontend_component::{
-	multi_select::{MultiSelectEvent, MultiselectModule, MultiSelectItem, MultiselectNewItem},
-	popup::compare::{PopupComparison, Comparable}
-};
 
 
 #[derive(Clone)]
@@ -532,9 +533,9 @@ impl Component for BookView {
 												<h2>{ "Posters" }</h2>
 												<div class="posters-container">
 													<UploadModule
-														id={ ImageIdType::new_book(ctx.props().id) }
 														class="add-poster"
 														title="Add Poster"
+														upload_url={ format!("/api/v1/posters/{}/upload", ctx.props().id) }
 														on_upload={ctx.link().callback(|_| Msg::ReloadPosters)}
 													>
 														<span class="material-icons">{ "add" }</span>

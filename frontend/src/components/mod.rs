@@ -1,7 +1,6 @@
 pub mod navbar;
 pub mod popup;
 pub mod mass_selector_bar;
-pub mod upload;
 
 pub use navbar::NavbarModule;
 pub use popup::{
@@ -9,4 +8,3 @@ pub use popup::{
 	search::PopupSearch,
 };
 pub use mass_selector_bar::MassSelectBar;
-pub use upload::UploadModule;
