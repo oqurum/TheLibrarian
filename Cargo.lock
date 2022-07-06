@@ -870,7 +870,7 @@ dependencies = [
 [[package]]
 name = "frontend-component"
 version = "0.1.0"
-source = "git+https://github.com/oqurum/frontend-components?rev=969d099#969d09913744e11665fa4624eb4f521c3548a315"
+source = "git+https://github.com/oqurum/frontend-components?rev=e134b55#e134b55c145f278b2a45252ca883f2d35864ae1a"
 dependencies = [
  "futures",
  "gloo-file",

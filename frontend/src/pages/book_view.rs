@@ -1,6 +1,6 @@
 use frontend_component::{
 	upload::UploadModule,
-	multi_select::{MultiSelectEvent, MultiselectModule, MultiSelectItem, MultiselectNewItem},
+	multi_select::{MultiSelectEvent, MultiSelectModule, MultiSelectItem, MultiSelectNewItem},
 	popup::{Popup, PopupType, compare::{PopupComparison, Comparable}}
 };
 use librarian_common::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse, self}, Either, TagType, LANGUAGES, util::string_to_upper_case, BookId, TagId, item::edit::BookEdit, TagFE, ImageIdType, SearchType};
@@ -24,7 +24,7 @@ pub enum Msg {
 	RetrievePosters(api::WrappingResponse<GetPostersResponse>),
 
 	MultiselectToggle(bool, TagId),
-	MultiselectCreate(TagType, MultiselectNewItem),
+	MultiselectCreate(TagType, MultiSelectNewItem<TagId>),
 	MultiCreateResponse(TagFE),
 	AllTagsResponse(api::WrappingResponse<GetTagsResponse>),
 
@@ -115,7 +115,7 @@ impl Component for BookView {
 
 							match tag_resp.ok() {
 								Ok(tag_resp) => {
-									item.register.emit(*tag_resp.id);
+									item.register.emit(tag_resp.id);
 
 									Msg::MultiCreateResponse(tag_resp)
 								}
@@ -446,15 +446,16 @@ impl Component for BookView {
 												<h5>{ "Tags" }</h5>
 
 												<span class="sub-title">{ "Genre" }</span>
-												<MultiselectModule
+												<MultiSelectModule<TagId>
+													editing=true
 													on_event={
 														ctx.link().callback(|v| match v {
 															MultiSelectEvent::Toggle { toggle, id } => {
-																Msg::MultiselectToggle(toggle, TagId::from(id))
+																Msg::MultiselectToggle(toggle, id)
 															}
 
-															MultiSelectEvent::Create { name, register } => {
-																Msg::MultiselectCreate(TagType::Genre, MultiselectNewItem { name, register })
+															MultiSelectEvent::Create(new_item) => {
+																Msg::MultiselectCreate(TagType::Genre, new_item)
 															}
 														})
 													}
@@ -474,23 +475,24 @@ impl Component for BookView {
 
 																html_nested! {
 																	// TODO: Remove deref
-																	<MultiSelectItem name={tag.name.clone()} id={*tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
+																	<MultiSelectItem<TagId> name={tag.name.clone()} id={tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
 																}
 															})
 													}
-												</MultiselectModule>
+												</MultiSelectModule<TagId>>
 
 												<span class="sub-title">{ "Subject" }</span>
 
-												<MultiselectModule
+												<MultiSelectModule<TagId>
+													editing=true
 													on_event={
 														ctx.link().callback(|v| match v {
 															MultiSelectEvent::Toggle { toggle, id } => {
-																Msg::MultiselectToggle(toggle, TagId::from(id))
+																Msg::MultiselectToggle(toggle, id)
 															}
 
-															MultiSelectEvent::Create { name, register } => {
-																Msg::MultiselectCreate(TagType::Subject, MultiselectNewItem { name, register })
+															MultiSelectEvent::Create(new_item) => {
+																Msg::MultiselectCreate(TagType::Subject, new_item)
 															}
 														})
 													}
@@ -510,11 +512,11 @@ impl Component for BookView {
 
 																html_nested! {
 																	// TODO: Remove deref
-																	<MultiSelectItem name={tag.name.clone()} id={*tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
+																	<MultiSelectItem<TagId> name={tag.name.clone()} id={tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
 																}
 															})
 													}
-												</MultiselectModule>
+												</MultiSelectModule<TagId>>
 											</div>
 										}
 									} else {

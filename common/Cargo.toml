@@ -22,7 +22,7 @@ log = "0.4"
 
 
 # Frontend
-frontend-component = { git = "https://github.com/oqurum/frontend-components", rev = "969d099", optional = true  }
+frontend-component = { git = "https://github.com/oqurum/frontend-components", rev = "e134b55", optional = true  }
 
 # Backend
 rusqlite = { version = "0.27", optional = true }
