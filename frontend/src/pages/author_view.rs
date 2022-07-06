@@ -286,7 +286,7 @@ impl Component for AuthorView {
 													<UploadModule
 														class="add-poster"
 														title="Add Poster"
-														upload_url={ format!("/api/v1/posters/{}/upload", ctx.props().id) }
+														upload_url={ format!("/api/v1/posters/{}/upload", ImageIdType::new_person(ctx.props().id)) }
 														on_upload={ctx.link().callback(|_| Msg::UpdatedPoster)}
 													>
 														<span class="material-icons">{ "add" }</span>

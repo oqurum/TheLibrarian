@@ -537,7 +537,7 @@ impl Component for BookView {
 													<UploadModule
 														class="add-poster"
 														title="Add Poster"
-														upload_url={ format!("/api/v1/posters/{}/upload", ctx.props().id) }
+														upload_url={ format!("/api/v1/posters/{}/upload", ImageIdType::new_book(ctx.props().id)) }
 														on_upload={ctx.link().callback(|_| Msg::ReloadPosters)}
 													>
 														<span class="material-icons">{ "add" }</span>
