@@ -30,7 +30,7 @@ impl<V> WrappingResponse<V> {
 	}
 
 	pub fn error<S: Into<String>>(value: S) -> Self {
-		Self { resp: None, error: Some(ApiErrorResponse { description: value.into() }) }
+		Self { resp: None, error: Some(ApiErrorResponse::new(value)) }
 	}
 
 	pub fn ok(self) -> std::result::Result<V, ApiErrorResponse> {
@@ -62,9 +62,15 @@ impl<V> WrappingResponse<V> {
 }
 
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, thiserror::Error)]
 pub struct ApiErrorResponse {
 	pub description: String,
+}
+
+impl ApiErrorResponse {
+	pub fn new<S: Into<String>>(value: S) -> Self {
+		Self { description: value.into() }
+	}
 }
 
 impl std::fmt::Display for ApiErrorResponse {

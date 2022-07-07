@@ -43,18 +43,24 @@ pub enum WebError {
 
 	#[error(transparent)]
 	Common(#[from] CommonError),
+
+	#[error(transparent)]
+	ApiResponse(#[from] ApiErrorResponse),
 }
 
 impl ResponseError for WebError {
 	fn error_response(&self) -> actix_web::HttpResponse<actix_web::body::BoxBody> {
-		let mut description = String::new();
-		let _ = write!(&mut description, "{}", self);
+		let resp_value = match self {
+			Self::ApiResponse(r) => WrappingResponse::<()> {
+				resp: None,
+				error: Some(r.clone())
+			},
 
-		let resp_value = WrappingResponse::<()> {
-			resp: None,
-			error: Some(ApiErrorResponse {
-				description
-			}),
+			this => {
+				let mut description = String::new();
+				let _ = write!(&mut description, "{}", this);
+				WrappingResponse::<()>::error(description)
+			},
 		};
 
 		let mut res = actix_web::HttpResponse::new(self.status_code());
