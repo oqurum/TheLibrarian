@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-backend = ["rusqlite"]
-frontend = ["frontend-component"]
+backend = ["common/backend", "rusqlite"]
+frontend = ["common/frontend"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -21,8 +21,7 @@ bitflags = "1.3"
 log = "0.4"
 
 
-# Frontend
-frontend-component = { git = "https://github.com/oqurum/frontend-components", rev = "e134b55", optional = true  }
+common = { git = "https://github.com/oqurum/common", rev = "656ddb2" }
 
 # Backend
 rusqlite = { version = "0.27", optional = true }

@@ -7,6 +7,7 @@ use librarian_common::api::{ApiErrorResponse, WrappingResponse};
 use thiserror::Error as ThisError;
 
 use bcrypt::BcryptError;
+use common::error::Error as CommonError;
 use rusqlite::Error as RusqliteError;
 use lettre::error::Error as LettreError;
 use lettre::address::AddressError;
@@ -17,7 +18,7 @@ use serde_urlencoded::ser::Error as UrlEncodedSerError;
 use serde_json::Error as JsonError;
 use serde_xml_rs::Error as XmlError;
 use serde::de::value::Error as SerdeValueError;
-use librarian_common::Error as CommonError;
+use librarian_common::Error as LocalCommonError;
 
 use actix_multipart::MultipartError;
 use actix_web::Error as ActixError;
@@ -40,6 +41,9 @@ pub enum WebError {
 
 	#[error(transparent)]
 	All(#[from] Error),
+
+	#[error(transparent)]
+	LocalCommon(#[from] LocalCommonError),
 
 	#[error(transparent)]
 	Common(#[from] CommonError),

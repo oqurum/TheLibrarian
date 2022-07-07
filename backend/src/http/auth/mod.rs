@@ -2,9 +2,9 @@ use std::{pin::Pin, future::{Ready, ready}, task::{Poll, Context}, rc::Rc};
 
 use actix_identity::Identity;
 use actix_web::{FromRequest, HttpRequest, dev::{Payload, Transform, Service, ServiceRequest, ServiceResponse}, error::ErrorUnauthorized, body::MessageBody};
+use common::MemberId;
 use chrono::Utc;
 use futures::{future::LocalBoxFuture, FutureExt};
-use librarian_common::MemberId;
 use serde::{Deserialize, Serialize};
 
 use crate::{Result, model::MemberModel, Database};

@@ -2,8 +2,9 @@ use std::io::{Write, Cursor};
 
 use actix_files::NamedFile;
 use actix_web::{get, post, web, HttpResponse, Responder};
+use common::{Either, ImageIdType, ImageType, BookId, PersonId};
 use futures::TryStreamExt;
-use librarian_common::{Poster, api, Either, ImageIdType, ImageType, BookId, PersonId};
+use librarian_common::{Poster, api};
 
 use crate::{WebResult, Error, store_image, database::Database, model::{BookModel, ImageLinkModel, UploadedImageModel, PersonModel}, http::{JsonResponse, MemberCookie}};
 

@@ -1,9 +1,12 @@
-use frontend_component::{
-	upload::UploadModule,
-	multi_select::{MultiSelectEvent, MultiSelectModule, MultiSelectItem, MultiSelectNewItem},
-	popup::{Popup, PopupType, compare::{PopupComparison, Comparable}}
+use common::{
+	component::{
+		upload::UploadModule,
+		multi_select::{MultiSelectEvent, MultiSelectModule, MultiSelectItem, MultiSelectNewItem},
+		popup::{Popup, PopupType, compare::{PopupComparison, Comparable}},
+	},
+	Either, LANGUAGES, ImageIdType, BookId, TagId
 };
-use librarian_common::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse, self}, Either, TagType, LANGUAGES, util::string_to_upper_case, BookId, TagId, item::edit::BookEdit, TagFE, ImageIdType, SearchType};
+use librarian_common::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse, self}, TagType, util::string_to_upper_case, item::edit::BookEdit, TagFE, SearchType};
 
 use js_sys::Date;
 use wasm_bindgen::{JsCast, JsValue, UnwrapThrowExt};

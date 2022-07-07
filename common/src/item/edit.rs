@@ -1,7 +1,8 @@
 use chrono::{DateTime, Utc};
+use common::{MemberId, BookId, PersonId, TagId};
 use serde::{Serialize, Deserialize};
 
-use crate::{EditId, edit::*, util::*, TagId, PersonId, BookId, Member, MemberId, api::QueryListResponse, EditVoteId, ThumbnailStore};
+use crate::{EditId, edit::*, util::*, Member, api::QueryListResponse, EditVoteId};
 
 
 pub use book_edit::*;
@@ -125,7 +126,9 @@ fn is_false(value: &bool) -> bool {
 mod book_edit {
 	use std::borrow::Cow;
 
-	use crate::{DisplayMetaItem, ImageId};
+	use common::ImageId;
+
+	use crate::DisplayMetaItem;
 	use super::*;
 
 
@@ -295,7 +298,7 @@ mod book_edit {
 	mod _bookedit_frontend {
 		use std::collections::HashMap;
 
-		use frontend_component::popup::compare::{Comparable, CompareContainer, CompareDisplay, MapContainer, morph_map_value};
+		use common::component::popup::compare::{Comparable, CompareContainer, CompareDisplay, MapContainer, morph_map_value};
 
 		use super::*;
 
@@ -381,6 +384,8 @@ mod book_edit {
 }
 
 mod person_edit {
+	use common::ThumbnailStore;
+
 	use crate::Person;
 	use super::*;
 

@@ -1,9 +1,10 @@
 use std::path::PathBuf;
 
-use crate::{Result, Database, model::{NewUploadedImageModel, UploadedImageModel}};
-use librarian_common::ThumbnailStore;
+use common::ThumbnailStore;
 use sha2::{Sha256, Digest};
 use tokio::fs;
+
+use crate::{Result, Database, model::{NewUploadedImageModel, UploadedImageModel}};
 
 
 pub async fn store_image(image: Vec<u8>, db: &Database) -> Result<UploadedImageModel> {

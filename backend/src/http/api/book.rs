@@ -1,8 +1,9 @@
 use actix_web::{get, web, HttpResponse, post};
 
 use chrono::Utc;
+use common::{Either, ThumbnailStore, BookId, PersonId};
 use librarian_common::item::edit::{BookEdit, NewOrCachedImage};
-use librarian_common::{api, DisplayItem, BookId, PersonId, Either, MetadataItemCached, ThumbnailStore};
+use librarian_common::{api, DisplayItem, MetadataItemCached};
 
 use crate::http::{MemberCookie, JsonResponse};
 use crate::metadata::MetadataReturned;

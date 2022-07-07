@@ -1,5 +1,5 @@
-use frontend_component::popup::{Popup, PopupType};
-use librarian_common::{api, Either, ImageIdType};
+use common::{component::popup::{Popup, PopupType}, Either, ImageIdType};
+use librarian_common::api;
 use yew::prelude::*;
 
 use crate::request;

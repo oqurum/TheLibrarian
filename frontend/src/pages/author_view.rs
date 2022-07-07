@@ -1,8 +1,8 @@
 // TODO: Temporary. Some of the dead_code in here will be used.
 #![allow(dead_code)]
 
-use frontend_component::upload::UploadModule;
-use librarian_common::{api::{self, GetPostersResponse, GetPersonResponse}, Either, TagType, PersonId, ImageIdType};
+use common::{component::upload::UploadModule, Either, PersonId, ImageIdType};
+use librarian_common::{api::{self, GetPostersResponse, GetPersonResponse}, TagType};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::{prelude::*, html::Scope};

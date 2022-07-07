@@ -1,5 +1,5 @@
-use frontend_component::popup::{Popup, PopupType, YEW_CLOSE_POPUP};
-use librarian_common::{api, Person, SearchType, PersonId};
+use common::{component::popup::{Popup, PopupType, YEW_CLOSE_POPUP}, PersonId};
+use librarian_common::{api, Person, SearchType};
 use gloo_utils::document;
 use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
 use web_sys::{HtmlElement, HtmlInputElement};

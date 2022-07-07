@@ -3,7 +3,7 @@ use std::{rc::Rc, sync::Mutex};
 use web_sys::HtmlElement;
 use yew::{prelude::*, html::Scope};
 
-use frontend_component::popup::{button::ButtonWithPopup, YEW_CLOSE_POPUP};
+use common::component::popup::{button::ButtonWithPopup, YEW_CLOSE_POPUP};
 
 static EDITING_CONTAINER_CLASS: &str = "editing-items-inside";
 

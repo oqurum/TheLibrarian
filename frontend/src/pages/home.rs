@@ -1,6 +1,7 @@
 use std::{rc::Rc, sync::Mutex};
 
-use librarian_common::{api, DisplayItem, BookId, SearchType};
+use common::BookId;
+use librarian_common::{api, DisplayItem, SearchType};
 use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
 use web_sys::{HtmlElement, UrlSearchParams, HtmlInputElement};
 use yew::prelude::*;

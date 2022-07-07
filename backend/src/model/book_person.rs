@@ -1,10 +1,8 @@
+use common::{BookId, PersonId};
 use rusqlite::params;
 use serde::Serialize;
 
-use librarian_common::{BookId, PersonId};
-
 use crate::{Result, Database};
-
 use super::{AdvRow, TableRow};
 
 #[derive(Debug, Serialize)]

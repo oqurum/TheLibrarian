@@ -4,6 +4,7 @@
 use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
+use common::{TagId, BookTagId, BookId, MemberId, PersonId, Source, ThumbnailStore, ImageId};
 use item::edit::BookEdit;
 use serde::{Serialize, Deserialize};
 

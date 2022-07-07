@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc, TimeZone};
-use librarian_common::{EditId, MemberId, EditCommentId};
+use common::MemberId;
+use librarian_common::{EditId, EditCommentId};
 use rusqlite::params;
 
 use crate::{Database, Result, model::{TableRow, AdvRow}};

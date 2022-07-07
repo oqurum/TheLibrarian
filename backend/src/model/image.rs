@@ -1,4 +1,5 @@
-use librarian_common::{ThumbnailStore, ImageId, BookId, util::serialize_datetime, PersonId, ImageType};
+use librarian_common::util::serialize_datetime;
+use common::{ThumbnailStore, ImageId, BookId, PersonId, ImageType};
 use chrono::{DateTime, TimeZone, Utc};
 use rusqlite::{params, OptionalExtension};
 use serde::Serialize;

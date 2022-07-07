@@ -1,11 +1,12 @@
 #![allow(dead_code)]
 
+use common::{Source, PersonId, BookId, TagId, ImageId, Either, ImageIdType};
 use serde::{Serialize, Deserialize};
 use wasm_bindgen::{JsValue, JsCast};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, Request, RequestMode, Response, Headers};
 
-use librarian_common::{api::*, SearchType, Either, Source, TagType, PersonId, BookId, TagId, ImageId, EditId, item::edit::{UpdateEditModel, BookEdit}, ImageIdType};
+use librarian_common::{api::*, SearchType, TagType, EditId, item::edit::{UpdateEditModel, BookEdit}};
 
 
 // Edits

@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
-use librarian_common::{api, Member, PersonId, BookId};
+use common::{BookId, PersonId};
+use librarian_common::{api, Member};
 use lazy_static::lazy_static;
 use yew::prelude::*;
 use yew_router::prelude::*;

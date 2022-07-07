@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::Result;
-use librarian_common::parse_book_id;
+use common::parse_book_id;
 use serde::{Serialize, Deserialize};
 
 use super::{KeyItem, TypeValueItem, RecordDescription};
