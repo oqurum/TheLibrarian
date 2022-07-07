@@ -1,13 +1,21 @@
 use actix_web::{get, web};
 use librarian_common::{api, SearchType, SearchForBooksBy, SearchFor, Source};
 
-use crate::{WebResult, metadata, http::JsonResponse};
+use crate::{WebResult, metadata, http::{JsonResponse, MemberCookie}, Database};
 
 
 #[get("/external/search")]
 pub async fn get_external_search(
-	body: web::Query<api::GetMetadataSearch>
+	body: web::Query<api::GetMetadataSearch>,
+	member: MemberCookie,
+	db: web::Data<Database>,
 ) -> WebResult<JsonResponse<api::ExternalSearchResponse>> {
+	let member = member.fetch(&db).await?.unwrap();
+
+	if !member.permissions.has_editing_perms() {
+		return Err(api::ApiErrorResponse::new("You cannot do this! No Permissions!").into());
+	}
+
 	let search = metadata::search_all_agents(
 		&body.query,
 		match body.search_type {
@@ -60,8 +68,16 @@ pub async fn get_external_search(
 
 #[get("/external/{source}")]
 pub async fn get_external_item(
-	path: web::Path<Source>
+	path: web::Path<Source>,
+	member: MemberCookie,
+	db: web::Data<Database>,
 ) -> WebResult<JsonResponse<api::ExternalSourceItemResponse>> {
+	let member = member.fetch(&db).await?.unwrap();
+
+	if !member.permissions.has_editing_perms() {
+		return Err(api::ApiErrorResponse::new("You cannot do this! No Permissions!").into());
+	}
+
 	if let Some(meta) = metadata::get_metadata_by_source(&*path, true).await? {
 		Ok(web::Json(api::WrappingResponse::new(api::ExternalSourceItemResponse {
 			item: Some(meta.meta.into()),
