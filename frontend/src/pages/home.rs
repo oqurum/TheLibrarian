@@ -6,7 +6,7 @@ use web_sys::{HtmlElement, UrlSearchParams, HtmlInputElement};
 use yew::prelude::*;
 use yew_router::prelude::Link;
 
-use crate::{Route, request, components::{PopupSearch, MassSelectBar}};
+use crate::{Route, request, components::{PopupSearch, MassSelectBar}, get_member_self};
 
 
 #[derive(Clone)]
@@ -300,6 +300,8 @@ impl Component for MediaItem {
 	}
 
 	fn view(&self, ctx: &Context<Self>) -> Html {
+		let editing_perms = get_member_self().map(|v| v.permissions.has_editing_perms()).unwrap_or_default();
+
 		let &MediaItemProps {
 			is_editing,
 			ref item,
@@ -313,25 +315,33 @@ impl Component for MediaItem {
 			<Link<Route> to={Route::ViewMeta { meta_id: item.id }} classes={ classes!("library-item") }>
 				<div class="poster">
 					<div class="top-left">
-						<input
-							checked={is_editing}
-							type="checkbox"
-							onclick={ctx.link().callback(move |e: MouseEvent| {
-								e.prevent_default();
-								e.stop_propagation();
+					{
+						if editing_perms {
+							html! {
+								<input
+									checked={is_editing}
+									type="checkbox"
+									onclick={ctx.link().callback(move |e: MouseEvent| {
+										e.prevent_default();
+										e.stop_propagation();
 
-								Msg::Ignore
-							})}
-							onmouseup={ctx.link().callback(move |e: MouseEvent| {
-								let input = e.target_unchecked_into::<HtmlInputElement>();
+										Msg::Ignore
+									})}
+									onmouseup={ctx.link().callback(move |e: MouseEvent| {
+										let input = e.target_unchecked_into::<HtmlInputElement>();
 
-								let value = !input.checked();
+										let value = !input.checked();
 
-								input.set_checked(value);
+										input.set_checked(value);
 
-								Msg::AddOrRemoveItemFromEditing(meta_id, value)
-							})}
-						/>
+										Msg::AddOrRemoveItemFromEditing(meta_id, value)
+									})}
+								/>
+							}
+						} else {
+							html! {}
+						}
+					}
 					</div>
 					<img src={ item.get_thumb_url() } />
 				</div>
