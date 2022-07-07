@@ -251,6 +251,40 @@ pub async fn init() -> Result<Database> {
 		[]
 	)?;
 
+
+	// Cached External Searches
+	// conn.execute(
+	// 	r#"CREATE TABLE IF NOT EXISTS "cached_extern_search" (
+	// 		"id"			INTEGER NOT NULL,
+
+	// 		"query"			TEXT NOT NULL COLLATE NOCASE,
+
+	// 		"cached"		TEXT NOT NULL,
+
+	// 		"last_cached" 	DATETIME NOT NULL,
+
+	// 		UNIQUE("query"),
+	// 		PRIMARY KEY("id" AUTOINCREMENT)
+	// 	);"#,
+	// 	[]
+	// )?;
+
+	// Queued External Search Requests
+	// conn.execute(
+	// 	r#"CREATE TABLE IF NOT EXISTS "queued_extern_search" (
+	// 		"query"			TEXT NOT NULL COLLATE NOCASE,
+	// 		"type_of"		INTEGER NOT NULL, // Book, Author
+
+	// 		"cached"		TEXT NOT NULL,
+
+	// 		"created_at" 	DATETIME NOT NULL,
+	// 		"updated_at" 	DATETIME NOT NULL,
+
+	// 		UNIQUE("query", "type_of")
+	// 	);"#,
+	// 	[]
+	// )?;
+
 	// TODO: Tables
 	// Recent/Queued Metadata Searches (prevent continuous searching)
 	// Fingerprints
