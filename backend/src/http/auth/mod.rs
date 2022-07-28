@@ -1,13 +1,14 @@
 use std::{pin::Pin, future::{Ready, ready}, task::{Poll, Context}, rc::Rc};
 
 use actix_identity::Identity;
-use actix_web::{FromRequest, HttpRequest, dev::{Payload, Transform, Service, ServiceRequest, ServiceResponse}, error::ErrorUnauthorized, body::MessageBody};
+use actix_web::{FromRequest, HttpRequest, dev::{Payload, Transform, Service, ServiceRequest, ServiceResponse}, body::MessageBody};
 use common::MemberId;
 use chrono::Utc;
 use futures::{future::LocalBoxFuture, FutureExt};
+use librarian_common::api::ApiErrorResponse;
 use serde::{Deserialize, Serialize};
 
-use crate::{Result, model::MemberModel, Database};
+use crate::{Result, model::MemberModel, Database, WebError};
 
 pub mod password;
 pub mod passwordless;
@@ -51,8 +52,8 @@ impl MemberCookie {
 
 
 impl FromRequest for MemberCookie {
-	type Error = actix_web::Error;
-	type Future = Pin<Box<dyn std::future::Future<Output = std::result::Result<MemberCookie, actix_web::Error>>>>;
+	type Error = WebError;
+	type Future = Pin<Box<dyn std::future::Future<Output = std::result::Result<MemberCookie, WebError>>>>;
 
 	fn from_request(req: &HttpRequest, pl: &mut Payload) -> Self::Future {
 		let fut = Identity::from_request(req, pl);
@@ -61,7 +62,7 @@ impl FromRequest for MemberCookie {
 			if let Some(id) = get_auth_value(&fut.await?) {
 				Ok(MemberCookie(id))
 			} else {
-				Err(ErrorUnauthorized("unauthorized"))
+				Err(WebError::ApiResponse(ApiErrorResponse::new("unauthorized")))
 			}
 		})
 	}
@@ -72,12 +73,12 @@ pub struct LoginRequired;
 
 impl<S, B> Transform<S, ServiceRequest> for LoginRequired
 where
-	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = actix_web::Error> + 'static,
+	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = WebError> + 'static,
 	S::Future: 'static,
 	B: MessageBody + 'static,
 {
 	type Response = ServiceResponse<B>;
-	type Error = actix_web::Error;
+	type Error = WebError;
 	type Transform = CheckLoginMiddleware<S>;
 	type InitError = ();
 	type Future = Ready<std::result::Result<Self::Transform, Self::InitError>>;
@@ -93,12 +94,12 @@ pub struct CheckLoginMiddleware<S> {
 
 impl<S, B> Service<ServiceRequest> for CheckLoginMiddleware<S>
 where
-	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = actix_web::Error> + 'static,
+	S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = WebError> + 'static,
 	S::Future: 'static,
 	B: MessageBody + 'static,
 {
 	type Response = ServiceResponse<B>;
-	type Error = actix_web::Error;
+	type Error = WebError;
 	type Future = LocalBoxFuture<'static, std::result::Result<Self::Response, Self::Error>>;
 
 	fn poll_ready(
@@ -122,7 +123,7 @@ where
 
 				Ok(srv.call(ServiceRequest::from_parts(r, pl)).await?)
 			} else {
-				Err(ErrorUnauthorized("unauthorized"))
+				Err(WebError::ApiResponse(ApiErrorResponse::new("unauthorized")))
 			}
 		}
 		.boxed_local()
