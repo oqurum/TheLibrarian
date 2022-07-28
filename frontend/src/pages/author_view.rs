@@ -7,7 +7,7 @@ use wasm_bindgen::JsCast;
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::{prelude::*, html::Scope};
 
-use crate::{request, pages::home::MediaItem};
+use crate::{components::LoginBarrier, request, pages::home::MediaItem};
 
 
 
@@ -180,9 +180,11 @@ impl Component for AuthorView {
 							}
 						} else {
 							html! {
-								<div class="sidebar-item">
-									<button class="button" onclick={ctx.link().callback(|_| Msg::ToggleEdit)}>{"Start Editing"}</button>
-								</div>
+								<LoginBarrier>
+									<div class="sidebar-item">
+										<button class="button" onclick={ctx.link().callback(|_| Msg::ToggleEdit)}>{"Start Editing"}</button>
+									</div>
+								</LoginBarrier>
 							}
 						}
 					}

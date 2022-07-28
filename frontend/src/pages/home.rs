@@ -7,7 +7,7 @@ use web_sys::{HtmlElement, UrlSearchParams, HtmlInputElement};
 use yew::prelude::*;
 use yew_router::prelude::Link;
 
-use crate::{Route, request, components::{PopupSearch, MassSelectBar}, get_member_self};
+use crate::{Route, request, components::{LoginBarrier, MassSelectBar, PopupSearch}, get_member_self};
 
 
 #[derive(Clone)]
@@ -218,9 +218,11 @@ impl Component for HomePage {
 		html! {
 			<div class="home-view-container">
 				<div class="sidebar">
-					<div class="sidebar-item">
-						<button class="button" onclick={ctx.link().callback(|_| Msg::OpenPopup(DisplayOverlay::SearchForBook { input_value: None }))}>{"Add New Book"}</button>
-					</div>
+					<LoginBarrier>
+						<div class="sidebar-item">
+							<button class="button" onclick={ctx.link().callback(|_| Msg::OpenPopup(DisplayOverlay::SearchForBook { input_value: None }))}>{"Add New Book"}</button>
+						</div>
+					</LoginBarrier>
 				</div>
 				{ content }
 			</div>

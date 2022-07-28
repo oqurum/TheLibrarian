@@ -6,7 +6,7 @@ use web_sys::{HtmlElement, HtmlInputElement};
 use yew::{prelude::*, html::Scope};
 use yew_router::prelude::Link;
 
-use crate::{request, util, Route};
+use crate::{components::LoginBarrier, request, util, Route};
 
 
 #[derive(Properties, PartialEq)]
@@ -204,16 +204,20 @@ impl Component for AuthorListPage {
 											<Popup type_of={ PopupType::AtPoint(mouse_pos.0, mouse_pos.1) } on_close={ctx.link().callback(|_| Msg::ClosePopup)}>
 												<div class="menu-list">
 													<div class="menu-item" {YEW_CLOSE_POPUP}>{ "Start Reading" }</div>
-													<div class="menu-item" {YEW_CLOSE_POPUP} onclick={
-														Self::on_click_prevdef(ctx.link(), Msg::PosterItem(PosterItem::UpdatePerson(person_id)))
-													}>{ "Refresh Person" }</div>
-													<div class="menu-item" {YEW_CLOSE_POPUP} onclick={
-														Self::on_click_prevdef_stopprop(ctx.link(), Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::SearchForPerson { person_id, input_value: None, response: None })))
-													}>{ "Search For Person" }</div>
-													<div class="menu-item" {YEW_CLOSE_POPUP} onclick={
-														Self::on_click_prevdef_stopprop(ctx.link(), Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::CombinePersonWith { person_id, input_value: None, response: None })))
-													} title="Join Person into Another">{ "Join Into Person" }</div>
-													<div class="menu-item" {YEW_CLOSE_POPUP}>{ "Delete" }</div>
+
+													<LoginBarrier>
+														<div class="menu-item" {YEW_CLOSE_POPUP} onclick={
+															Self::on_click_prevdef(ctx.link(), Msg::PosterItem(PosterItem::UpdatePerson(person_id)))
+														}>{ "Refresh Person" }</div>
+														<div class="menu-item" {YEW_CLOSE_POPUP} onclick={
+															Self::on_click_prevdef_stopprop(ctx.link(), Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::SearchForPerson { person_id, input_value: None, response: None })))
+														}>{ "Search For Person" }</div>
+														<div class="menu-item" {YEW_CLOSE_POPUP} onclick={
+															Self::on_click_prevdef_stopprop(ctx.link(), Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::CombinePersonWith { person_id, input_value: None, response: None })))
+														} title="Join Person into Another">{ "Join Into Person" }</div>
+														<div class="menu-item" {YEW_CLOSE_POPUP}>{ "Delete" }</div>
+													</LoginBarrier>
+
 													<div class="menu-item" {YEW_CLOSE_POPUP} onclick={
 														Self::on_click_prevdef_stopprop(ctx.link(), Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::Info { person_id })))
 													}>{ "Show Info" }</div>

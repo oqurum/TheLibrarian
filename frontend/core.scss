@@ -113,8 +113,7 @@ button:not([disabled]),
 	}
 }
 
-form,
-form > .form-container {
+.form-container {
 	display: flex;
 	flex-direction: column;
 

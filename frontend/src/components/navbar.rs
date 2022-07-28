@@ -7,7 +7,7 @@ use web_sys::HtmlInputElement;
 use yew::prelude::*;
 use yew_router::components::Link;
 
-use crate::{Route, request, util};
+use crate::{Route, request, util, is_signed_in};
 
 pub enum Msg {
 	Close,
@@ -16,8 +16,8 @@ pub enum Msg {
 }
 
 pub struct NavbarModule {
-	left_items: Vec<(Route, DisplayType)>,
-	right_items: Vec<(Route, DisplayType)>,
+	left_items: Vec<(bool, Route, DisplayType)>,
+	right_items: Vec<(bool, Route, DisplayType)>,
 
 	search_results: Option<api::WrappingResponse<GetBookListResponse>>,
 	#[allow(clippy::type_complexity)]
@@ -31,13 +31,21 @@ impl Component for NavbarModule {
 	fn create(_ctx: &Context<Self>) -> Self {
 		Self {
 			left_items: vec![
-				(Route::Home, DisplayType::Icon("home", "Home")),
-				(Route::People, DisplayType::Icon("person", "Authors")),
-				(Route::EditList, DisplayType::Icon("fact_check", "Edits")),
+				(false, Route::Home, DisplayType::Icon("home", "Home")),
+				(false, Route::People, DisplayType::Icon("person", "Authors")),
+				(true, Route::EditList, DisplayType::Icon("fact_check", "Edits")),
 			],
-			right_items: vec![
-				(Route::Options, DisplayType::Icon("settings", "Settings")),
-			],
+			right_items: {
+				let mut items = vec![
+					(true, Route::Options, DisplayType::Icon("settings", "Settings")),
+				];
+
+				if !is_signed_in() {
+					items.push((false, Route::Login, DisplayType::Icon("login", "Login/Register")));
+				}
+
+				items
+			},
 
 			search_results: None,
 			closure: Arc::new(Mutex::new(None)),
@@ -79,7 +87,7 @@ impl Component for NavbarModule {
 			<div class="navbar-module">
 				<div class="left-content">
 				{
-					for self.left_items.iter().map(|item| Self::render_item(item.0.clone(), &item.1))
+					for self.left_items.iter().map(|item| Self::render_item(item.0, item.1.clone(), &item.2))
 				}
 				</div>
 				<div class="center-content">
@@ -100,7 +108,7 @@ impl Component for NavbarModule {
 				</div>
 				<div class="right-content">
 				{
-					for self.right_items.iter().map(|item| Self::render_item(item.0.clone(), &item.1))
+					for self.right_items.iter().map(|item| Self::render_item(item.0, item.1.clone(), &item.2))
 				}
 				</div>
 			</div>
@@ -137,7 +145,11 @@ impl Component for NavbarModule {
 }
 
 impl NavbarModule {
-	fn render_item(route: Route, name: &DisplayType) -> Html {
+	fn render_item(login_required: bool, route: Route, name: &DisplayType) -> Html {
+		if login_required && !is_signed_in() {
+			return html! {};
+		}
+
 		match name {
 			// DisplayType::Text(v) => html! {
 			// 	<Link<Route> to={route}>{ v }</Link<Route>>

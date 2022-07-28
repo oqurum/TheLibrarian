@@ -14,7 +14,7 @@ use web_sys::{HtmlInputElement, HtmlTextAreaElement, HtmlSelectElement};
 use yew::{prelude::*, html::Scope};
 
 use crate::{
-	components::{PopupEditMetadata, PopupSearch},
+	components::{LoginBarrier, PopupEditMetadata, PopupSearch},
 	request
 };
 
@@ -289,9 +289,11 @@ impl Component for BookView {
 							}
 						} else {
 							html! {
-								<div class="sidebar-item">
-									<button class="button" onclick={ctx.link().callback(|_| Msg::ToggleEdit)}>{"Start Editing"}</button>
-								</div>
+								<LoginBarrier>
+									<div class="sidebar-item">
+										<button class="button" onclick={ctx.link().callback(|_| Msg::ToggleEdit)}>{"Start Editing"}</button>
+									</div>
+								</LoginBarrier>
 							}
 						}
 					}
@@ -300,19 +302,22 @@ impl Component for BookView {
 					<div class="main-content-view">
 						<div class="info-container">
 							<div class="poster large">
-								<div class="bottom-right">
-									<span class="material-icons" onclick={on_click_more} title="More Options">{ "more_horiz" }</span>
-								</div>
-								<div class="bottom-left">
-									<span class="material-icons" onclick={ctx.link().callback_future(move |e: MouseEvent| {
-										e.prevent_default();
-										e.stop_propagation();
+								<LoginBarrier>
+									<div class="bottom-right">
+										<span class="material-icons" onclick={on_click_more} title="More Options">{ "more_horiz" }</span>
+									</div>
 
-										async move {
-											Msg::ShowPopup(DisplayOverlay::Edit(Box::new(request::get_media_view(book_id).await)))
-										}
-									})} title="More Options">{ "edit" }</span>
-								</div>
+									<div class="bottom-left">
+										<span class="material-icons" onclick={ctx.link().callback_future(move |e: MouseEvent| {
+											e.prevent_default();
+											e.stop_propagation();
+
+											async move {
+												Msg::ShowPopup(DisplayOverlay::Edit(Box::new(request::get_media_view(book_id).await)))
+											}
+										})} title="More Options">{ "edit" }</span>
+									</div>
+								</LoginBarrier>
 
 								<img src={ book_model.get_thumb_url() } />
 							</div>
