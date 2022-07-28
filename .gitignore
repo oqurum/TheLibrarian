@@ -2,7 +2,7 @@
 
 /target
 
-database.db
+/app/database.db
 /app/public/dist
 /app/thumbnails
 /app/config.json

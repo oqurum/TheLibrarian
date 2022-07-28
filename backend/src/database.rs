@@ -6,7 +6,7 @@ use crate::Result;
 use rusqlite::Connection;
 // TODO: use tokio::task::spawn_blocking;
 
-const DATABASE_PATH: &str = "database.db";
+const DATABASE_PATH: &str = "./app/database.db";
 
 
 pub async fn init() -> Result<Database> {
