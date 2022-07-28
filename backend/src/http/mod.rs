@@ -3,6 +3,7 @@ use actix_web::HttpResponse;
 use actix_web::{web, App, HttpServer, cookie::SameSite};
 use librarian_common::api::WrappingResponse;
 
+use crate::config::get_config;
 use crate::database::Database;
 
 mod api;
@@ -31,7 +32,7 @@ pub async fn register_http_service(db_data: web::Data<Database>) -> std::io::Res
 		App::new()
 			.app_data(db_data.clone())
 			.wrap(IdentityService::new(
-				CookieIdentityPolicy::new(&[0; 32])
+				CookieIdentityPolicy::new(get_config().auth.auth_key.as_bytes())
 					.name("librarian-auth")
 					.secure(false)
 					.max_age_secs(60 * 60 * 24 * 365)
