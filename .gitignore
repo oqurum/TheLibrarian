@@ -3,7 +3,7 @@
 /target
 
 database.db
-dist
+/app/public/dist
 /app/thumbnails
 /app/config.json
 

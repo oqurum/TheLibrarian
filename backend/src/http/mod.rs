@@ -17,7 +17,7 @@ pub type JsonResponse<V> = web::Json<WrappingResponse<V>>;
 
 // TODO: Convert to async closure (https://github.com/rust-lang/rust/issues/62290)
 async fn default_handler() -> impl actix_web::Responder {
-	actix_files::NamedFile::open_async("../frontend/dist/index.html").await
+	actix_files::NamedFile::open_async("./app/public/dist/index.html").await
 }
 
 async fn logout(ident: Identity) -> HttpResponse {
@@ -65,11 +65,7 @@ pub async fn register_http_service(db_data: web::Data<Database>) -> std::io::Res
 			)
 
 			// Other
-			.service(actix_files::Files::new("/js", "../app/public/js"))
-			.service(actix_files::Files::new("/css", "../app/public/css"))
-			.service(actix_files::Files::new("/fonts", "../app/public/fonts"))
-			.service(actix_files::Files::new("/images", "../app/public/images"))
-			.service(actix_files::Files::new("/", "../frontend/dist").index_file("index.html"))
+			.service(actix_files::Files::new("/", "./app/public").index_file("dist/index.html"))
 			.default_service(web::route().to(default_handler))
 	})
 		.bind("0.0.0.0:8085")?
