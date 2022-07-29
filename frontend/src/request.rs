@@ -2,6 +2,7 @@
 
 use common::{Source, PersonId, BookId, TagId, ImageId, Either, ImageIdType};
 use serde::{Serialize, Deserialize};
+use serde_json::json;
 use wasm_bindgen::{JsValue, JsCast};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, Request, RequestMode, Response, Headers};
@@ -291,6 +292,28 @@ pub async fn run_task() { // TODO: Use common::api::RunTaskBody
 	).await.ok();
 }
 
+// Login In
+
+pub async fn login_with_password(email: String, password: String) -> WrappingResponse<String> {
+	fetch(
+		"POST",
+		"/auth/password",
+		Some(&json!({
+			"email": email,
+			"password": password,
+		}))
+	).await.unwrap_or_else(def)
+}
+
+pub async fn login_without_password(email: String) -> WrappingResponse<String> {
+	fetch(
+		"POST",
+		"/auth/passwordless",
+		Some(&json!({
+			"email": email,
+		}))
+	).await.unwrap_or_else(def)
+}
 
 
 

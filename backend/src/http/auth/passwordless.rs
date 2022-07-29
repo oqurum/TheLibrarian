@@ -5,10 +5,11 @@
 
 use actix_identity::Identity;
 use actix_web::{http::header, HttpResponse};
-use actix_web::web;
+use actix_web::{web, HttpRequest};
 use librarian_common::Permissions;
+use librarian_common::api::{ApiErrorResponse, WrappingResponse};
 
-use crate::config::get_config;
+use crate::config::{get_config, ConfigEmail};
 use crate::model::{AuthModel, NewMemberModel, MemberModel};
 use crate::{Result, WebResult, Error};
 use chrono::Utc;
@@ -33,34 +34,35 @@ pub struct PostPasswordlessCallback {
 }
 
 pub async fn post_passwordless_oauth(
+	req: HttpRequest,
 	query: web::Form<PostPasswordlessCallback>,
 	identity: Identity,
 	db: web::Data<Database>,
-) -> WebResult<HttpResponse> {
+) -> WebResult<web::Json<WrappingResponse<String>>> {
 	if identity.identity().is_some() {
-		return Ok(HttpResponse::MethodNotAllowed().finish()); // TODO: What's the proper status?
+		return Err(ApiErrorResponse::new("Already logged in").into());
 	}
 
-	let email_config = ConfigEmail {
-		display_name: String::from("Bookie - Book Reader"),
-		sending_email: String::from("from@example.com"),
-		contact_email: String::from("support@example.com"),
-		subject_line: String::from("Your link to sign in to Bookie"),
-		smtp_username: String::from(""),
-		smtp_password: String::from(""),
-		smtp_relay: String::from(""),
+	let config = get_config();
+
+	let (email_config, host) = match (
+		config.email,
+		req.headers().get("host").and_then(|v| v.to_str().ok())
+	) {
+		(Some(a), Some(b)) => (a, b),
+		_ => return Err(ApiErrorResponse::new("Missing email from config OR unable to get host").into()),
 	};
 
+	let proto = config.server.is_secure.then(|| "https").unwrap_or("http");
+
 	if !get_config().auth.new_users && MemberModel::get_by_email(query.0.email.trim(), &db).await?.is_none() {
-		return Ok(HttpResponse::Forbidden().finish());
+		return Err(ApiErrorResponse::new("New user creation is disabled").into());
 	}
 
 	let oauth_token = gen_sample_alphanumeric(32, &mut rand::thread_rng());
 
 	let auth_url = format!(
-		"{}://{}{}?{}",
-		"http",
-		"127.0.0.1:8084",
+		"{proto}://{host}{}?{}",
 		PASSWORDLESS_PATH_CB,
 		serde_urlencoded::to_string(QueryCallback {
 			oauth_token: oauth_token.clone(),
@@ -69,8 +71,8 @@ pub async fn post_passwordless_oauth(
 	);
 
 	let main_html = render_email(
-		"http",
-		"127.0.0.1:8084",
+		proto,
+		host,
 		&email_config.display_name,
 		PASSWORDLESS_PATH_CB,
 	);
@@ -86,7 +88,7 @@ pub async fn post_passwordless_oauth(
 
 	send_auth_email(query.0.email, auth_url, main_html, &email_config)?;
 
-	Ok(HttpResponse::Ok().finish())
+	Ok(web::Json(WrappingResponse::new(String::from("success"))))
 }
 
 #[derive(Serialize, Deserialize)]
@@ -177,20 +179,6 @@ pub fn gen_sample_alphanumeric(amount: usize, rng: &mut ThreadRng) -> String {
 		.take(amount)
 		.map(char::from)
 		.collect()
-}
-
-
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
-pub struct ConfigEmail {
-	pub display_name: String,
-	pub sending_email: String,
-	pub contact_email: String,
-
-	pub subject_line: String,
-
-	pub smtp_username: String,
-	pub smtp_password: String,
-	pub smtp_relay: String,
 }
 
 
