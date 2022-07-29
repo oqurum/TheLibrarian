@@ -10,7 +10,7 @@ use crate::{
 	SearchType, Member, Poster,
 	Result, TagFE, BookTag, TagType,
 	MetadataItemCached,
-	item::edit::{SharedEditModel, SharedEditVoteModel, BookEdit, NewOrCachedImage},
+	item::edit::{SharedEditModel, SharedEditVoteModel, BookEdit, NewOrCachedImage}, Config,
 };
 
 
@@ -310,7 +310,7 @@ pub struct GetPersonResponse {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetSettingsResponse {
-	//
+	pub config: Config,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

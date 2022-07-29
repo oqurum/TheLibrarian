@@ -8,7 +8,7 @@ use futures::{future::LocalBoxFuture, FutureExt};
 use librarian_common::api::ApiErrorResponse;
 use serde::{Deserialize, Serialize};
 
-use crate::{Result, model::MemberModel, Database, WebError};
+use crate::{Result, model::MemberModel, Database, WebError, InternalError};
 
 pub mod password;
 pub mod passwordless;
@@ -47,6 +47,13 @@ impl MemberCookie {
 
 	pub async fn fetch(&self, db: &Database) -> Result<Option<MemberModel>> {
 		MemberModel::get_by_id(self.member_id(), db).await
+	}
+
+	pub async fn fetch_or_error(&self, db: &Database) -> Result<MemberModel> {
+		match self.fetch(db).await? {
+			Some(v) => Ok(v),
+			None => Err(InternalError::UserMissing.into()),
+		}
 	}
 }
 

@@ -6,10 +6,10 @@
 use actix_identity::Identity;
 use actix_web::{http::header, HttpResponse};
 use actix_web::{web, HttpRequest};
-use librarian_common::Permissions;
+use librarian_common::{Permissions, ConfigEmail};
 use librarian_common::api::{ApiErrorResponse, WrappingResponse};
 
-use crate::config::{get_config, ConfigEmail};
+use crate::config::get_config;
 use crate::model::{AuthModel, NewMemberModel, MemberModel};
 use crate::{Result, WebResult, Error};
 use chrono::Utc;

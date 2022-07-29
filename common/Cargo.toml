@@ -7,7 +7,7 @@ edition = "2021"
 
 [features]
 backend = ["common/backend", "rusqlite"]
-frontend = ["common/frontend"]
+frontend = ["common/frontend", "getrandom"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -19,9 +19,13 @@ chrono = "0.4"
 num_enum = "0.5"
 bitflags = "1.3"
 log = "0.4"
+rand = "0.8"
 
 
 common = { git = "https://github.com/oqurum/common", rev = "656ddb2" }
 
 # Backend
 rusqlite = { version = "0.27", optional = true }
+
+# Frontend
+getrandom = { version = "0.2", features = ["js"], optional = true }

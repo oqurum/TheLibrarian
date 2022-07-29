@@ -63,6 +63,7 @@ pub fn api_route() -> Scope<
 
 		// Settings
 		.service(settings::get_settings)
+		.service(settings::update_settings)
 
 		.default_service(web::route().to(default_handler))
 }

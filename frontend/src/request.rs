@@ -7,7 +7,7 @@ use wasm_bindgen::{JsValue, JsCast};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, Request, RequestMode, Response, Headers};
 
-use librarian_common::{api::*, SearchType, TagType, EditId, item::edit::{UpdateEditModel, BookEdit}};
+use librarian_common::{api::*, SearchType, TagType, EditId, item::edit::{UpdateEditModel, BookEdit}, update::OptionsUpdate};
 
 
 // Edits
@@ -265,19 +265,11 @@ pub async fn get_settings() -> WrappingResponse<GetSettingsResponse> {
 	fetch("GET", "/api/v1/settings", Option::<&()>::None).await.unwrap_or_else(def)
 }
 
-pub async fn update_options_add(options: ModifyOptionsBody) {
+pub async fn update_settings(value: OptionsUpdate) {
 	let _: Option<String> = fetch(
 		"POST",
-		"/api/v1/options/add",
-		Some(&options)
-	).await.ok();
-}
-
-pub async fn update_options_remove(options: ModifyOptionsBody) {
-	let _: Option<String> = fetch(
-		"POST",
-		"/api/v1/options/remove",
-		Some(&options)
+		"/api/v1/settings",
+		Some(&value)
 	).await.ok();
 }
 
