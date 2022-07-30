@@ -158,7 +158,7 @@ impl Component for HomePage {
 	fn view(&self, ctx: &Context<Self>) -> Html {
 		let content = if let Some(items) = self.media_items.as_deref() {
 			html! {
-				<div class="main-content-view">
+				<div class="view-container">
 					<div class="library-list normal" ref={ self.library_list_ref.clone() }>
 						{
 							for items.iter().map(|item| {
@@ -216,8 +216,8 @@ impl Component for HomePage {
 		};
 
 		html! {
-			<div class="home-view-container">
-				<div class="sidebar">
+			<div class="outer-view-container">
+				<div class="sidebar-container">
 					<LoginBarrier>
 						<div class="sidebar-item">
 							<button class="button" onclick={ctx.link().callback(|_| Msg::OpenPopup(DisplayOverlay::SearchForBook { input_value: None }))}>{"Add New Book"}</button>

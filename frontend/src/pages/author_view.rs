@@ -162,8 +162,8 @@ impl Component for AuthorView {
 
 		if let Some(GetPersonResponse { person }) = resp {
 			html! {
-				<div class="media-view-container">
-					<div class="sidebar">
+				<div class="outer-view-container">
+					<div class="sidebar-container">
 					{
 						if self.is_editing() {
 							html! {
@@ -190,7 +190,7 @@ impl Component for AuthorView {
 					}
 					</div>
 
-					<div class="main-content-view">
+					<div class="view-container media-view-container">
 						<div class="info-container">
 							<div class="poster large">
 								<img src={ person.get_thumb_url() } />

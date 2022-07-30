@@ -183,7 +183,7 @@ impl Component for AuthorListPage {
 			// let remaining = (self.total_media_count as usize - items.len()).min(50);
 
 			html! {
-				<div class="main-content-view">
+				<div class="view-container">
 					<div class="person-list" ref={ self.author_list_ref.clone() }>
 						{ for items.iter().map(|item| self.render_media_item(item, ctx.link())) }
 						// { for (0..remaining).map(|_| Self::render_placeholder_item()) }

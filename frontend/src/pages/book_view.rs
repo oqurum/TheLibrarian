@@ -271,8 +271,8 @@ impl Component for BookView {
 			});
 
 			html! {
-				<div class="media-view-container">
-					<div class="sidebar">
+				<div class="outer-view-container">
+					<div class="sidebar-container">
 					{
 						if self.is_editing {
 							html! {
@@ -299,7 +299,7 @@ impl Component for BookView {
 					}
 					</div>
 
-					<div class="main-content-view">
+					<div class="view-container media-view-container">
 						<div class="info-container">
 							<div class="poster large">
 								<LoginBarrier>

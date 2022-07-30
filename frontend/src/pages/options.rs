@@ -48,7 +48,7 @@ impl Component for OptionsPage {
 
 			html! {
 				<div class="settings-view-container">
-					<div class="main-content-view">
+					<div class="view-container">
 						<h2>{ "Settings" }</h2>
 
 						<div class="form-container shrink-width-to-content">
