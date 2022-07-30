@@ -582,7 +582,6 @@ checksum = "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b"
 [[package]]
 name = "common"
 version = "0.1.0"
-source = "git+https://github.com/oqurum/common?rev=656ddb2#656ddb263351fd6e8f9b5b541dd9de2402e6d54b"
 dependencies = [
  "futures",
  "gloo-file",

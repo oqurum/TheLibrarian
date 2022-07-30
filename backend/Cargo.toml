@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 librarian-common = { path = "../common", features = ["backend"] }
-common = { git = "https://github.com/oqurum/common", rev = "656ddb2", features = ["backend"] }
+common = { path = "../global_common", features = ["backend"] }
 
 actix = "0.13"
 actix-web = "4.0"

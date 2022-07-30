@@ -22,7 +22,7 @@ log = "0.4"
 rand = "0.8"
 
 
-common = { git = "https://github.com/oqurum/common", rev = "656ddb2" }
+common = { path = "../global_common" }
 
 # Backend
 rusqlite = { version = "0.27", optional = true }
