@@ -82,7 +82,7 @@ impl Component for MassSelectBar {
 							<span>{ items.len() } { " items selected" }</span>
 						</div>
 						<div class="center-content">
-							<ButtonWithPopup class="menu-list">
+							<ButtonWithPopup>
 								<div class="menu-item" {YEW_CLOSE_POPUP}>{ "Refresh Metadata" }</div>
 								<div class="menu-item" {YEW_CLOSE_POPUP} onclick={
 									Self::on_click_prevdef(ctx.link(), Msg::UpdateMetaByFiles)
