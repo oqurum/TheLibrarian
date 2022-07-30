@@ -1,4 +1,5 @@
-use librarian_common::api;
+use librarian_common::{api, update::OptionsUpdate};
+use web_sys::HtmlSelectElement;
 use yew::prelude::*;
 
 use crate::request;
@@ -6,6 +7,8 @@ use crate::request;
 pub enum Msg {
 	// Request Results
 	SettingsResults(api::WrappingResponse<api::GetSettingsResponse>),
+
+	UpdateSettings,
 }
 
 pub struct OptionsPage {
@@ -22,25 +25,61 @@ impl Component for OptionsPage {
 		}
 	}
 
-	fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+	fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
 		match msg {
 			Msg::SettingsResults(resp) => {
 				self.resp = Some(resp);
+			}
+
+			Msg::UpdateSettings => {
+				ctx.link()
+				.send_future(async {
+					Msg::SettingsResults(request::get_settings().await)
+				});
 			}
 		}
 
 		true
 	}
 
-	fn view(&self, _ctx: &Context<Self>) -> Html {
+	fn view(&self, ctx: &Context<Self>) -> Html {
 		if let Some(resp) = self.resp.as_ref() {
-			crate::continue_or_html_err!(resp);
+			let resp = crate::continue_or_html_err!(resp);
 
 			html! {
 				<div class="settings-view-container">
 					<div class="main-content-view">
 						<h2>{ "Settings" }</h2>
-						<a class="button" href="/auth/logout">{ "Logout" }</a>
+
+						<div class="form-container shrink-width-to-content">
+							<label for="new-users-select">{ "Allow new user registration" }</label>
+							<select
+								id="new-users-select"
+								onchange={
+									ctx.link().callback_future(|e: Event| {
+										let value = e.target_unchecked_into::<HtmlSelectElement>().value();
+
+										async move {
+											request::update_settings(OptionsUpdate {
+												user_signup: Some(value == "true"),
+
+												.. Default::default()
+											}).await;
+
+											Msg::UpdateSettings
+										}
+									})
+								}
+							>
+								<option selected={ resp.config.auth.new_users } value="true">{ "Allowed" }</option>
+								<option selected={ !resp.config.auth.new_users } value="false">{ "Denied" }</option>
+							</select>
+
+							<br />
+
+							<a class="button" href="/auth/logout">{ "Logout" }</a>
+						</div>
+
 
 						// <button class="button" onclick={ ctx.link().callback_future(|_| async {
 						// 	request::run_task().await;
