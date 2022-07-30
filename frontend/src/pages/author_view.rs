@@ -190,7 +190,7 @@ impl Component for AuthorView {
 					}
 					</div>
 
-					<div class="view-container media-view-container">
+					<div class="view-container item-view-container">
 						<div class="info-container">
 							<div class="poster large">
 								<img src={ person.get_thumb_url() } />
@@ -346,7 +346,7 @@ impl Component for AuthorView {
 						<section>
 							<h2>{ "Books" }</h2>
 							<div class="books-container">
-								<div class="library-list normal horizontal">
+								<div class="book-list normal horizontal">
 									// <div class="add-book" title="Add Book">
 									// 	<span class="material-icons">{ "add" }</span>
 									// </div>

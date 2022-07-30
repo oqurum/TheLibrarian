@@ -473,7 +473,7 @@ impl AuthorListPage {
 
 	// fn render_placeholder_item() -> Html {
 	// 	html! {
-	// 		<div class="library-item placeholder">
+	// 		<div class="book-list-item placeholder">
 	// 			<div class="poster"></div>
 	// 			<div class="info">
 	// 				<a class="author"></a>

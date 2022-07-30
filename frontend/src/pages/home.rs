@@ -159,7 +159,7 @@ impl Component for HomePage {
 		let content = if let Some(items) = self.media_items.as_deref() {
 			html! {
 				<div class="view-container">
-					<div class="library-list normal" ref={ self.library_list_ref.clone() }>
+					<div class="book-list normal" ref={ self.library_list_ref.clone() }>
 						{
 							for items.iter().map(|item| {
 								let is_editing = self.editing_items.lock().unwrap().contains(&item.id);
@@ -248,7 +248,7 @@ impl Component for HomePage {
 impl HomePage {
 	// fn render_placeholder_item() -> Html {
 	// 	html! {
-	// 		<div class="library-item placeholder">
+	// 		<div class="book-list-item placeholder">
 	// 			<div class="poster"></div>
 	// 			<div class="info">
 	// 				<a class="author"></a>
@@ -315,7 +315,7 @@ impl Component for MediaItem {
 		let meta_id = item.id;
 
 		html! {
-			<Link<Route> to={Route::ViewMeta { meta_id: item.id }} classes={ classes!("library-item") }>
+			<Link<Route> to={Route::ViewMeta { meta_id: item.id }} classes={ classes!("book-list-item") }>
 				<div class="poster">
 					<div class="top-left">
 					{

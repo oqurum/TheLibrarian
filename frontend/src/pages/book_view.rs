@@ -299,7 +299,7 @@ impl Component for BookView {
 					}
 					</div>
 
-					<div class="view-container media-view-container">
+					<div class="view-container item-view-container">
 						<div class="info-container">
 							<div class="poster large">
 								<LoginBarrier>
