@@ -2,6 +2,7 @@
 
 /target
 
+/app/public/css/gcommon.css
 /app/database.db
 /app/public/dist
 /app/thumbnails

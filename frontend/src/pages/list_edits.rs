@@ -106,8 +106,7 @@ impl Component for EditListPage {
 			let resp = crate::continue_or_html_err!(resp);
 
 			html! {
-				<div class="view-container">
-
+				<div class="view-container edit-list-view-container">
 					<div class="list-items">
 						{ for resp.items.iter().map(|item| self.render_item(item, ctx.link())) }
 					</div>
