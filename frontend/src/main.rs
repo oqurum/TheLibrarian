@@ -118,6 +118,9 @@ pub enum Route {
 	#[at("/login")]
 	Login,
 
+	#[at("/logout")]
+	Logout,
+
 	#[at("/book/:meta_id")]
 	ViewMeta { meta_id: BookId },
 
@@ -145,6 +148,10 @@ fn switch(route: &Route) -> Html {
 	match route.clone() {
 		Route::Login => {
 			html! { <pages::LoginPage /> }
+		}
+
+		Route::Logout => {
+			html! { <pages::LogoutPage /> }
 		}
 
 		Route::ViewMeta { meta_id } => {

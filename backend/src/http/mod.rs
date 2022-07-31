@@ -1,5 +1,6 @@
 use actix_identity::{CookieIdentityPolicy, IdentityService, Identity};
 use actix_web::HttpResponse;
+use actix_web::http::header;
 use actix_web::{web, App, HttpServer, cookie::SameSite};
 use librarian_common::api::WrappingResponse;
 
@@ -23,7 +24,10 @@ async fn default_handler() -> impl actix_web::Responder {
 
 async fn logout(ident: Identity) -> HttpResponse {
 	ident.forget();
-	HttpResponse::Ok().finish()
+
+	HttpResponse::TemporaryRedirect()
+		.insert_header((header::LOCATION, "/logout"))
+		.finish()
 }
 
 

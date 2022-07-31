@@ -35,17 +35,10 @@ impl Component for NavbarModule {
 				(false, Route::People, DisplayType::Icon("person", "Authors")),
 				(false, Route::EditList, DisplayType::Icon("fact_check", "Edits")),
 			],
-			right_items: {
-				let mut items = vec![
-					(true, Route::Options, DisplayType::Icon("settings", "Settings")),
-				];
-
-				if !is_signed_in() {
-					items.push((false, Route::Login, DisplayType::Icon("login", "Login/Register")));
-				}
-
-				items
-			},
+			right_items: vec![
+				(true, Route::Options, DisplayType::Icon("settings", "Settings")),
+				(true, Route::Logout, DisplayType::Icon("logout", "Logout"))
+			],
 
 			search_results: None,
 			closure: Arc::new(Mutex::new(None)),
@@ -109,6 +102,14 @@ impl Component for NavbarModule {
 				<div class="right-content">
 				{
 					for self.right_items.iter().map(|item| Self::render_item(item.0, item.1.clone(), &item.2))
+				}
+
+				{
+					if !is_signed_in() {
+						Self::render_item(false, Route::Login, &DisplayType::Icon("login", "Login/Register"))
+					} else {
+						html! {}
+					}
 				}
 				</div>
 			</div>
