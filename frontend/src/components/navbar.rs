@@ -33,7 +33,7 @@ impl Component for NavbarModule {
 			left_items: vec![
 				(false, Route::Home, DisplayType::Icon("home", "Home")),
 				(false, Route::People, DisplayType::Icon("person", "Authors")),
-				(true, Route::EditList, DisplayType::Icon("fact_check", "Edits")),
+				(false, Route::EditList, DisplayType::Icon("fact_check", "Edits")),
 			],
 			right_items: {
 				let mut items = vec![
