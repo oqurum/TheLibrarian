@@ -12,12 +12,8 @@ use self::{
 	openlibrary::OpenLibraryMetadata
 };
 
-pub mod audible;
-pub mod commonsensemedia;
 pub mod google_books;
-pub mod goodreads;
 pub mod openlibrary;
-pub mod ratedreads;
 
 
 #[async_trait]
