@@ -5,7 +5,7 @@ use librarian_common::{api, item::edit::*, edit::*};
 use wasm_bindgen::UnwrapThrowExt;
 use yew::{prelude::*, html::Scope};
 
-use crate::{request, get_member_self};
+use crate::{request, get_member_self, components::LoginBarrier};
 
 
 #[derive(Properties, PartialEq)]
@@ -235,96 +235,99 @@ impl EditListPage {
 				<hr class="transparent" />
 
 				<div class="footer">
-					<div class="aligned-left">
-						{ // Upvote / Downvote
+					<LoginBarrier>
+						<div class="aligned-left">
+							{
+								// Upvote / Downvote
+								if item.status.is_pending() {
+									html! {
+										<>
+										{
+											if let Some(is_selected) = my_vote.map(|v| !v).or(Some(false)) {
+												html! {
+													<button
+														class="slim red"
+														disabled={!is_selected && my_vote.is_some()}
+														title="Downvote"
+														onclick={scope.callback_future(move |_| async move {
+															let resp = request::update_edit_item(id, &UpdateEditModel {
+																vote: Some(-1),
+																.. UpdateEditModel::default()
+															}).await;
+
+															Msg::EditItemUpdate(Box::new(resp))
+														})}
+													><span class="material-icons">{ "keyboard_arrow_down" }</span></button>
+												}
+											} else {
+												html! {}
+											}
+										}
+
+										{
+											if let Some(is_selected) = my_vote.or(Some(false)) {
+												html! {
+													<button
+														class="slim green"
+														disabled={!is_selected && my_vote.is_some()}
+														title="Upvote"
+														onclick={scope.callback_future(move |_| async move {
+															let resp = request::update_edit_item(id, &UpdateEditModel {
+																vote: Some(1),
+																.. UpdateEditModel::default()
+															}).await;
+
+															Msg::EditItemUpdate(Box::new(resp))
+														})}
+													><span class="material-icons">{ "keyboard_arrow_up" }</span></button>
+												}
+											} else {
+												html! {}
+											}
+										}
+										</>
+									}
+								} else {
+									html! {}
+								}
+							}
+						</div>
+						<div class="aligned-right">
+						{
 							if item.status.is_pending() {
 								html! {
 									<>
-									{
-										if let Some(is_selected) = my_vote.map(|v| !v).or(Some(false)) {
-											html! {
-												<button
-													class="slim red"
-													disabled={!is_selected && my_vote.is_some()}
-													title="Downvote"
-													onclick={scope.callback_future(move |_| async move {
-														let resp = request::update_edit_item(id, &UpdateEditModel {
-															vote: Some(-1),
-															.. UpdateEditModel::default()
-														}).await;
+										<button
+											class="slim red"
+											onclick={scope.callback_future(move |_| async move {
+												let resp = request::update_edit_item(id, &UpdateEditModel {
+													status: Some(EditStatus::ForceRejected),
+													.. UpdateEditModel::default()
+												}).await;
 
-														Msg::EditItemUpdate(Box::new(resp))
-													})}
-												><span class="material-icons">{ "keyboard_arrow_down" }</span></button>
-											}
-										} else {
-											html! {}
-										}
-									}
+												Msg::EditItemUpdate(Box::new(resp))
+											})}
+										>{ "Force Reject" }</button>
 
-									{
-										if let Some(is_selected) = my_vote.or(Some(false)) {
-											html! {
-												<button
-													class="slim green"
-													disabled={!is_selected && my_vote.is_some()}
-													title="Upvote"
-													onclick={scope.callback_future(move |_| async move {
-														let resp = request::update_edit_item(id, &UpdateEditModel {
-															vote: Some(1),
-															.. UpdateEditModel::default()
-														}).await;
+										<button
+											class="slim green"
+											onclick={scope.callback_future(move |_| async move {
+												let resp = request::update_edit_item(id, &UpdateEditModel {
+													status: Some(EditStatus::ForceAccepted),
+													.. UpdateEditModel::default()
+												}).await;
 
-														Msg::EditItemUpdate(Box::new(resp))
-													})}
-												><span class="material-icons">{ "keyboard_arrow_up" }</span></button>
-											}
-										} else {
-											html! {}
-										}
-									}
+												Msg::EditItemUpdate(Box::new(resp))
+											})}
+										>{ "Force Accept" }</button>
 									</>
 								}
 							} else {
 								html! {}
 							}
 						}
-					</div>
-					<div class="aligned-right">
-					{
-						if item.status.is_pending() {
-							html! {
-								<>
-									<button
-										class="slim red"
-										onclick={scope.callback_future(move |_| async move {
-											let resp = request::update_edit_item(id, &UpdateEditModel {
-												status: Some(EditStatus::ForceRejected),
-												.. UpdateEditModel::default()
-											}).await;
-
-											Msg::EditItemUpdate(Box::new(resp))
-										})}
-									>{ "Force Reject" }</button>
-
-									<button
-										class="slim green"
-										onclick={scope.callback_future(move |_| async move {
-											let resp = request::update_edit_item(id, &UpdateEditModel {
-												status: Some(EditStatus::ForceAccepted),
-												.. UpdateEditModel::default()
-											}).await;
-
-											Msg::EditItemUpdate(Box::new(resp))
-										})}
-									>{ "Force Accept" }</button>
-								</>
-							}
-						} else {
-							html! {}
-						}
-					}
-					</div>
+						</div>
+					</LoginBarrier>
 				</div>
 			</div>
 		}
