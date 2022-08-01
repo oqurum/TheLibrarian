@@ -6,7 +6,6 @@ use rusqlite::{params, OptionalExtension};
 
 mod edit_comment;
 mod edit_vote;
-mod edit_person;
 
 pub use edit_comment::*;
 pub use edit_vote::*;
