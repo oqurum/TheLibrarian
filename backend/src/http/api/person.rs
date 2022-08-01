@@ -1,6 +1,6 @@
 use actix_web::{web, get, HttpResponse};
 use common::{PersonId, api::WrappingResponse};
-use librarian_common::api;
+use common_local::api;
 
 use crate::{database::Database, WebResult, Error, model::PersonModel, http::JsonResponse};
 

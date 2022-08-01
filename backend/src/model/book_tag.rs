@@ -1,6 +1,6 @@
 use common::{BookId, TagId, BookTagId};
 use chrono::{DateTime, TimeZone, Utc};
-use librarian_common::BookTag;
+use common_local::BookTag;
 use rusqlite::{OptionalExtension, params};
 
 

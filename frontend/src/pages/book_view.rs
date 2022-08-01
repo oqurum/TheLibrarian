@@ -6,7 +6,7 @@ use common::{
 	},
 	Either, LANGUAGES, ImageIdType, BookId, TagId, api::WrappingResponse
 };
-use librarian_common::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse}, TagType, util::string_to_upper_case, item::edit::BookEdit, TagFE, SearchType};
+use common_local::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse}, TagType, util::string_to_upper_case, item::edit::BookEdit, TagFE, SearchType};
 
 use js_sys::Date;
 use wasm_bindgen::{JsCast, JsValue, UnwrapThrowExt};

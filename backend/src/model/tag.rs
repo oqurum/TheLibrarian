@@ -1,4 +1,4 @@
-use librarian_common::{TagType, TagFE};
+use common_local::{TagType, TagFE};
 use chrono::{DateTime, TimeZone, Utc};
 use common::TagId;
 use rusqlite::{params, OptionalExtension};

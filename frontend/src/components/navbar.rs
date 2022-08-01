@@ -1,7 +1,7 @@
 use std::sync::{Mutex, Arc};
 
 use common::api::WrappingResponse;
-use librarian_common::api::{GetBookListResponse, self};
+use common_local::api::{GetBookListResponse, self};
 use gloo_utils::{document, body};
 use wasm_bindgen::{JsCast, prelude::Closure};
 use web_sys::HtmlInputElement;

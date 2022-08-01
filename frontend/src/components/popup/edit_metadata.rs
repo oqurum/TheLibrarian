@@ -1,5 +1,5 @@
 use common::{component::popup::{Popup, PopupType}, Either, ImageIdType, api::WrappingResponse};
-use librarian_common::api;
+use common_local::api;
 use yew::prelude::*;
 
 use crate::request;

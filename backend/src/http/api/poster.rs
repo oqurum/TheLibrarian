@@ -4,7 +4,7 @@ use actix_files::NamedFile;
 use actix_web::{get, post, web, HttpResponse, Responder};
 use common::{Either, ImageIdType, ImageType, BookId, PersonId, api::WrappingResponse};
 use futures::TryStreamExt;
-use librarian_common::{Poster, api};
+use common_local::{Poster, api};
 
 use crate::{WebResult, Error, store_image, database::Database, model::{BookModel, ImageLinkModel, UploadedImageModel, PersonModel}, http::{JsonResponse, MemberCookie}};
 

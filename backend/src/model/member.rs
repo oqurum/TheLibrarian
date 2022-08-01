@@ -1,5 +1,5 @@
 use lazy_static::lazy_static;
-use librarian_common::{util::serialize_datetime, Permissions};
+use common_local::{util::serialize_datetime, Permissions};
 use chrono::{DateTime, TimeZone, Utc};
 use common::MemberId;
 use rusqlite::{params, OptionalExtension};
@@ -64,9 +64,9 @@ impl TableRow<'_> for MemberModel {
 	}
 }
 
-impl From<MemberModel> for librarian_common::Member {
-	fn from(value: MemberModel) -> librarian_common::Member {
-		librarian_common::Member {
+impl From<MemberModel> for common_local::Member {
+	fn from(value: MemberModel) -> common_local::Member {
+		common_local::Member {
 			id: value.id,
 			name: value.name,
 			email: value.email,

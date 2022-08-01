@@ -1,4 +1,4 @@
-use librarian_common::util::serialize_datetime;
+use common_local::util::serialize_datetime;
 use common::{ThumbnailStore, ImageId, BookId, PersonId, ImageType};
 use chrono::{DateTime, TimeZone, Utc};
 use rusqlite::{params, OptionalExtension};

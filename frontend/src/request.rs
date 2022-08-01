@@ -7,7 +7,7 @@ use wasm_bindgen::{JsValue, JsCast};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, Request, RequestMode, Response, Headers};
 
-use librarian_common::{api::*, SearchType, TagType, EditId, item::edit::{UpdateEditModel, BookEdit}, update::OptionsUpdate};
+use common_local::{api::*, SearchType, TagType, EditId, item::edit::{UpdateEditModel, BookEdit}, update::OptionsUpdate};
 
 
 // Edits

@@ -1,6 +1,6 @@
 use actix_web::{get, web, post, delete};
 use common::{BookId, TagId, api::{WrappingResponse, DeletionResponse}};
-use librarian_common::{api::{self, NewTagBody}};
+use common_local::{api::{self, NewTagBody}};
 
 use crate::{database::Database, WebResult, model::{TagModel, NewTagModel, BookTagWithTagModel, BookTagModel}, http::{JsonResponse, MemberCookie}};
 

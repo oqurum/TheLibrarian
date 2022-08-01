@@ -1,5 +1,5 @@
 use common::{component::popup::{compare::{Comparable, PopupComparison}, Popup, PopupType}, Either, Source, api::WrappingResponse};
-use librarian_common::{api::{SearchItem, self}, SearchType, util::string_to_upper_case, item::edit::BookEdit};
+use common_local::{api::{SearchItem, self}, SearchType, util::string_to_upper_case, item::edit::BookEdit};
 use gloo_utils::document;
 use wasm_bindgen::{JsCast, UnwrapThrowExt};
 use web_sys::HtmlInputElement;

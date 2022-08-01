@@ -3,8 +3,8 @@ use actix_web::{get, web, HttpResponse, post};
 use chrono::Utc;
 use common::api::WrappingResponse;
 use common::{Either, ThumbnailStore, BookId, PersonId};
-use librarian_common::item::edit::{BookEdit, NewOrCachedImage};
-use librarian_common::{api, DisplayItem, MetadataItemCached};
+use common_local::item::edit::{BookEdit, NewOrCachedImage};
+use common_local::{api, DisplayItem, MetadataItemCached};
 
 use crate::http::{MemberCookie, JsonResponse};
 use crate::metadata::MetadataReturned;

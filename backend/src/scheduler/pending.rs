@@ -1,5 +1,5 @@
 use chrono::Utc;
-use librarian_common::edit::*;
+use common_local::edit::*;
 use rusqlite::params;
 
 use crate::{Database, Result, model::{NewEditCommentModel, EditModel, SYSTEM_MEMBER, TableRow}};

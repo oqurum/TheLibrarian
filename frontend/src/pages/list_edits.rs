@@ -2,7 +2,7 @@ use std::fmt;
 
 use chrono::Utc;
 use common::api::WrappingResponse;
-use librarian_common::{api, item::edit::*, edit::*};
+use common_local::{api, item::edit::*, edit::*};
 use wasm_bindgen::UnwrapThrowExt;
 use yew::{prelude::*, html::Scope};
 

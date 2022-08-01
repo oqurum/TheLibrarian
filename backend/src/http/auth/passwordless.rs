@@ -7,7 +7,7 @@ use actix_identity::Identity;
 use actix_web::{http::header, HttpResponse};
 use actix_web::{web, HttpRequest};
 use common::api::{ApiErrorResponse, WrappingResponse};
-use librarian_common::{Permissions, ConfigEmail};
+use common_local::{Permissions, ConfigEmail};
 
 use crate::config::get_config;
 use crate::http::JsonResponse;

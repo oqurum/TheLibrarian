@@ -1,4 +1,4 @@
-use librarian_common::{MetadataItemCached, DisplayMetaItem, util::{serialize_datetime, serialize_datetime_opt}, search::PublicBook};
+use common_local::{MetadataItemCached, DisplayMetaItem, util::{serialize_datetime, serialize_datetime_opt}, search::PublicBook};
 use chrono::{DateTime, TimeZone, Utc};
 use common::{ThumbnailStore, BookId, PersonId};
 use rusqlite::{params, OptionalExtension};

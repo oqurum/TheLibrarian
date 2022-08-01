@@ -2,7 +2,7 @@ use std::{collections::HashMap, ops::{Deref, DerefMut}, fmt::{self, Debug}, borr
 
 use async_trait::async_trait;
 use common::{Source, ThumbnailStore, PersonId, BookId};
-use librarian_common::{SearchFor, MetadataItemCached, api::MetadataBookItem};
+use common_local::{SearchFor, MetadataItemCached, api::MetadataBookItem};
 use chrono::Utc;
 
 use crate::{Result, database::Database, model::{NewPersonModel, PersonAltModel, BookModel, PersonModel}};

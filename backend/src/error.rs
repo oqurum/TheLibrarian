@@ -19,7 +19,7 @@ use serde_urlencoded::ser::Error as UrlEncodedSerError;
 use serde_json::Error as JsonError;
 use serde_xml_rs::Error as XmlError;
 use serde::de::value::Error as SerdeValueError;
-use librarian_common::Error as LocalCommonError;
+use common_local::Error as LocalCommonError;
 
 use actix_multipart::MultipartError;
 use actix_web::Error as ActixError;

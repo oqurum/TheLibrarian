@@ -1,6 +1,6 @@
 use actix_web::{get, web, HttpRequest};
 use common::api::WrappingResponse;
-use librarian_common::search::{self, BookSearchResponse, PublicBook};
+use common_local::search::{self, BookSearchResponse, PublicBook};
 
 use crate::{WebResult, database::Database, model::BookModel, http::JsonResponse};
 

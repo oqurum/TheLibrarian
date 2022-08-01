@@ -1,6 +1,6 @@
 use actix_web::{get, web};
 use common::{Source, api::{ApiErrorResponse, WrappingResponse}};
-use librarian_common::{api, SearchType, SearchForBooksBy, SearchFor};
+use common_local::{api, SearchType, SearchForBooksBy, SearchFor};
 
 use crate::{WebResult, metadata, http::{JsonResponse, MemberCookie}, Database};
 

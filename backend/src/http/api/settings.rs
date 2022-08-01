@@ -1,6 +1,6 @@
 use actix_web::{web, get, post};
 use common::api::{WrappingResponse, ApiErrorResponse};
-use librarian_common::{api, update::OptionsUpdate};
+use common_local::{api, update::OptionsUpdate};
 
 use crate::{database::Database, WebResult, http::{JsonResponse, MemberCookie}, config};
 

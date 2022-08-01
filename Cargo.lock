@@ -647,6 +647,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "common-local"
+version = "0.1.0"
+dependencies = [
+ "bitflags",
+ "chrono",
+ "common",
+ "getrandom",
+ "log",
+ "num_enum",
+ "rand",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "thiserror",
+]
+
+[[package]]
 name = "console_error_panic_hook"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1548,11 +1566,11 @@ dependencies = [
  "bcrypt",
  "chrono",
  "common",
+ "common-local",
  "futures",
  "image",
  "lazy_static",
  "lettre",
- "librarian-common",
  "log",
  "rand",
  "regex",
@@ -1570,24 +1588,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "librarian-common"
-version = "0.1.0"
-dependencies = [
- "bitflags",
- "chrono",
- "common",
- "getrandom",
- "log",
- "num_enum",
- "rand",
- "rusqlite",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "thiserror",
-]
-
-[[package]]
 name = "librarian-frontend"
 version = "0.1.0"
 dependencies = [
@@ -1595,6 +1595,7 @@ dependencies = [
  "base64",
  "chrono",
  "common",
+ "common-local",
  "futures",
  "gloo-file",
  "gloo-timers",
@@ -1602,7 +1603,6 @@ dependencies = [
  "grass",
  "js-sys",
  "lazy_static",
- "librarian-common",
  "log",
  "reqwasm",
  "serde",

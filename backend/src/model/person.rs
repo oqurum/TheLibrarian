@@ -1,4 +1,4 @@
-use librarian_common::{Person, util::serialize_datetime};
+use common_local::{Person, util::serialize_datetime};
 use chrono::{DateTime, TimeZone, Utc};
 use common::{BookId, PersonId, Source, ThumbnailStore};
 use rusqlite::{params, OptionalExtension};

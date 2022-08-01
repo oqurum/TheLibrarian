@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc, TimeZone};
 use common::MemberId;
-use librarian_common::{EditId, item::edit::SharedEditVoteModel, EditVoteId};
+use common_local::{EditId, item::edit::SharedEditVoteModel, EditVoteId};
 use rusqlite::{params, OptionalExtension};
 
 use crate::{Result, Database, model::{TableRow, AdvRow}};

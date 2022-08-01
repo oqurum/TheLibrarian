@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc, TimeZone, Duration};
 use common::{BookId, PersonId, TagId, MemberId};
-use librarian_common::{edit::*, EditId, item::edit::*};
+use common_local::{edit::*, EditId, item::edit::*};
 use rusqlite::{params, OptionalExtension};
 
 

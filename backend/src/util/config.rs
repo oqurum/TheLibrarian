@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use lazy_static::lazy_static;
-use librarian_common::Config;
+use common_local::Config;
 
 use crate::Result;
 

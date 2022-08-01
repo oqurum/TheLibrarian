@@ -1,5 +1,5 @@
 use common::api::WrappingResponse;
-use librarian_common::{api, update::OptionsUpdate};
+use common_local::{api, update::OptionsUpdate};
 use web_sys::HtmlSelectElement;
 use yew::prelude::*;
 

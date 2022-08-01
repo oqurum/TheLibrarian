@@ -7,7 +7,7 @@ use actix_web::web;
 use chrono::Utc;
 use common::api::ApiErrorResponse;
 use common::api::WrappingResponse;
-use librarian_common::Permissions;
+use common_local::Permissions;
 use rand::Rng;
 use rand::prelude::ThreadRng;
 use serde::{Serialize, Deserialize};

@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use crate::Result;
 use async_trait::async_trait;
-use librarian_common::{MetadataItemCached, SearchForBooksBy};
+use common_local::{MetadataItemCached, SearchForBooksBy};
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Serialize, Deserialize};

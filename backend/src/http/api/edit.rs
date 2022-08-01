@@ -2,7 +2,7 @@ use std::ops::Neg;
 
 use actix_web::{web, get, post};
 use common::api::{QueryListResponse, WrappingResponse};
-use librarian_common::{api, EditId, item::edit::*};
+use common_local::{api, EditId, item::edit::*};
 
 use crate::{database::Database, WebResult, model::{EditModel, BookModel, MemberModel, EditVoteModel, NewEditVoteModel}, http::{MemberCookie, JsonResponse}};
 

@@ -2,7 +2,7 @@
 #![allow(dead_code)]
 
 use common::{component::upload::UploadModule, Either, PersonId, ImageIdType, api::WrappingResponse};
-use librarian_common::{api::{self, GetPostersResponse, GetPersonResponse}, TagType};
+use common_local::{api::{self, GetPostersResponse, GetPersonResponse}, TagType};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::{prelude::*, html::Scope};
