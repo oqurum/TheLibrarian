@@ -1,4 +1,4 @@
-use librarian_common::api::ApiErrorResponse;
+use common::api::ApiErrorResponse;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 use yew_router::{prelude::RouterScopeExt, history::History};

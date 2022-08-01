@@ -1,6 +1,6 @@
 use std::{rc::Rc, sync::Mutex};
 
-use common::BookId;
+use common::{BookId, api::WrappingResponse};
 use librarian_common::{api, DisplayItem, SearchType};
 use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
 use web_sys::{HtmlElement, UrlSearchParams, HtmlInputElement};
@@ -16,7 +16,7 @@ pub enum Msg {
 	RequestMediaItems,
 
 	// Results
-	MediaListResults(api::WrappingResponse<api::GetBookListResponse>),
+	MediaListResults(WrappingResponse<api::GetBookListResponse>),
 
 	// Events
 	OnScroll(i32),

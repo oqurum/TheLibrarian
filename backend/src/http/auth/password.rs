@@ -5,7 +5,9 @@ use actix_identity::Identity;
 use actix_web::web;
 
 use chrono::Utc;
-use librarian_common::{api::{ApiErrorResponse, WrappingResponse}, Permissions};
+use common::api::ApiErrorResponse;
+use common::api::WrappingResponse;
+use librarian_common::Permissions;
 use rand::Rng;
 use rand::prelude::ThreadRng;
 use serde::{Serialize, Deserialize};
@@ -14,6 +16,7 @@ use crate::Error;
 use crate::WebResult;
 use crate::config::get_config;
 use crate::database::Database;
+use crate::http::JsonResponse;
 use crate::model::MemberModel;
 use crate::model::NewMemberModel;
 
@@ -33,7 +36,7 @@ pub async fn post_password_oauth(
 	query: web::Form<PostPasswordCallback>,
 	identity: Identity,
 	db: web::Data<Database>,
-) -> WebResult<web::Json<WrappingResponse<String>>> {
+) -> WebResult<JsonResponse<String>> {
 	if identity.identity().is_some() {
 		return Err(ApiErrorResponse::new("Already logged in").into());
 	}
@@ -67,7 +70,7 @@ pub async fn post_password_oauth(
 
 	super::remember_member_auth(member.id, &identity)?;
 
-	Ok(web::Json(WrappingResponse::new(String::from("success"))))
+	Ok(web::Json(WrappingResponse::okay(String::from("success"))))
 }
 
 pub fn gen_sample_alphanumeric(amount: usize, rng: &mut ThreadRng) -> String {

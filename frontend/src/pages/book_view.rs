@@ -4,9 +4,9 @@ use common::{
 		multi_select::{MultiSelectEvent, MultiSelectModule, MultiSelectItem, MultiSelectNewItem},
 		popup::{Popup, PopupType, compare::{PopupComparison, Comparable}},
 	},
-	Either, LANGUAGES, ImageIdType, BookId, TagId
+	Either, LANGUAGES, ImageIdType, BookId, TagId, api::WrappingResponse
 };
-use librarian_common::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse, self}, TagType, util::string_to_upper_case, item::edit::BookEdit, TagFE, SearchType};
+use librarian_common::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse}, TagType, util::string_to_upper_case, item::edit::BookEdit, TagFE, SearchType};
 
 use js_sys::Date;
 use wasm_bindgen::{JsCast, JsValue, UnwrapThrowExt};
@@ -23,13 +23,13 @@ use crate::{
 #[derive(Clone)]
 pub enum Msg {
 	// Retrive
-	RetrieveMediaView(Box<api::WrappingResponse<MediaViewResponse>>),
-	RetrievePosters(api::WrappingResponse<GetPostersResponse>),
+	RetrieveMediaView(Box<WrappingResponse<MediaViewResponse>>),
+	RetrievePosters(WrappingResponse<GetPostersResponse>),
 
 	MultiselectToggle(bool, TagId),
 	MultiselectCreate(TagType, MultiSelectNewItem<TagId>),
 	MultiCreateResponse(TagFE),
-	AllTagsResponse(api::WrappingResponse<GetTagsResponse>),
+	AllTagsResponse(WrappingResponse<GetTagsResponse>),
 
 	ReloadPosters,
 
@@ -50,8 +50,8 @@ pub struct Property {
 }
 
 pub struct BookView {
-	media: Option<api::WrappingResponse<MediaViewResponse>>,
-	cached_posters: Option<api::WrappingResponse<GetPostersResponse>>,
+	media: Option<WrappingResponse<MediaViewResponse>>,
+	cached_posters: Option<WrappingResponse<GetPostersResponse>>,
 
 	media_popup: Option<DisplayOverlay>,
 
@@ -812,7 +812,7 @@ pub enum ChangingType {
 
 #[derive(Clone)]
 pub enum DisplayOverlay {
-	Edit(Box<api::WrappingResponse<MediaViewResponse>>),
+	Edit(Box<WrappingResponse<MediaViewResponse>>),
 
 	EditFromMetadata(Box<BookEdit>),
 

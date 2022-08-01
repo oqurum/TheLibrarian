@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use common::{BookId, PersonId};
+use common::{BookId, PersonId, api::{WrappingResponse, ApiErrorResponse}};
 use librarian_common::{api, Member};
 use lazy_static::lazy_static;
 use yew::prelude::*;
@@ -40,12 +40,12 @@ macro_rules! continue_or_html_err {
 
 
 enum Msg {
-	LoadMemberSelf(api::WrappingResponse<api::GetMemberSelfResponse>)
+	LoadMemberSelf(WrappingResponse<api::GetMemberSelfResponse>)
 }
 
 struct Model {
 	has_loaded_member: bool,
-	error: Option<api::ApiErrorResponse>,
+	error: Option<ApiErrorResponse>,
 }
 
 impl Component for Model {

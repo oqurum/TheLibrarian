@@ -1,4 +1,4 @@
-use common::{component::popup::{Popup, PopupType, YEW_CLOSE_POPUP}, PersonId};
+use common::{component::popup::{Popup, PopupType, PopupClose}, PersonId, api::WrappingResponse};
 use librarian_common::{api, Person, SearchType};
 use gloo_utils::document;
 use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
@@ -19,7 +19,7 @@ pub enum Msg {
 	RequestPeople,
 
 	// Results
-	PeopleListResults(api::WrappingResponse<api::GetPeopleResponse>),
+	PeopleListResults(WrappingResponse<api::GetPeopleResponse>),
 	PersonUpdateSearchResults(String, api::ExternalSearchResponse),
 	PersonCombineSearchResults(String, Vec<Person>),
 
@@ -36,7 +36,7 @@ pub enum Msg {
 pub struct AuthorListPage {
 	on_scroll_fn: Option<Closure<dyn FnMut()>>,
 
-	media_items: Option<api::WrappingResponse<Vec<Person>>>,
+	media_items: Option<WrappingResponse<Vec<Person>>>,
 	total_media_count: usize,
 
 	is_fetching_authors: bool,
@@ -107,7 +107,7 @@ impl Component for AuthorListPage {
 						if let Some(items) = self.media_items.as_mut().and_then(|v| v.resp.as_mut()) {
 							items.append(&mut resp.items);
 						} else {
-							self.media_items = Some(api::WrappingResponse::new(resp.items));
+							self.media_items = Some(WrappingResponse::okay(resp.items));
 						}
 					}
 
@@ -203,24 +203,24 @@ impl Component for AuthorListPage {
 										html! {
 											<Popup type_of={ PopupType::AtPoint(mouse_pos.0, mouse_pos.1) } on_close={ctx.link().callback(|_| Msg::ClosePopup)}>
 												<div class="menu-list">
-													<div class="menu-item" {YEW_CLOSE_POPUP}>{ "Start Reading" }</div>
+													<PopupClose class="menu-item">{ "Start Reading" }</PopupClose>
 
 													<LoginBarrier>
-														<div class="menu-item" {YEW_CLOSE_POPUP} onclick={
+														<PopupClose class="menu-item" onclick={
 															Self::on_click_prevdef(ctx.link(), Msg::PosterItem(PosterItem::UpdatePerson(person_id)))
-														}>{ "Refresh Person" }</div>
-														<div class="menu-item" {YEW_CLOSE_POPUP} onclick={
+														}>{ "Refresh Person" }</PopupClose>
+														<PopupClose class="menu-item" onclick={
 															Self::on_click_prevdef_stopprop(ctx.link(), Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::SearchForPerson { person_id, input_value: None, response: None })))
-														}>{ "Search For Person" }</div>
-														<div class="menu-item" {YEW_CLOSE_POPUP} onclick={
+														}>{ "Search For Person" }</PopupClose>
+														<PopupClose class="menu-item" onclick={
 															Self::on_click_prevdef_stopprop(ctx.link(), Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::CombinePersonWith { person_id, input_value: None, response: None })))
-														} title="Join Person into Another">{ "Join Into Person" }</div>
-														<div class="menu-item" {YEW_CLOSE_POPUP}>{ "Delete" }</div>
+														} title="Join Person into Another">{ "Join Into Person" }</PopupClose>
+														<PopupClose class="menu-item">{ "Delete" }</PopupClose>
 													</LoginBarrier>
 
-													<div class="menu-item" {YEW_CLOSE_POPUP} onclick={
+													<PopupClose class="menu-item" onclick={
 														Self::on_click_prevdef_stopprop(ctx.link(), Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::Info { person_id })))
-													}>{ "Show Info" }</div>
+													}>{ "Show Info" }</PopupClose>
 												</div>
 											</Popup>
 										}
@@ -275,9 +275,8 @@ impl Component for AuthorListPage {
 																									let source = item.source.clone();
 
 																									html! { // TODO: Place into own component.
-																										<div
+																										<PopupClose
 																											class="person-search-item"
-																											{YEW_CLOSE_POPUP}
 																											onclick={
 																												ctx.link()
 																												.callback_future(move |_| {
@@ -296,7 +295,7 @@ impl Component for AuthorListPage {
 																												<h4>{ item.name.clone() }</h4>
 																												<p>{ item.description.clone().map(|mut v| { util::truncate_on_indices(&mut v, 300); v }).unwrap_or_default() }</p>
 																											</div>
-																										</div>
+																										</PopupClose>
 																									}
 																								})
 																						}
@@ -357,9 +356,8 @@ impl Component for AuthorListPage {
 																				let other_person = item.id;
 
 																				html! { // TODO: Place into own component.
-																					<div
+																					<PopupClose
 																						class="person-search-item"
-																						{YEW_CLOSE_POPUP}
 																						onclick={
 																							ctx.link()
 																							.callback_future(move |_| {
@@ -381,7 +379,7 @@ impl Component for AuthorListPage {
 																									.map(|mut v| { util::truncate_on_indices(&mut v, 300); v })
 																									.unwrap_or_default() }</p>
 																						</div>
-																					</div>
+																					</PopupClose>
 																				}
 																			})
 																		}

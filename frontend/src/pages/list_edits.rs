@@ -1,6 +1,7 @@
 use std::fmt;
 
 use chrono::Utc;
+use common::api::WrappingResponse;
 use librarian_common::{api, item::edit::*, edit::*};
 use wasm_bindgen::UnwrapThrowExt;
 use yew::{prelude::*, html::Scope};
@@ -18,13 +19,13 @@ pub enum Msg {
 	RequestEdits,
 
 	// Results
-	EditListResults(api::WrappingResponse<api::GetEditListResponse>),
+	EditListResults(WrappingResponse<api::GetEditListResponse>),
 
-	EditItemUpdate(Box<api::WrappingResponse<api::PostEditResponse>>),
+	EditItemUpdate(Box<WrappingResponse<api::PostEditResponse>>),
 }
 
 pub struct EditListPage {
-	items_resp: Option<api::WrappingResponse<api::GetEditListResponse>>,
+	items_resp: Option<WrappingResponse<api::GetEditListResponse>>,
 }
 
 impl Component for EditListPage {

@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use common::{Source, PersonId, BookId, TagId, ImageId, Either, ImageIdType};
+use common::{Source, PersonId, BookId, TagId, ImageId, Either, ImageIdType, api::{WrappingResponse, DeletionResponse, ApiErrorResponse}};
 use serde::{Serialize, Deserialize};
 use serde_json::json;
 use wasm_bindgen::{JsValue, JsCast};

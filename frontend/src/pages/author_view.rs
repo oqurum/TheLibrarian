@@ -1,7 +1,7 @@
 // TODO: Temporary. Some of the dead_code in here will be used.
 #![allow(dead_code)]
 
-use common::{component::upload::UploadModule, Either, PersonId, ImageIdType};
+use common::{component::upload::UploadModule, Either, PersonId, ImageIdType, api::WrappingResponse};
 use librarian_common::{api::{self, GetPostersResponse, GetPersonResponse}, TagType};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
@@ -14,9 +14,9 @@ use crate::{components::LoginBarrier, request, pages::home::MediaItem};
 #[derive(Clone)]
 pub enum Msg {
 	// Retrive
-	RetrieveMediaView(Box<api::WrappingResponse<GetPersonResponse>>),
-	RetrievePosters(api::WrappingResponse<GetPostersResponse>),
-	BooksListResults(api::WrappingResponse<api::GetBookListResponse>),
+	RetrieveMediaView(Box<WrappingResponse<GetPersonResponse>>),
+	RetrievePosters(WrappingResponse<GetPostersResponse>),
+	BooksListResults(WrappingResponse<api::GetBookListResponse>),
 
 	UpdatedPoster,
 
@@ -34,9 +34,9 @@ pub struct Property {
 }
 
 pub struct AuthorView {
-	media: Option<api::WrappingResponse<GetPersonResponse>>,
-	cached_posters: Option<api::WrappingResponse<GetPostersResponse>>,
-	cached_books: Option<api::WrappingResponse<api::GetBookListResponse>>,
+	media: Option<WrappingResponse<GetPersonResponse>>,
+	cached_posters: Option<WrappingResponse<GetPostersResponse>>,
+	cached_books: Option<WrappingResponse<api::GetBookListResponse>>,
 
 	media_popup: Option<DisplayOverlay>,
 
@@ -111,7 +111,7 @@ impl Component for AuthorView {
 			}
 
 			Msg::SaveEdits => {
-				self.media = self.editing_item.clone().map(api::WrappingResponse::new);
+				self.media = self.editing_item.clone().map(WrappingResponse::okay);
 
 				// let metadata = self.media.as_ref().and_then(|v| v.resp.as_ref()).unwrap().person.clone();
 				// let meta_id = metadata.id;

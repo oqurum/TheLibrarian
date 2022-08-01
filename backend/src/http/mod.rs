@@ -2,7 +2,7 @@ use actix_identity::{CookieIdentityPolicy, IdentityService, Identity};
 use actix_web::HttpResponse;
 use actix_web::http::header;
 use actix_web::{web, App, HttpServer, cookie::SameSite};
-use librarian_common::api::WrappingResponse;
+use common::api::WrappingResponse;
 
 use crate::config::get_config;
 use crate::database::Database;

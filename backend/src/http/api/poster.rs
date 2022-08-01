@@ -2,7 +2,7 @@ use std::io::{Write, Cursor};
 
 use actix_files::NamedFile;
 use actix_web::{get, post, web, HttpResponse, Responder};
-use common::{Either, ImageIdType, ImageType, BookId, PersonId};
+use common::{Either, ImageIdType, ImageType, BookId, PersonId, api::WrappingResponse};
 use futures::TryStreamExt;
 use librarian_common::{Poster, api};
 
@@ -42,7 +42,7 @@ async fn get_poster_list(
 		})
 		.collect();
 
-	Ok(web::Json(api::WrappingResponse::new(api::GetPostersResponse {
+	Ok(web::Json(WrappingResponse::okay(api::GetPostersResponse {
 		items
 	})))
 }
@@ -58,7 +58,7 @@ async fn post_change_poster(
 	let member = member.fetch(&db).await?.unwrap();
 
 	if !member.permissions.has_editing_perms() {
-		return Ok(HttpResponse::InternalServerError().json(api::WrappingResponse::<()>::error("You cannot do this! No Permissions!")));
+		return Ok(HttpResponse::InternalServerError().json(WrappingResponse::<()>::error("You cannot do this! No Permissions!")));
 	}
 
 	match image.type_of {
@@ -141,7 +141,7 @@ async fn post_upload_poster(
 	let member = member.fetch(&db).await?.unwrap();
 
 	if !member.permissions.has_editing_perms() {
-		return Ok(HttpResponse::InternalServerError().json(api::WrappingResponse::<()>::error("You cannot do this! No Permissions!")));
+		return Ok(HttpResponse::InternalServerError().json(WrappingResponse::<()>::error("You cannot do this! No Permissions!")));
 	}
 
 	match image.type_of {

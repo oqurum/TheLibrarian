@@ -1,5 +1,6 @@
 use std::sync::{Mutex, Arc};
 
+use common::api::WrappingResponse;
 use librarian_common::api::{GetBookListResponse, self};
 use gloo_utils::{document, body};
 use wasm_bindgen::{JsCast, prelude::Closure};
@@ -12,14 +13,14 @@ use crate::{Route, request, util, is_signed_in};
 pub enum Msg {
 	Close,
 	SearchFor(String),
-	SearchResults(api::WrappingResponse<GetBookListResponse>),
+	SearchResults(WrappingResponse<GetBookListResponse>),
 }
 
 pub struct NavbarModule {
 	left_items: Vec<(bool, Route, DisplayType)>,
 	right_items: Vec<(bool, Route, DisplayType)>,
 
-	search_results: Option<api::WrappingResponse<GetBookListResponse>>,
+	search_results: Option<WrappingResponse<GetBookListResponse>>,
 	#[allow(clippy::type_complexity)]
 	closure: Arc<Mutex<Option<Closure<dyn FnMut(MouseEvent)>>>>,
 }

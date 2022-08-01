@@ -1,3 +1,4 @@
+use common::api::WrappingResponse;
 use librarian_common::{api, update::OptionsUpdate};
 use web_sys::HtmlSelectElement;
 use yew::prelude::*;
@@ -6,13 +7,13 @@ use crate::request;
 
 pub enum Msg {
 	// Request Results
-	SettingsResults(api::WrappingResponse<api::GetSettingsResponse>),
+	SettingsResults(WrappingResponse<api::GetSettingsResponse>),
 
 	UpdateSettings,
 }
 
 pub struct OptionsPage {
-	resp: Option<api::WrappingResponse<api::GetSettingsResponse>>,
+	resp: Option<WrappingResponse<api::GetSettingsResponse>>,
 }
 
 impl Component for OptionsPage {

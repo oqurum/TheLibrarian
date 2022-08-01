@@ -1,5 +1,6 @@
 use actix_web::{web, get, post};
-use librarian_common::{api::{self, ApiErrorResponse}, update::OptionsUpdate};
+use common::api::{WrappingResponse, ApiErrorResponse};
+use librarian_common::{api, update::OptionsUpdate};
 
 use crate::{database::Database, WebResult, http::{JsonResponse, MemberCookie}, config};
 
@@ -19,7 +20,7 @@ async fn get_settings(member: MemberCookie, db: web::Data<Database>) -> WebResul
 	config.email = None;
 
 
-	Ok(web::Json(api::WrappingResponse::new(api::GetSettingsResponse {
+	Ok(web::Json(WrappingResponse::okay(api::GetSettingsResponse {
 		config,
 	})))
 }
@@ -51,5 +52,5 @@ async fn update_settings(modify: web::Json<OptionsUpdate>, member: MemberCookie,
 	config::update_config(move |v| { *v = config; Ok(()) })?;
 	config::save_config().await?;
 
-	Ok(web::Json(api::WrappingResponse::new(String::from("ok"))))
+	Ok(web::Json(WrappingResponse::okay(String::from("ok"))))
 }

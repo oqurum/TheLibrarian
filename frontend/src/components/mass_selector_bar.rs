@@ -3,7 +3,7 @@ use std::{rc::Rc, sync::Mutex};
 use web_sys::HtmlElement;
 use yew::{prelude::*, html::Scope};
 
-use common::component::popup::{button::ButtonWithPopup, YEW_CLOSE_POPUP};
+use common::component::popup::{button::ButtonWithPopup, PopupClose};
 
 static EDITING_CONTAINER_CLASS: &str = "editing-items-inside";
 
@@ -83,11 +83,11 @@ impl Component for MassSelectBar {
 						</div>
 						<div class="center-content">
 							<ButtonWithPopup>
-								<div class="menu-item" {YEW_CLOSE_POPUP}>{ "Refresh Metadata" }</div>
-								<div class="menu-item" {YEW_CLOSE_POPUP} onclick={
+								<PopupClose class="menu-item">{ "Refresh Metadata" }</PopupClose>
+								<PopupClose class="menu-item" onclick={
 									Self::on_click_prevdef(ctx.link(), Msg::UpdateMetaByFiles)
-								}>{ "Quick Search By Files" }</div>
-								<div class="menu-item" {YEW_CLOSE_POPUP}>{ "Delete" }</div>
+								}>{ "Quick Search By Files" }</PopupClose>
+								<PopupClose class="menu-item">{ "Delete" }</PopupClose>
 							</ButtonWithPopup>
 						</div>
 						<div class="right-content">

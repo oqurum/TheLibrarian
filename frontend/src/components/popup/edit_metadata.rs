@@ -1,4 +1,4 @@
-use common::{component::popup::{Popup, PopupType}, Either, ImageIdType};
+use common::{component::popup::{Popup, PopupType}, Either, ImageIdType, api::WrappingResponse};
 use librarian_common::api;
 use yew::prelude::*;
 
@@ -26,7 +26,7 @@ pub struct Property {
 
 
 pub enum Msg {
-	RetrievePostersResponse(api::WrappingResponse<api::GetPostersResponse>),
+	RetrievePostersResponse(WrappingResponse<api::GetPostersResponse>),
 
 	// Events
 	SwitchTab(TabDisplay),
@@ -40,7 +40,7 @@ pub enum Msg {
 pub struct PopupEditMetadata {
 	tab_display: TabDisplay,
 
-	cached_posters: Option<api::WrappingResponse<api::GetPostersResponse>>,
+	cached_posters: Option<WrappingResponse<api::GetPostersResponse>>,
 }
 
 impl Component for PopupEditMetadata {

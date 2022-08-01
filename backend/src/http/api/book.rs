@@ -1,6 +1,7 @@
 use actix_web::{get, web, HttpResponse, post};
 
 use chrono::Utc;
+use common::api::WrappingResponse;
 use common::{Either, ThumbnailStore, BookId, PersonId};
 use librarian_common::item::edit::{BookEdit, NewOrCachedImage};
 use librarian_common::{api, DisplayItem, MetadataItemCached};
@@ -24,7 +25,7 @@ pub async fn add_new_book(
 	let member = member.fetch(&db).await?.unwrap();
 
 	if !member.permissions.has_editing_perms() {
-		return Ok(HttpResponse::InternalServerError().json(api::WrappingResponse::<()>::error("You cannot do this! No Permissions!")));
+		return Ok(HttpResponse::InternalServerError().json(WrappingResponse::<()>::error("You cannot do this! No Permissions!")));
 	}
 
 	match body.value {
@@ -196,7 +197,7 @@ pub async fn load_book_list(
 		(items, count)
 	};
 
-	Ok(web::Json(api::WrappingResponse::new(api::GetBookListResponse {
+	Ok(web::Json(WrappingResponse::okay(api::GetBookListResponse {
 		items,
 		count,
 	})))
@@ -210,7 +211,7 @@ pub async fn get_book_info(book_id: web::Path<BookId>, db: web::Data<Database>) 
 	let people = PersonModel::get_all_by_book_id(book.id, &db).await?;
 	let tags = BookTagWithTagModel::get_by_book_id(book.id, &db).await?;
 
-	Ok(web::Json(api::WrappingResponse::new(api::MediaViewResponse {
+	Ok(web::Json(WrappingResponse::okay(api::MediaViewResponse {
 		metadata: book.into(),
 		people: people.into_iter()
 			.map(|p| p.into())
@@ -234,7 +235,7 @@ pub async fn update_book_id(
 	let member = member.fetch(&db).await?.unwrap();
 
 	if !member.permissions.has_editing_perms() {
-		return Ok(HttpResponse::InternalServerError().json(api::WrappingResponse::<()>::error("You cannot do this! No Permissions!")));
+		return Ok(HttpResponse::InternalServerError().json(WrappingResponse::<()>::error("You cannot do this! No Permissions!")));
 	}
 
 	let current_book = BookModel::get_by_id(*book_id, &db).await?;

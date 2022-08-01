@@ -6,10 +6,11 @@
 use actix_identity::Identity;
 use actix_web::{http::header, HttpResponse};
 use actix_web::{web, HttpRequest};
+use common::api::{ApiErrorResponse, WrappingResponse};
 use librarian_common::{Permissions, ConfigEmail};
-use librarian_common::api::{ApiErrorResponse, WrappingResponse};
 
 use crate::config::get_config;
+use crate::http::JsonResponse;
 use crate::model::{AuthModel, NewMemberModel, MemberModel};
 use crate::{Result, WebResult, Error};
 use chrono::Utc;
@@ -38,7 +39,7 @@ pub async fn post_passwordless_oauth(
 	query: web::Form<PostPasswordlessCallback>,
 	identity: Identity,
 	db: web::Data<Database>,
-) -> WebResult<web::Json<WrappingResponse<String>>> {
+) -> WebResult<JsonResponse<String>> {
 	if identity.identity().is_some() {
 		return Err(ApiErrorResponse::new("Already logged in").into());
 	}
@@ -88,7 +89,7 @@ pub async fn post_passwordless_oauth(
 
 	send_auth_email(query.0.email, auth_url, main_html, &email_config)?;
 
-	Ok(web::Json(WrappingResponse::new(String::from("success"))))
+	Ok(web::Json(WrappingResponse::okay(String::from("success"))))
 }
 
 #[derive(Serialize, Deserialize)]

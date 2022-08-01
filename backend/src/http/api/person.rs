@@ -1,5 +1,5 @@
 use actix_web::{web, get, HttpResponse};
-use common::PersonId;
+use common::{PersonId, api::WrappingResponse};
 use librarian_common::api;
 
 use crate::{database::Database, WebResult, Error, model::PersonModel, http::JsonResponse};
@@ -21,7 +21,7 @@ pub async fn load_author_list(
 			.map(|v| v.into())
 			.collect();
 
-		Ok(web::Json(api::WrappingResponse::new(api::GetPeopleResponse {
+		Ok(web::Json(WrappingResponse::okay(api::GetPeopleResponse {
 			offset,
 			limit,
 			total: 0, // TODO
@@ -36,7 +36,7 @@ pub async fn load_author_list(
 			.map(|v| v.into())
 			.collect();
 
-		Ok(web::Json(api::WrappingResponse::new(api::GetPeopleResponse {
+		Ok(web::Json(WrappingResponse::okay(api::GetPeopleResponse {
 			offset,
 			limit,
 			total: PersonModel::get_count(&db).await?,
@@ -51,7 +51,7 @@ pub async fn load_author_list(
 async fn load_person(person_id: web::Path<PersonId>, db: web::Data<Database>) -> WebResult<JsonResponse<api::GetPersonResponse>> {
 	let person = PersonModel::get_by_id(*person_id, &db).await?.unwrap();
 
-	Ok(web::Json(api::WrappingResponse::new(api::GetPersonResponse {
+	Ok(web::Json(WrappingResponse::okay(api::GetPersonResponse {
 		person: person.into()
 	})))
 }

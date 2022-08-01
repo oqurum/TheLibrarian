@@ -1,4 +1,4 @@
-use common::{component::popup::{compare::{Comparable, PopupComparison}, Popup, PopupType}, Either, Source};
+use common::{component::popup::{compare::{Comparable, PopupComparison}, Popup, PopupType}, Either, Source, api::WrappingResponse};
 use librarian_common::{api::{SearchItem, self}, SearchType, util::string_to_upper_case, item::edit::BookEdit};
 use gloo_utils::document;
 use wasm_bindgen::{JsCast, UnwrapThrowExt};
@@ -25,8 +25,8 @@ pub struct Property {
 
 
 pub enum Msg {
-	BookSearchResponse(String, api::WrappingResponse<api::ExternalSearchResponse>),
-	BookItemResponse(Source, api::WrappingResponse<api::ExternalSourceItemResponse>),
+	BookSearchResponse(String, WrappingResponse<api::ExternalSearchResponse>),
+	BookItemResponse(Source, WrappingResponse<api::ExternalSourceItemResponse>),
 
 	SearchFor(String),
 
@@ -40,7 +40,7 @@ pub enum Msg {
 
 
 pub struct PopupSearch {
-	cached_posters: Option<LoadingItem<api::WrappingResponse<api::ExternalSearchResponse>>>,
+	cached_posters: Option<LoadingItem<WrappingResponse<api::ExternalSearchResponse>>>,
 	input_value: String,
 
 	left_edit: Option<(BookEdit, Source)>,
