@@ -1,7 +1,6 @@
 # Welcome
 
 Todo:
- - REDO SCSS and move into common git repo to share with reader
  - Store external searches, count, and display most requested.
  - Add task to search agents for new external searchs as to not overwhelm agents
  - and more in TODO comments throughout the code
