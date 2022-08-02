@@ -6,10 +6,10 @@ use rusqlite::{Result, types::{FromSql, FromSqlResult, ValueRef, ToSql, ToSqlOut
 
 
 bitflags! {
-	#[derive(Serialize, Deserialize)]
-	pub struct GroupPermissions: u64 {
-		const ADMIN 			= 1 << 0;
-		const MANAGER 			= 1 << 1;
+    #[derive(Serialize, Deserialize)]
+    pub struct GroupPermissions: u64 {
+        const ADMIN             = 1 << 0;
+        const MANAGER 			= 1 << 1;
 		const BASIC 			= 1 << 2;
 	}
 
