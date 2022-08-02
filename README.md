@@ -1,6 +1,8 @@
 # Welcome
 
 Todo:
+ - Transfer OFF of sqlite. Used b/c it was easy to setup.
+ - Implement database migrations
  - Store external searches, count, and display most requested.
  - Add task to search agents for new external searchs as to not overwhelm agents
  - and more in TODO comments throughout the code
