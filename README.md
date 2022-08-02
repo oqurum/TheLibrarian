@@ -33,3 +33,21 @@ To build and watch:
 ```bash
 trunk watch --public-url "/dist" -d "../app/public/dist"
 ```
+
+
+# Gallery
+
+## List of books stored.
+![Home](https://i.thick.at/NotableNewRadicals898.png)
+
+## Book Viewer.
+![Book View](https://i.thick.at/UbiquitarianBoston040.png)
+
+## Book Editor
+![Book Editor](https://i.thick.at/PhanerogamousKatherine428.png)
+
+## Author Editor
+![Author Viewer](https://i.thick.at/GoodTemperedDrangsal928.png)
+
+## Edits
+![Book Reader With Options](https://i.thick.at/ButyraceousMantaRay091.png)
