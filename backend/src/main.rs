@@ -9,7 +9,9 @@
 
 
 use actix_web::web;
+use clap::Parser;
 
+pub mod cli;
 pub mod database;
 pub mod error;
 pub mod http;
@@ -18,12 +20,15 @@ pub mod model;
 mod scheduler;
 mod util;
 
+pub use cli::CliArgs;
 pub use database::Database;
 pub use error::{Result, WebResult, WebError, Error, InternalError};
 pub use util::*;
 
 #[actix_web::main]
 async fn main() -> Result<()> {
+    let cli_args = CliArgs::parse();
+
 	// Initial Register of lazy_static CONFIG.
 	config::save_config().await?;
 
@@ -33,9 +38,9 @@ async fn main() -> Result<()> {
 	scheduler::start(db_data.clone());
 
 
-	println!("Starting HTTP Server on port 8085");
+	println!("Starting HTTP Server on port {}", cli_args.port);
 
-	http::register_http_service(db_data).await?;
+	http::register_http_service(&cli_args, db_data).await?;
 
 	Ok(())
 }
