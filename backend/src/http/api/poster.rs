@@ -1,7 +1,7 @@
 use std::io::{Write, Cursor};
 
 use actix_files::NamedFile;
-use actix_web::{get, post, web, HttpResponse, Responder};
+use actix_web::{get, post, web, Responder};
 use common::{Either, ImageIdType, ImageType, BookId, PersonId, api::WrappingResponse};
 use futures::TryStreamExt;
 use common_local::{Poster, api};
@@ -54,11 +54,11 @@ async fn post_change_poster(
 	body: web::Json<api::ChangePosterBody>,
 	member: MemberCookie,
 	db: web::Data<Database>
-) -> WebResult<HttpResponse> {
+) -> WebResult<JsonResponse<&'static str>> {
 	let member = member.fetch(&db).await?.unwrap();
 
 	if !member.permissions.has_editing_perms() {
-		return Ok(HttpResponse::InternalServerError().json(WrappingResponse::<()>::error("You cannot do this! No Permissions!")));
+		return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
 	}
 
 	match image.type_of {
@@ -84,7 +84,7 @@ async fn post_change_poster(
 					let poster = UploadedImageModel::get_by_id(id, &db).await?.unwrap();
 
 					if book.thumb_path == poster.path {
-						return Ok(HttpResponse::Ok().finish());
+						return Ok(web::Json(WrappingResponse::okay("poster already set")));
 					}
 
 					book.thumb_path = poster.path;
@@ -116,7 +116,7 @@ async fn post_change_poster(
 					let poster = UploadedImageModel::get_by_id(id, &db).await?.unwrap();
 
 					if person.thumb_url == poster.path {
-						return Ok(HttpResponse::Ok().finish());
+						return Ok(web::Json(WrappingResponse::okay("poster already set")));
 					}
 
 					person.thumb_url = poster.path;
@@ -127,7 +127,7 @@ async fn post_change_poster(
 		}
 	}
 
-	Ok(HttpResponse::Ok().finish())
+	Ok(web::Json(WrappingResponse::okay("success")))
 }
 
 
@@ -137,11 +137,11 @@ async fn post_upload_poster(
 	mut body: web::Payload,
 	member: MemberCookie,
 	db: web::Data<Database>,
-) -> WebResult<HttpResponse> {
+) -> WebResult<JsonResponse<&'static str>> {
 	let member = member.fetch(&db).await?.unwrap();
 
 	if !member.permissions.has_editing_perms() {
-		return Ok(HttpResponse::InternalServerError().json(WrappingResponse::<()>::error("You cannot do this! No Permissions!")));
+		return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
 	}
 
 	match image.type_of {
@@ -176,5 +176,5 @@ async fn post_upload_poster(
 		}
 	}
 
-	Ok(HttpResponse::Ok().finish())
+	Ok(web::Json(WrappingResponse::okay("success")))
 }

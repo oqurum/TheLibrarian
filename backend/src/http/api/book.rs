@@ -19,13 +19,13 @@ pub async fn add_new_book(
     body: web::Json<api::NewBookBody>,
     member: MemberCookie,
     db: web::Data<Database>,
-) -> WebResult<HttpResponse> {
+) -> WebResult<JsonResponse<&'static str>> {
     let body = body.into_inner();
 
     let member = member.fetch(&db).await?.unwrap();
 
     if !member.permissions.has_editing_perms() {
-        return Ok(HttpResponse::InternalServerError().json(WrappingResponse::<()>::error("You cannot do this! No Permissions!")));
+        return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
     }
 
     match body.value {
@@ -134,7 +134,7 @@ pub async fn add_new_book(
     }
 
 
-    Ok(HttpResponse::Ok().finish())
+    Ok(web::Json(WrappingResponse::okay("success")))
 }
 
 
@@ -229,13 +229,13 @@ pub async fn update_book_id(
     body: web::Json<BookEdit>,
     member: MemberCookie,
     db: web::Data<Database>,
-) -> WebResult<HttpResponse> {
+) -> WebResult<JsonResponse<&'static str>> {
     let body = body.into_inner();
 
     let member = member.fetch(&db).await?.unwrap();
 
     if !member.permissions.has_editing_perms() {
-        return Ok(HttpResponse::InternalServerError().json(WrappingResponse::<()>::error("You cannot do this! No Permissions!")));
+        return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
     }
 
     let current_book = BookModel::get_by_id(*book_id, &db).await?;
@@ -251,7 +251,7 @@ pub async fn update_book_id(
         }
     }
 
-    Ok(HttpResponse::Ok().finish())
+    Ok(web::Json(WrappingResponse::okay("success")))
 }
 
 
