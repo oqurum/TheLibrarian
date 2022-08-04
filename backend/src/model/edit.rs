@@ -167,7 +167,7 @@ impl EditModel {
 
     pub async fn get_by_id(id: EditId, db: &Database) -> Result<Option<Self>> {
         Ok(db.read().await.query_row(
-            r#"SELECT * FROM edit WHERE id = ?1 LIMIT 1"#,
+            r#"SELECT * FROM edit WHERE id = ?1"#,
             params![id],
             |v| Self::from_row(v)
         ).optional()?)

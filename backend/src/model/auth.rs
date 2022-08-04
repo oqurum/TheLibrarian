@@ -29,7 +29,7 @@ impl AuthModel {
 
 	pub async fn remove_by_oauth_token(value: &str, db: &Database) -> Result<bool> {
 		Ok(db.write().await.execute(
-			r#"DELETE FROM auths WHERE oauth_token = ?1 LIMIT 1"#,
+			r#"DELETE FROM auths WHERE oauth_token = ?1"#,
 			params![value],
 		)? != 0)
 	}

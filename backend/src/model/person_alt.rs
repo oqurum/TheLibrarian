@@ -47,7 +47,7 @@ impl PersonAltModel {
 
 	pub async fn get_by_name(value: &str, db: &Database) -> Result<Option<PersonAltModel>> {
 		Ok(db.read().await.query_row(
-			r#"SELECT * FROM person_alt WHERE name = ?1 LIMIT 1"#,
+			r#"SELECT * FROM person_alt WHERE name = ?1"#,
 			params![value],
 			|v| PersonAltModel::from_row(v)
 		).optional()?)
