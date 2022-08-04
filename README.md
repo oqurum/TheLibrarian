@@ -37,15 +37,17 @@ cargo run --bin librarian-backend
 ```
 
 ## Frontend:
-Inside **frontend folder** execute one of these commands
+Execute one of these commands
 
 To build:
 ```bash
+cd frontend
 trunk build --public-url "/dist" -d "../app/public/dist"
 ```
 
 To build and watch:
 ```bash
+cd frontend
 trunk watch --public-url "/dist" -d "../app/public/dist"
 ```
 
