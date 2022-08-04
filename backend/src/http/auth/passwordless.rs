@@ -36,7 +36,7 @@ pub struct PostPasswordlessCallback {
 
 pub async fn post_passwordless_oauth(
 	req: HttpRequest,
-	query: web::Form<PostPasswordlessCallback>,
+	query: web::Json<PostPasswordlessCallback>,
 	identity: Identity,
 	db: web::Data<Database>,
 ) -> WebResult<JsonResponse<String>> {
