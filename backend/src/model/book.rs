@@ -226,7 +226,7 @@ impl BookModel {
 		)?)
 	}
 
-	pub async fn get_book_by(offset: usize, limit: usize, only_public: bool, person_id: Option<PersonId>, db: &Database) -> Result<Vec<Self>> {
+	pub async fn get_book_by(offset: usize, limit: usize, _only_public: bool, person_id: Option<PersonId>, db: &Database) -> Result<Vec<Self>> {
 		let this = db.read().await;
 
 		let inner_query = if let Some(pid) = person_id {

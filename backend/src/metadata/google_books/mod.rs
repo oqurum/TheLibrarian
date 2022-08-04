@@ -26,7 +26,7 @@ impl Metadata for GoogleBooksMetadata {
 		"googlebooks"
 	}
 
-	async fn get_metadata_by_source_id(&mut self, value: &str, upgrade_editions: bool) -> Result<Option<MetadataReturned>> {
+	async fn get_metadata_by_source_id(&mut self, value: &str, _upgrade_editions: bool) -> Result<Option<MetadataReturned>> {
 		match self.request_singular_id(value).await {
 			Ok(Some(v)) => Ok(Some(v)),
 			a => {
