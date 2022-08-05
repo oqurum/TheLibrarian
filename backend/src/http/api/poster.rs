@@ -1,20 +1,17 @@
 use std::io::{Write, Cursor};
 
-use actix_files::NamedFile;
-use actix_web::{get, post, web, Responder};
+use actix_web::{get, post, web, HttpResponse, HttpRequest};
 use common::{Either, ImageIdType, ImageType, BookId, PersonId, api::WrappingResponse};
 use futures::TryStreamExt;
 use common_local::{Poster, api};
 
-use crate::{WebResult, Error, store_image, database::Database, model::{BookModel, ImageLinkModel, UploadedImageModel, PersonModel}, http::{JsonResponse, MemberCookie}};
+use crate::{WebResult, Error, store_image, database::Database, model::{BookModel, ImageLinkModel, UploadedImageModel, PersonModel}, http::{JsonResponse, MemberCookie}, storage::get_storage};
 
 
 
 #[get("/image/{id}")]
-async fn get_local_image(id: web::Path<String>) -> impl Responder {
-	let path = crate::image::hash_to_path(&id);
-
-	NamedFile::open_async(path).await
+async fn get_local_image(id: web::Path<String>, req: HttpRequest) -> WebResult<HttpResponse> {
+	Ok(get_storage().get_http_response(&id, &req).await?)
 }
 
 

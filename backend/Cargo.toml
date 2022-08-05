@@ -18,7 +18,7 @@ actix-web-actors = "4.1"
 
 async-trait = "0.1"
 futures = "0.3"
-reqwest = { version = "0.11", features = ["json", "multipart"] }
+reqwest = { version = "0.11", features = ["json", "multipart", "stream"] }
 tokio = { version = "1.17", features = ["full"] }
 
 serde = { version = "1.0", features = ["derive"] }
@@ -29,10 +29,13 @@ serde-xml-rs = "0.5"
 anyhow = "1.0"
 thiserror = "1.0"
 
+base64 = "0.13"
 bcrypt = "0.12"
+sha1 = "0.10"
 sha2 = "0.10"
 strsim = "0.10"
 
+concread = "0.3"
 clap = { version = "3.2", features = ["derive"] }
 chrono = "0.4"
 image = "0.24"
@@ -41,6 +44,7 @@ log = "0.4"
 rand = "0.8"
 regex = "1.5"
 urlencoding = "2.1"
+url = "2.2"
 
 lettre = "0.10.0-rc.5"
 

@@ -20,11 +20,14 @@ use serde_json::Error as JsonError;
 use serde_xml_rs::Error as XmlError;
 use serde::de::value::Error as SerdeValueError;
 use common_local::Error as LocalCommonError;
+use url::ParseError as UrlParseError;
 
 use actix_multipart::MultipartError;
 use actix_web::Error as ActixError;
 use actix_web::error::PayloadError;
 use actix_web::ResponseError;
+
+use crate::storage::b2::JsonErrorStruct;
 
 pub type Result<T> = std::result::Result<T, Error>;
 pub type WebResult<T> = std::result::Result<T, WebError>;
@@ -99,6 +102,8 @@ pub enum Error {
 	SerdeValue(#[from] SerdeValueError),
 	#[error("Url Encoded Ser Error: {0}")]
 	UrlEncodedSer(#[from] UrlEncodedSerError),
+	#[error("Url Parse Error: {0}")]
+	UrlParse(#[from] UrlParseError),
 
 	#[error("IO Error: {0}")]
 	Io(#[from] IoError),
@@ -122,16 +127,28 @@ pub enum Error {
 	#[error("Bcrypt Error: {0}")]
 	Bcrypt(#[from] BcryptError),
 
+	#[error("Backblaze Error: {0}")]
+	B2(#[from] JsonErrorStruct),
+
 	#[error(transparent)]
 	Common(#[from] CommonError),
 }
 
 #[derive(Debug, ThisError)]
 pub enum InternalError {
-	// Actix
-
 	#[error("The user does not exist")]
 	UserMissing,
+
+	#[error("Unable to convert PathBuf to String")]
+	ConvertPathBufToString,
+
+	// Backblaze
+	#[error("Backblaze B2 Authorization Error.")]
+	B2Authorization,
+	#[error("Backblaze B2 Get Upload Url Error.")]
+	B2GetUploadUrl,
+	#[error("Backblaze B2 Upload File Error.")]
+	B2UploadFile,
 }
 
 impl<V> From<PoisonError<V>> for Error {

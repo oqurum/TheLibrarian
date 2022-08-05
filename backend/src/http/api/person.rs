@@ -1,8 +1,8 @@
-use actix_web::{web, get, HttpResponse};
+use actix_web::{web, get, HttpResponse, HttpRequest};
 use common::{PersonId, api::WrappingResponse};
 use common_local::api;
 
-use crate::{database::Database, WebResult, Error, model::PersonModel, http::JsonResponse};
+use crate::{database::Database, WebResult, model::PersonModel, http::JsonResponse, storage::get_storage};
 
 
 // Get List Of People and Search For People
@@ -59,13 +59,11 @@ async fn load_person(person_id: web::Path<PersonId>, db: web::Data<Database>) ->
 
 // Person Thumbnail
 #[get("/person/{id}/thumbnail")]
-async fn load_person_thumbnail(person_id: web::Path<PersonId>, db: web::Data<Database>) -> WebResult<HttpResponse> {
+async fn load_person_thumbnail(person_id: web::Path<PersonId>, req: HttpRequest, db: web::Data<Database>) -> WebResult<HttpResponse> {
 	let meta = PersonModel::get_by_id(*person_id, &db).await?;
 
 	if let Some(loc) = meta.map(|v| v.thumb_url) {
-		let path = crate::image::hash_to_path(loc.as_value());
-
-		Ok(HttpResponse::Ok().body(std::fs::read(path).map_err(Error::from)?))
+		Ok(get_storage().get_http_response(loc.as_value(), &req).await?)
 	} else {
 		Ok(HttpResponse::NotFound().finish())
 	}

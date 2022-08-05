@@ -4,20 +4,10 @@ use serde::{Serialize, Deserialize};
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Config {
+pub struct SharedConfig {
 	pub server: ConfigServer,
 	pub auth: AuthConfig,
 	pub email: Option<ConfigEmail>,
-}
-
-impl Default for Config {
-	fn default() -> Self {
-		Self {
-			server: ConfigServer::default(),
-			auth: AuthConfig::default(),
-			email: Some(ConfigEmail::default()),
-		}
-	}
 }
 
 

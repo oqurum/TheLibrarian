@@ -17,6 +17,7 @@ pub mod error;
 pub mod http;
 pub mod metadata;
 pub mod model;
+pub mod storage;
 mod scheduler;
 mod util;
 
@@ -29,8 +30,14 @@ pub use util::*;
 async fn main() -> Result<()> {
     let cli_args = CliArgs::parse();
 
-	// Initial Register of lazy_static CONFIG.
+	// Initial Register of lazy_static CONFIG. Also updates the config if we changed it.
 	config::save_config().await?;
+
+	{ // Initiate Storage
+		let config = config::get_config();
+
+		*storage::STORE.write().unwrap() = storage::Storage::pick_service_from_config(&config.storage).await?;
+	}
 
 	let db = database::init().await?;
 	let db_data = web::Data::new(db);

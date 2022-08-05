@@ -1,10 +1,7 @@
-use std::path::PathBuf;
-
 use common::ThumbnailStore;
 use sha2::{Sha256, Digest};
-use tokio::fs;
 
-use crate::{Result, Database, model::{NewUploadedImageModel, UploadedImageModel}};
+use crate::{Result, Database, model::{NewUploadedImageModel, UploadedImageModel}, storage::get_storage};
 
 
 pub async fn store_image(image: Vec<u8>, db: &Database) -> Result<UploadedImageModel> {
@@ -21,40 +18,8 @@ pub async fn store_image(image: Vec<u8>, db: &Database) -> Result<UploadedImageM
 		.map(|v| format!("{:02x}", v))
 		.collect();
 
-	let mut path = PathBuf::new();
-
-	path.push("./app/thumbnails");
-	path.push(get_directories(&hash));
-
-	fs::DirBuilder::new().recursive(true).create(&path).await?;
-
-	path.push(format!("{}.jpg", &hash));
-
-	if fs::metadata(&path).await.is_err() {
-		fs::write(&path, image).await?;
-	}
+	get_storage().upload(&hash, image).await?;
 
 	NewUploadedImageModel::new(ThumbnailStore::from(hash))
 		.get_or_insert(db).await
-}
-
-pub fn hash_to_path(hash: &str) -> String {
-	let mut path = PathBuf::new();
-
-	path.push("./app/thumbnails");
-	path.push(get_directories(hash));
-	path.push(format!("{}.jpg", &hash));
-
-	path.display().to_string()
-}
-
-
-pub fn get_directories(file_name: &str) -> String {
-	format!(
-		"{}/{}/{}/{}",
-		file_name.get(0..1).unwrap(),
-		file_name.get(1..2).unwrap(),
-		file_name.get(2..3).unwrap(),
-		file_name.get(3..4).unwrap()
-	)
 }

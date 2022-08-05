@@ -1,4 +1,4 @@
-use actix_web::{get, web, HttpResponse, post};
+use actix_web::{get, web, HttpResponse, post, HttpRequest};
 
 use chrono::Utc;
 use common::api::WrappingResponse;
@@ -9,6 +9,7 @@ use common_local::{api, DisplayItem, MetadataItemCached};
 use crate::http::{MemberCookie, JsonResponse};
 use crate::metadata::MetadataReturned;
 use crate::model::{BookPersonModel, BookModel, BookTagWithTagModel, PersonModel, NewEditModel, ImageLinkModel, UploadedImageModel};
+use crate::storage::get_storage;
 use crate::{WebResult, metadata, Error};
 use crate::database::Database;
 
@@ -258,15 +259,13 @@ pub async fn update_book_id(
 
 
 #[get("/book/{id}/thumbnail")]
-async fn load_book_thumbnail(path: web::Path<BookId>, db: web::Data<Database>) -> WebResult<HttpResponse> {
+async fn load_book_thumbnail(path: web::Path<BookId>, req: HttpRequest, db: web::Data<Database>) -> WebResult<HttpResponse> {
     let book_id = path.into_inner();
 
     let meta = BookModel::get_by_id(book_id, &db).await?;
 
     if let Some(loc) = meta.map(|v| v.thumb_path) {
-        let path = crate::image::hash_to_path(loc.as_value());
-
-        Ok(HttpResponse::Ok().body(tokio::fs::read(path).await.map_err(Error::from)?))
+		Ok(get_storage().get_http_response(loc.as_value(), &req).await?)
     } else {
         Ok(HttpResponse::NotFound().finish())
     }

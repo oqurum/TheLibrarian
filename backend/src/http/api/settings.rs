@@ -21,7 +21,7 @@ async fn get_settings(member: MemberCookie, db: web::Data<Database>) -> WebResul
 
 
 	Ok(web::Json(WrappingResponse::okay(api::GetSettingsResponse {
-		config,
+		config: config.into(),
 	})))
 }
 
