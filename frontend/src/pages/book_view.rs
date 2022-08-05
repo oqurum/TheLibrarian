@@ -341,7 +341,7 @@ impl BookView {
                                             {"Public"}
                                         </option>
                                         <option selected={!editing.is_public.unwrap_or(book_model.is_public)} value="false">
-                                            {"Private"}
+                                            {"Unlisted"}
                                         </option>
                                     </select>
 
@@ -463,7 +463,6 @@ impl BookView {
                                                         .chain(editing.added_tags.iter().flat_map(|v| v.iter()).copied());
 
                                                     html_nested! {
-                                                        // TODO: Remove deref
                                                         <MultiSelectItem<TagId> name={tag.name.clone()} id={tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
                                                     }
                                                 })
@@ -500,7 +499,6 @@ impl BookView {
                                                         .chain(editing.added_tags.iter().flat_map(|v| v.iter()).copied());
 
                                                     html_nested! {
-                                                        // TODO: Remove deref
                                                         <MultiSelectItem<TagId> name={tag.name.clone()} id={tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
                                                     }
                                                 })
@@ -700,7 +698,7 @@ impl BookView {
 
     fn render_viewing(&self, ctx: &Context<Self>) -> Html {
         if let Some(resp) = self.media.as_ref() {
-            let book_resp @ MediaViewResponse { people, metadata: book_model, tags: _tags } = crate::continue_or_html_err!(resp);
+            let book_resp @ MediaViewResponse { people, metadata: book_model, tags } = crate::continue_or_html_err!(resp);
 
             let book_id = book_model.id;
 
@@ -746,9 +744,57 @@ impl BookView {
 
                             <div class="metadata-container">
                                 <div class="metadata">
+                                    <div class="label-group">
+                                        {
+                                            if book_model.is_public {
+                                                html! {
+                                                    <div class="label green">{ "Public" }</div>
+                                                }
+                                            } else {
+                                                html! {
+                                                    <div class="label red">{ "Unlisted" }</div>
+                                                }
+                                            }
+                                        }
+                                    </div>
+
                                     // Book Display Info
                                     <h3 class="title">{ book_model.get_title() }</h3>
                                     <p class="description">{ book_model.description.clone().unwrap_or_default() }</p>
+
+                                    <h4>{ "Genre" }</h4>
+                                    <div class="label-group">
+                                        {
+                                            for self.cached_tags
+                                                .iter()
+                                                .filter(|v| v.type_of.into_u8() == TagType::Genre.into_u8() && tags.iter().any(|bt| bt.tag.id == v.id))
+                                                .take(5) // TODO: Temp. Need to add max-size to div container.
+                                                .map(|tag| {
+                                                    html! {
+                                                        <div class="label">{ tag.name.clone() }</div>
+                                                    }
+                                                })
+                                        }
+
+                                        { "..." }
+                                    </div>
+
+                                    <h4>{ "Subject" }</h4>
+                                    <div class="label-group">
+                                        {
+                                            for self.cached_tags
+                                                .iter()
+                                                .filter(|v| v.type_of.into_u8() == TagType::Subject.into_u8() && tags.iter().any(|bt| bt.tag.id == v.id))
+                                                .take(5) // TODO: Temp. Need to add max-size to div container.
+                                                .map(|tag| {
+                                                    html! {
+                                                        <div class="label">{ tag.name.clone() }</div>
+                                                    }
+                                                })
+                                        }
+
+                                        { "..." }
+                                    </div>
                                 </div>
 
                                 // Book Info
