@@ -58,11 +58,14 @@ async fn check_and_update_auth() -> Result<()> {
 	#[allow(clippy::unwrap_used)]
 	if AUTH.read().as_ref().unwrap().last_authed.elapsed() >= Duration::from_secs(60 * 60 * 16) {
 		let mut wrapper = AUTH.write();
-		let wrapper = wrapper.as_mut().unwrap();
 
-		if let Err(e) = wrapper.re_auth().await {
+		let mutation = wrapper.get_mut();
+
+		if let Err(e) = mutation.as_mut().unwrap().re_auth().await {
 			eprintln!("{}", e);
 		}
+
+		wrapper.commit();
 	}
 
 	Ok(())
