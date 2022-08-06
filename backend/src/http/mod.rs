@@ -1,6 +1,7 @@
 use actix_identity::{CookieIdentityPolicy, IdentityService, Identity};
 use actix_web::HttpResponse;
 use actix_web::http::header;
+use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer, cookie::SameSite};
 use common::api::WrappingResponse;
 
@@ -36,6 +37,7 @@ pub async fn register_http_service(cli_args: &CliArgs, db_data: web::Data<Databa
 	HttpServer::new(move || {
 		App::new()
 			.app_data(db_data.clone())
+			.wrap(Logger::default())
 			.wrap(IdentityService::new(
 				CookieIdentityPolicy::new(get_config().auth.auth_key.as_bytes())
 					.name("librarian-auth")
