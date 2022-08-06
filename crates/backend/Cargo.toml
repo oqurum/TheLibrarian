@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 common-local = { path = "../common", features = ["backend"] }
-common = { path = "../global_common", features = ["backend"] }
+common = { path = "../../global_common", features = ["backend"] }
 
 actix = "0.13"
 actix-web = "4.0"
