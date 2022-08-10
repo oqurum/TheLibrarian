@@ -231,7 +231,7 @@ impl BookModel {
 
 		let inner_query = if let Some(pid) = person_id {
 			format!(
-				r#"WHERE id = (SELECT book_id FROM book_person WHERE person_id = {})"#,
+				r#"WHERE id IN (SELECT book_id FROM book_person WHERE person_id = {})"#,
 				pid
 			)
 		} else {
@@ -292,7 +292,7 @@ impl BookModel {
 			}
 
 			sql += &format!(
-				r#"id = (SELECT book_id FROM book_person WHERE person_id = {}) "#,
+				r#"id IN (SELECT book_id FROM book_person WHERE person_id = {}) "#,
 				pid
 			);
 		}
