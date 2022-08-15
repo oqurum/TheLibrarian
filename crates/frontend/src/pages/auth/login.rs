@@ -1,7 +1,9 @@
 use common::api::ApiErrorResponse;
+use gloo_utils::window;
+use wasm_bindgen::UnwrapThrowExt;
 use web_sys::HtmlInputElement;
 use yew::{prelude::*, html::Scope};
-use yew_router::{prelude::RouterScopeExt, history::History};
+use yew_router::{prelude::{RouterScopeExt, Location}, history::History};
 
 use crate::{request, Route};
 
@@ -33,7 +35,12 @@ impl Component for LoginPage {
             Msg::LoginPasswordResponse(resp) => {
                 if resp.is_ok() {
                     let history = ctx.link().history().unwrap();
-                    history.push(Route::Home);
+
+                    if history.location().pathname() == "/login" {
+                        history.push(Route::Home);
+                    } else {
+                        window().location().reload().unwrap_throw();
+                    }
                 }
 
                 self.password_response = Some(resp);
@@ -42,7 +49,12 @@ impl Component for LoginPage {
             Msg::LoginPasswordlessResponse(resp) => {
                 if resp.is_ok() {
                     let history = ctx.link().history().unwrap();
-                    history.push(Route::Home);
+
+                    if history.location().pathname() == "/login" {
+                        history.push(Route::Home);
+                    } else {
+                        window().location().reload().unwrap_throw();
+                    }
                 }
 
                 self.passwordless_response = Some(resp);
