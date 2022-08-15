@@ -17,7 +17,7 @@ impl FsService {
 
     pub async fn init(&self) -> Result<()> {
         // Directory check
-		if fs::metadata(&self.directory)
+        if fs::metadata(&self.directory)
             .await
             .is_err()
         {
