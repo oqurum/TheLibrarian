@@ -1,5 +1,5 @@
 use actix_web::{web, HttpResponse, http::header};
-use common::api::librarian::{AuthFormLink, AuthQueryHandshake, Scope};
+use common::api::{librarian::{AuthFormLink, AuthQueryHandshake, Scope}, reader::VerifyAgentQuery};
 use rand::{distributions::{Alphanumeric, DistString}, thread_rng, Rng, prelude::Distribution};
 use reqwest::Url;
 
@@ -49,14 +49,14 @@ pub async fn post_oauth_link(
     // TODO: Also link account.
 
     let mut location_uri = Url::parse(&form.redirect_uri).unwrap();
-    location_uri.set_query(Some(&serde_qs::to_string(&serde_json::json!({
-        "member_id": member.id,
-        "server_id": server_id,
-        "public_id": public_id,
+    location_uri.set_query(Some(&serde_qs::to_string(&VerifyAgentQuery {
+        member_id: *member.id,
+        server_id,
+        public_id,
 
-        "state": form.state,
-        "scope": form.scope,
-    })).unwrap()));
+        state: form.state,
+        scope: form.scope,
+    }).unwrap()));
 
     Ok(
         HttpResponse::SeeOther()
