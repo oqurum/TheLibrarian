@@ -336,7 +336,7 @@ impl FoundImageLocation {
     pub fn as_api_path(&self) -> Cow<'_, str> {
         match self {
             Self::Url(v) => Cow::Borrowed(v.as_str()),
-            Self::Local(v) => Cow::Owned(v.as_url()),
+            Self::Local(v) => Cow::Owned(format!("/api/v1/image/{}", v.as_value().unwrap())),
         }
     }
 

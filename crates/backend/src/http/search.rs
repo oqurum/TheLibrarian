@@ -50,7 +50,7 @@ pub async fn public_search(
         total,
         items: items.into_iter()
             .map(|v| {
-                let id = v.thumb_path.as_value().to_string();
+                let id = v.thumb_path.as_value().unwrap().to_string();
 
                 let mut book: PublicBook = v.into();
 

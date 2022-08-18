@@ -446,6 +446,8 @@ impl BookView {
                                                 MultiSelectEvent::Create(new_item) => {
                                                     Msg::MultiselectCreate(TagType::Genre, new_item)
                                                 }
+
+                                                _ => Msg::Ignore
                                             })
                                         }
                                     >
@@ -482,6 +484,8 @@ impl BookView {
                                                 MultiSelectEvent::Create(new_item) => {
                                                     Msg::MultiselectCreate(TagType::Subject, new_item)
                                                 }
+
+                                                _ => Msg::Ignore
                                             })
                                         }
                                     >

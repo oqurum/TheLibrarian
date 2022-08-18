@@ -81,7 +81,7 @@ impl NewUploadedImageModel {
     }
 
     pub async fn get_or_insert(self, db: &Database) -> Result<UploadedImageModel> {
-        if let Some(value) = UploadedImageModel::get_by_path(self.path.as_value(), db).await? {
+        if let Some(value) = UploadedImageModel::get_by_path(self.path.as_value().unwrap(), db).await? {
             Ok(value)
         } else {
             self.insert(db).await
@@ -96,7 +96,7 @@ impl NewUploadedImageModel {
             VALUES (?1, ?2)
         "#,
         params![
-            self.path.to_string(),
+            self.path.as_value(),
             self.created_at.timestamp_millis()
         ])?;
 
@@ -141,7 +141,7 @@ impl UploadedImageModel {
         .execute(r#"DELETE FROM uploaded_images WHERE link_id = ?1 AND path = ?2"#,
             params![
                 link_id,
-                path.to_string(),
+                path.as_value(),
             ]
         )?;
 

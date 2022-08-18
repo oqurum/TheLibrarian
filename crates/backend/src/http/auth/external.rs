@@ -1,7 +1,7 @@
 use actix_web::{web, HttpResponse, http::header};
-use rand::{distributions::{Alphanumeric, DistString, Standard}, thread_rng, Rng, prelude::Distribution};
+use common::api::librarian::{AuthFormLink, AuthQueryHandshake, Scope};
+use rand::{distributions::{Alphanumeric, DistString}, thread_rng, Rng, prelude::Distribution};
 use reqwest::Url;
-use serde::{Deserialize, Serialize};
 
 use crate::{WebResult, Database, model::{NewServerLinkModel, ServerLinkModel}};
 
@@ -12,20 +12,8 @@ pub static AUTH_LINK_PATH: &str = "/auth/link";
 pub static AUTH_HANDSHAKE_PATH: &str = "/auth/handshake";
 
 
-#[derive(Debug, Deserialize)]
-pub struct AuthorizeForm {
-    pub server_owner_name: Option<String>,
-    pub server_name: Option<String>,
-    pub server_id: Option<String>,
-    pub redirect_uri: String,
-    pub state: String,
-    pub scope: String,
-}
-
-
-
 pub async fn post_oauth_link(
-    form: web::Form<AuthorizeForm>,
+    form: web::Form<AuthFormLink>,
     member: MemberCookie,
     db: web::Data<Database>,
 ) -> WebResult<HttpResponse> {
@@ -35,7 +23,7 @@ pub async fn post_oauth_link(
 
     form.server_id = form.server_id.filter(|v| !v.is_empty());
 
-    if form.scope != "server_register" && form.server_id.is_none() {
+    if form.scope != Scope::ServerRegister && form.server_id.is_none() {
         return Ok(HttpResponse::InternalServerError().body("Missing Server ID"));
     }
 
@@ -43,8 +31,6 @@ pub async fn post_oauth_link(
 
     let server_id = AlphanumericSpecials.sample_string(&mut rng, 32);
     let public_id = Alphanumeric.sample_string(&mut rng, 40);
-
-    println!("post_oauth_link {form:#?}");
 
     NewServerLinkModel {
         server_owner_name: form.server_owner_name,
@@ -84,20 +70,17 @@ pub async fn post_oauth_link(
 //   - Registering External Servers
 //   - Called on server start, periodically to ensure ip routing is correct (ip used for simple connecting through this server)
 pub async fn get_oauth_handshake(
-    query: web::Query<QueryHandshake>,
+    query: web::Query<AuthQueryHandshake>,
     db: web::Data<Database>,
 ) -> WebResult<HttpResponse> {
     let query = query.into_inner();
-    println!("get_oauth_handshake {query:#?}");
 
-    if query.scope == "server_register" {
+    if query.scope == Scope::ServerRegister {
         if let Some(mut link) = ServerLinkModel::get_by_public_id(&query.public_id, &db).await? {
             if link.server_id == query.server_id {
                 link.verified = true;
 
                 link.update(&db).await?;
-
-                println!("update");
 
                 Ok(HttpResponse::Ok().finish())
             } else {
@@ -110,22 +93,6 @@ pub async fn get_oauth_handshake(
         Ok(HttpResponse::InternalServerError().body("Unknown Scope"))
     }
 }
-
-
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct QueryHandshake {
-    /// Used for verifying
-    pub state: Option<String>,
-
-    /// Private Server ID
-    pub server_id: String,
-    /// Public Server ID
-    pub public_id: String,
-
-    pub scope: String,
-}
-
 
 
 

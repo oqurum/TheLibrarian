@@ -33,7 +33,7 @@ async fn get_poster_list(
 
             selected: poster.path == current_thumb,
 
-            path: poster.path.as_url(),
+            path: format!("/api/v1/image/{}", poster.path.into_value().unwrap()),
 
             created_at: poster.created_at,
         })

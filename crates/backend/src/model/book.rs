@@ -169,7 +169,7 @@ impl BookModel {
                 )
                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)"#,
                 params![
-                    &self.title, &self.clean_title, &self.description, self.rating, self.thumb_path.to_optional_string(),
+                    &self.title, &self.clean_title, &self.description, self.rating, self.thumb_path.as_value(),
                     &self.cached.as_string_optional(), self.is_public,
                     &self.isbn_10, &self.isbn_13,
                     &self.available_at, self.language,
@@ -200,7 +200,7 @@ impl BookModel {
             WHERE id = ?1"#,
             params![
                 self.id,
-                &self.title, &self.clean_title, &self.description, &self.rating, self.thumb_path.to_optional_string(),
+                &self.title, &self.clean_title, &self.description, &self.rating, self.thumb_path.as_value(),
                 &self.cached.as_string_optional(), self.is_public,
                 &self.isbn_10, &self.isbn_13,
                 &self.available_at, &self.language,
