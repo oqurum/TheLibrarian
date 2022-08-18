@@ -136,6 +136,9 @@ pub enum Route {
     #[at("/options")]
     Options,
 
+    #[at("/authorize")]
+    Authorize,
+
     #[at("/")]
     #[not_found]
     Home
@@ -146,6 +149,10 @@ fn switch(route: &Route) -> Html {
     log::info!("{:?}", route);
 
     match route.clone() {
+        Route::Authorize => {
+            html! { <pages::AuthorizePage /> }
+        }
+
         Route::Login => {
             html! { <pages::LoginPage /> }
         }

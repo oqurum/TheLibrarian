@@ -251,6 +251,29 @@ pub async fn init() -> Result<Database> {
         []
     )?;
 
+    // Linked Servers
+    conn.execute(
+        r#"CREATE TABLE IF NOT EXISTS "server_link" (
+            "id"                 INTEGER NOT NULL,
+
+            "server_owner_name"  TEXT,
+            "server_name"        TEXT,
+
+            "server_id"          TEXT NOT NULL,
+            "public_id"          TEXT NOT NULL,
+
+            "member_id"          INTEGER NOT NULL,
+            "verified"           INTEGER NOT NULL,
+
+            "created_at"         DATETIME NOT NULL,
+            "updated_at"         DATETIME NOT NULL,
+
+            PRIMARY KEY("id" AUTOINCREMENT),
+            UNIQUE("server_id")
+        );"#,
+        []
+    )?;
+
 
     // Cached External Searches
     // conn.execute(

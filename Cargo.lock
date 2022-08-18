@@ -1706,6 +1706,7 @@ dependencies = [
  "serde",
  "serde-xml-rs",
  "serde_json",
+ "serde_qs",
  "serde_urlencoded",
  "sha1",
  "sha2",
@@ -1736,6 +1737,7 @@ dependencies = [
  "reqwasm",
  "serde",
  "serde_json",
+ "serde_qs",
  "serde_urlencoded",
  "tokio",
  "urlencoding",
@@ -2554,6 +2556,17 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "serde_qs"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8cac3f1e2ca2fe333923a1ae72caca910b98ed0630bb35ef6f8c8517d6e81afa"
+dependencies = [
+ "percent-encoding",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]

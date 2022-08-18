@@ -11,6 +11,7 @@ use crate::{Result, model::MemberModel, Database, WebError, InternalError};
 
 pub mod password;
 pub mod passwordless;
+pub mod external;
 
 
 #[derive(Serialize, Deserialize)]

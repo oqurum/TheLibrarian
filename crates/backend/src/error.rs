@@ -26,6 +26,7 @@ use actix_multipart::MultipartError;
 use actix_web::Error as ActixError;
 use actix_web::error::PayloadError;
 use actix_web::ResponseError;
+use actix_web::error::UrlencodedError;
 
 use crate::storage::b2::JsonErrorStruct;
 
@@ -42,6 +43,8 @@ pub enum WebError {
     Multipart(#[from] MultipartError),
     #[error("Payload Error: {0}")]
     Payload(#[from] PayloadError),
+    #[error("Urlencoded Error: {0}")]
+    Urlencoded(#[from] UrlencodedError),
 
     #[error(transparent)]
     All(#[from] Error),

@@ -72,6 +72,16 @@ pub async fn register_http_service(cli_args: &CliArgs, db_data: web::Data<Databa
                 web::get().to(passwordless::get_passwordless_oauth_callback),
             )
 
+            // Links
+            .route(
+                external::AUTH_LINK_PATH,
+                web::post().to(external::post_oauth_link),
+            )
+			.route(
+                external::AUTH_HANDSHAKE_PATH,
+                web::get().to(external::get_oauth_handshake),
+            )
+
             // Other
             .service(actix_files::Files::new("/", "./app/public").index_file("dist/index.html"))
             .default_service(web::route().to(default_handler))

@@ -10,6 +10,7 @@ mod member;
 mod person;
 mod person_alt;
 mod tag;
+mod server_link;
 
 pub use auth::*;
 pub use book::*;
@@ -21,7 +22,7 @@ pub use member::*;
 pub use person::*;
 pub use person_alt::*;
 pub use tag::*;
-
+pub use server_link::*;
 
 
 pub trait TableRow<'a> where Self: Sized {

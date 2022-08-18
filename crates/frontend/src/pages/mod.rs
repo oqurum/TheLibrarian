@@ -1,6 +1,6 @@
 mod auth;
 
-pub use auth::{login::LoginPage, logout::LogoutPage};
+pub use auth::{authorize::AuthorizePage, login::LoginPage, logout::LogoutPage};
 
 pub mod home;
 pub mod options;
