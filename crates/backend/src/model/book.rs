@@ -250,20 +250,18 @@ impl BookModel {
         let mut sql = String::from("SELECT * FROM book WHERE ");
         let orig_len = sql.len();
 
+        let mut f_comp = Vec::new();
+
         // Only Public
 
         if only_public {
-            sql += "is_public = true ";
+            f_comp.push("is_public = true".to_string());
         }
 
 
         // Query
 
         if let Some(query) = query.as_ref() {
-            if only_public {
-                sql += "AND ";
-            }
-
             let mut escape_char = '\\';
             // Change our escape character if it's in the query.
             if query.contains(escape_char) {
@@ -276,27 +274,24 @@ impl BookModel {
             }
 
             // TODO: Utilize title > clean_title > description, and sort
-            sql += &format!(
-                "title LIKE '%{}%' ESCAPE '{}' ",
+            f_comp.push(format!(
+                "title LIKE '%{}%' ESCAPE '{}'",
                 query.replace('%', &format!("{}%", escape_char)).replace('_', &format!("{}_", escape_char)),
                 escape_char
-            );
+            ));
         }
 
 
         // Search with specific person
 
         if let Some(pid) = person_id {
-            if only_public || query.is_some() {
-                sql += "AND ";
-            }
-
-            sql += &format!(
-                r#"id IN (SELECT book_id FROM book_person WHERE person_id = {}) "#,
+            f_comp.push(format!(
+                r#"id IN (SELECT book_id FROM book_person WHERE person_id = {})"#,
                 pid
-            );
+            ));
         }
 
+        sql += &f_comp.join(" AND ");
 
         if sql.len() == orig_len {
             // If sql is still unmodified
