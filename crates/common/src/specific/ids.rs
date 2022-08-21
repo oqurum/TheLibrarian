@@ -10,4 +10,8 @@ use common::create_single_id;
 create_single_id!(EditId);
 create_single_id!(EditCommentId);
 create_single_id!(EditVoteId);
+
 create_single_id!(ServerLinkId);
+
+create_single_id!(SearchItemId);
+create_single_id!(SearchGroupId);

@@ -11,6 +11,8 @@ mod person;
 mod person_alt;
 mod tag;
 mod server_link;
+mod search_global;
+mod search_servers;
 
 pub use auth::*;
 pub use book::*;
@@ -23,7 +25,8 @@ pub use person::*;
 pub use person_alt::*;
 pub use tag::*;
 pub use server_link::*;
-
+pub use search_global::*;
+pub use search_servers::*;
 
 pub trait TableRow<'a> where Self: Sized {
     fn create(row: &mut AdvRow<'a>) -> rusqlite::Result<Self>;

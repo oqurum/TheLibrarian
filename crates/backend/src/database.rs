@@ -274,42 +274,46 @@ pub async fn init() -> Result<Database> {
         []
     )?;
 
+    // Search Groupings
+    conn.execute(
+        r#"CREATE TABLE IF NOT EXISTS "search_group" (
+            "id"                INTEGER NOT NULL,
 
-    // Cached External Searches
-    // conn.execute(
-    //     r#"CREATE TABLE IF NOT EXISTS "cached_extern_search" (
-    //         "id"            INTEGER NOT NULL,
+            "query"             TEXT NOT NULL COLLATE NOCASE,
+            "calls"             INTEGER NOT NULL,
+            "last_found_amount" INTEGER NOT NULL,
+            "timeframe"         INTEGER NOT NULL,
 
-    //         "query"            TEXT NOT NULL COLLATE NOCASE,
+            "created_at"        DATETIME NOT NULL,
+            "updated_at"        DATETIME NOT NULL,
 
-    //         "cached"        TEXT NOT NULL,
+            UNIQUE("query", "timeframe"),
+            PRIMARY KEY("id" AUTOINCREMENT)
+        );"#,
+        []
+    )?;
 
-    //         "last_cached"     DATETIME NOT NULL,
+    // Search Server Item
+    conn.execute(
+        r#"CREATE TABLE IF NOT EXISTS "search_item" (
+            "id"              INTEGER NOT NULL,
 
-    //         UNIQUE("query"),
-    //         PRIMARY KEY("id" AUTOINCREMENT)
-    //     );"#,
-    //     []
-    // )?;
+            "server_link_id"  INTEGER NOT NULL,
 
-    // Queued External Search Requests
-    // conn.execute(
-    //     r#"CREATE TABLE IF NOT EXISTS "queued_extern_search" (
-    //         "query"            TEXT NOT NULL COLLATE NOCASE,
-    //         "type_of"        INTEGER NOT NULL, // Book, Author
+            "query"           TEXT NOT NULL COLLATE NOCASE,
+            "calls"           INTEGER NOT NULL,
 
-    //         "cached"        TEXT NOT NULL,
+            "created_at"      DATETIME NOT NULL,
+            "updated_at"      DATETIME NOT NULL,
 
-    //         "created_at"     DATETIME NOT NULL,
-    //         "updated_at"     DATETIME NOT NULL,
-
-    //         UNIQUE("query", "type_of")
-    //     );"#,
-    //     []
-    // )?;
+            UNIQUE("query", "server_link_id"),
+            PRIMARY KEY("id" AUTOINCREMENT)
+        );"#,
+        []
+    )?;
 
     // TODO: Tables
-    // Recent/Queued Metadata Searches (prevent continuous searching)
+    // Queued External Metadata Searches (prevent continuous searching)
     // Fingerprints
     // Custom Book (Fingerprint) Stylings
 
