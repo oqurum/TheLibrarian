@@ -18,6 +18,8 @@ pub struct GetSearchQuery {
     pub limit: Option<usize>,
     #[serde(default)]
     pub view_private: bool,
+
+    pub server_id: String,
 }
 
 pub type BookSearchResponse = QueryListResponse<PublicBook>;

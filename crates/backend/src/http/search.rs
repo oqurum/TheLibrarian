@@ -2,7 +2,7 @@ use actix_web::{get, web, HttpRequest};
 use common::api::WrappingResponse;
 use common_local::search::{self, BookSearchResponse, PublicBook};
 
-use crate::{WebResult, database::Database, model::BookModel, http::JsonResponse};
+use crate::{WebResult, database::Database, model::{BookModel, ServerLinkModel}, http::JsonResponse};
 
 
 // TODO: Author Search
@@ -14,6 +14,10 @@ pub async fn public_search(
     query: web::Query<search::GetSearchQuery>,
     db: web::Data<Database>,
 ) -> WebResult<JsonResponse<BookSearchResponse>> {
+    if !ServerLinkModel::does_exist_by_server_id(&query.server_id, &db).await? {
+        return Ok(web::Json(WrappingResponse::error("Invalid Server ID")));
+    }
+
     let offset = query.offset.unwrap_or(0);
     let limit = query.limit.unwrap_or(25);
 

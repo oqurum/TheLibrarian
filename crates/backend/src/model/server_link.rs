@@ -100,6 +100,14 @@ impl ServerLinkModel {
         ).optional()?)
     }
 
+    pub async fn does_exist_by_server_id(value: &str, db: &Database) -> Result<bool> {
+        Ok(db.read().await.query_row(
+            "SELECT EXISTS(SELECT id FROM server_link WHERE server_id = ?1)",
+            [ value ],
+            |v| Ok(v.get::<_, usize>(0)? != 0)
+        )?)
+    }
+
     pub async fn get_by_public_id(value: &str, db: &Database) -> Result<Option<Self>> {
         Ok(db.read().await.query_row(
             r#"SELECT * FROM server_link WHERE public_id = ?1"#,
