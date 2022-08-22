@@ -1,13 +1,13 @@
 #![allow(dead_code)]
 
-use common::{Source, PersonId, BookId, TagId, ImageId, Either, ImageIdType, api::{WrappingResponse, DeletionResponse, ApiErrorResponse}};
+use common::{Source, PersonId, BookId, TagId, ImageId, Either, ImageIdType, api::{WrappingResponse, DeletionResponse, ApiErrorResponse, QueryListResponse}};
 use serde::{Serialize, Deserialize};
 use serde_json::json;
 use wasm_bindgen::{JsValue, JsCast};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, Request, RequestMode, Response, Headers};
 
-use common_local::{api::*, SearchType, TagType, EditId, item::edit::{UpdateEditModel, BookEdit}, update::OptionsUpdate};
+use common_local::{api::*, SearchType, TagType, EditId, item::edit::{UpdateEditModel, BookEdit}, update::OptionsUpdate, Member};
 
 
 // Edits
@@ -132,6 +132,31 @@ pub async fn change_poster_for_meta(img_id_type: ImageIdType, url_or_id: Either<
 
 pub async fn get_member_self() -> WrappingResponse<GetMemberSelfResponse> {
     fetch("GET", "/api/v1/member", Option::<&()>::None).await.unwrap_or_else(def)
+}
+
+pub async fn get_member_list(
+    offset: Option<usize>,
+    limit: Option<usize>
+) -> WrappingResponse<QueryListResponse<Member>> {
+    let mut url = String::from("/api/v1/members?");
+
+    if let Some(value) = offset {
+        url += "offset=";
+        url += &value.to_string();
+        url += "&";
+    }
+
+    if let Some(value) = limit {
+        url += "limit=";
+        url += &value.to_string();
+        url += "&";
+    }
+
+    fetch(
+        "GET",
+        &url,
+        Option::<&()>::None
+    ).await.unwrap_or_else(def)
 }
 
 

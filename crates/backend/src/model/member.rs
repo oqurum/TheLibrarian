@@ -124,4 +124,18 @@ impl MemberModel {
             ).optional()?)
         }
     }
+
+    pub async fn get_count(db: &Database) -> Result<usize> {
+        Ok(db.read().await.query_row(r#"SELECT COUNT(*) FROM members"#, [], |v| v.get(0))?)
+    }
+
+    pub async fn find_all(offset: usize, limit: usize, db: &Database) -> Result<Vec<Self>> {
+        let this = db.read().await;
+
+        let mut conn = this.prepare(r#"SELECT * FROM members LIMIT ?1 OFFSET ?2"#)?;
+
+        let map = conn.query_map([limit, offset], |v| Self::from_row(v))?;
+
+        Ok(map.collect::<rusqlite::Result<Vec<_>>>()?)
+    }
 }

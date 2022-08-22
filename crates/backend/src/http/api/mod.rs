@@ -40,6 +40,7 @@ pub fn api_route() -> Scope<
 
         // Member
         .service(member::load_member_self)
+        .service(member::get_members)
 
         // Person
         .service(person::load_author_list)

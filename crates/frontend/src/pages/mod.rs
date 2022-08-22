@@ -2,6 +2,7 @@ mod auth;
 
 pub use auth::{authorize::AuthorizePage, login::LoginPage, logout::LogoutPage};
 
+pub mod admin;
 pub mod home;
 pub mod options;
 pub mod book_view;

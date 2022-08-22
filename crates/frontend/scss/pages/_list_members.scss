@@ -1,0 +1,39 @@
+.member-list-view-container {
+	overflow-y: auto;
+
+	.list-items {
+		width: 40%;
+		margin: 0 auto;
+	}
+
+    .member-item-card {
+        background: var(--surface-1);
+        padding: 5px;
+        border-radius: 5px;
+        margin-bottom: 10px;
+
+        > .title-container {
+            display: flex;
+
+            > .index {
+                margin-right: 10px;
+            }
+
+            // > .name {}
+        }
+
+        // > .email {}
+        // > .created {}
+
+        > .tools {
+            margin-top: 10px;
+        }
+    }
+}
+
+// TODO: Move into layout and define as its' own.
+@media screen and (max-width: 1354px) {
+	.member-list-view-container .list-items {
+		width: 669px;
+	}
+}

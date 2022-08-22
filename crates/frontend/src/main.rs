@@ -139,6 +139,9 @@ pub enum Route {
     #[at("/authorize")]
     Authorize,
 
+    #[at("/admin/:path")]
+    Admin { path: String },
+
     #[at("/")]
     #[not_found]
     Home
@@ -184,6 +187,21 @@ fn switch(route: &Route) -> Html {
             }
 
             html! { <pages::OptionsPage /> }
+        }
+
+        Route::Admin { path } => {
+            if let Some(me) = get_member_self() {
+                if !me.permissions.is_admin() {
+                    return html! { <h2>{ "Not Admin" }</h2> };
+                }
+            } else {
+                return html! { <pages::LoginPage /> };
+            }
+
+            match path.as_str() {
+                "members" => html! { <pages::admin::ListMembersPage /> },
+                _ => html! {}
+            }
         }
 
         Route::Home => {
