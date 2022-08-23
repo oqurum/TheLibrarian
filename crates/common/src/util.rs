@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc, TimeZone};
+use chrono::{DateTime, Utc, TimeZone, Date};
 use serde::{Serializer, Deserializer, Deserialize, Serialize};
 
 
@@ -80,4 +80,14 @@ pub fn deserialize_datetime_opt_opt<'de, D>(value: D) -> std::result::Result<Opt
     } else {
         Ok(None)
     }
+}
+
+// Date
+
+pub fn serialize_date<S>(value: &Date<Utc>, s: S) -> std::result::Result<S::Ok, S::Error> where S: Serializer {
+    s.serialize_i64(value.and_hms(0, 0, 0).timestamp())
+}
+
+pub fn deserialize_date<'de, D>(value: D) -> std::result::Result<Date<Utc>, D::Error> where D: Deserializer<'de> {
+    Ok(Utc.timestamp(i64::deserialize(value)?, 0).date())
 }

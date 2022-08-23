@@ -7,7 +7,7 @@ use wasm_bindgen::{JsValue, JsCast};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, Request, RequestMode, Response, Headers};
 
-use common_local::{api::*, SearchType, TagType, EditId, item::edit::{UpdateEditModel, BookEdit}, update::OptionsUpdate, Member};
+use common_local::{api::*, SearchType, TagType, EditId, item::edit::{UpdateEditModel, BookEdit}, update::OptionsUpdate, Member, SearchGroup};
 
 
 // Edits
@@ -281,6 +281,35 @@ pub async fn get_books(
 
 pub async fn get_book_info(id: BookId) -> WrappingResponse<GetBookIdResponse> {
     fetch("GET", &format!("/api/v1/book/{}", id), Option::<&()>::None).await.unwrap_or_else(def)
+}
+
+
+// Searches
+
+
+pub async fn get_search_list(
+    offset: Option<usize>,
+    limit: Option<usize>
+) -> WrappingResponse<QueryListResponse<SearchGroup>> {
+    let mut url = String::from("/api/v1/searches?");
+
+    if let Some(value) = offset {
+        url += "offset=";
+        url += &value.to_string();
+        url += "&";
+    }
+
+    if let Some(value) = limit {
+        url += "limit=";
+        url += &value.to_string();
+        url += "&";
+    }
+
+    fetch(
+        "GET",
+        &url,
+        Option::<&()>::None
+    ).await.unwrap_or_else(def)
 }
 
 

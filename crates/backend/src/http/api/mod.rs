@@ -8,6 +8,7 @@ pub mod person;
 pub mod publisher;
 pub mod poster;
 pub mod tag;
+pub mod search;
 pub mod settings;
 
 pub fn api_route() -> Scope<
@@ -57,6 +58,9 @@ pub fn api_route() -> Scope<
         .service(edit::load_edit_list)
         .service(edit::load_edit)
         .service(edit::update_edit)
+
+        // Searches
+        .service(search::get_searches)
 
         // External
         .service(external::get_external_search)

@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc, TimeZone, Datelike};
-use common_local::{SearchGroupId, util::serialize_datetime};
+use common_local::{SearchGroupId, util::serialize_datetime, SearchGroup};
 use rusqlite::{params, OptionalExtension, types::{FromSql, ToSqlOutput, FromSqlResult, ValueRef, Value}, ToSql};
 use serde::Serialize;
 
@@ -131,6 +131,19 @@ impl SearchGroupModel {
         )?)
     }
 
+    pub async fn get_count(db: &Database) -> Result<usize> {
+        Ok(db.read().await.query_row(r#"SELECT COUNT(*) FROM search_group"#, [], |v| v.get(0))?)
+    }
+
+    pub async fn find_all(offset: usize, limit: usize, db: &Database) -> Result<Vec<Self>> {
+        let this = db.read().await;
+
+        let mut conn = this.prepare(r#"SELECT * FROM search_group ORDER BY calls DESC LIMIT ?1 OFFSET ?2"#)?;
+
+        let map = conn.query_map([ limit, offset ], |v| Self::from_row(v))?;
+
+        Ok(map.collect::<rusqlite::Result<Vec<_>>>()?)
+    }
 
     pub async fn update(&self, db: &Database) -> Result<usize> {
         Ok(db.write().await
@@ -153,11 +166,26 @@ impl SearchGroupModel {
 }
 
 
+impl From<SearchGroupModel> for SearchGroup {
+    fn from(model: SearchGroupModel) -> Self {
+        Self {
+            id: model.id,
+            query: model.query,
+            calls: model.calls,
+            last_found_amount: model.last_found_amount,
+            timeframe: Utc.ymd(model.timeframe.year as i32, model.timeframe.month, 1),
+            created_at: model.created_at,
+            updated_at: model.updated_at,
+        }
+    }
+}
+
+
 
 #[derive(Debug, Clone, Copy, Serialize)]
 pub struct SearchTimeFrame {
-    pub year: usize,
-    pub month: usize,
+    pub year: u32,
+    pub month: u32,
 }
 
 impl SearchTimeFrame {
@@ -165,8 +193,8 @@ impl SearchTimeFrame {
         let now = Utc::now();
 
         Self {
-            year: now.date().year() as usize,
-            month: now.date().month() as usize,
+            year: now.date().year() as u32,
+            month: now.date().month() as u32,
         }
     }
 }
@@ -174,11 +202,11 @@ impl SearchTimeFrame {
 impl FromSql for SearchTimeFrame {
     #[inline]
     fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
-        let value = usize::column_result(value)?;
+        let value = u64::column_result(value)?;
 
         Ok(Self {
-            year: value >> 4,
-            month: value & 0xF,
+            year: (value >> 4) as u32,
+            month: (value & 0xF) as u32,
         })
     }
 }

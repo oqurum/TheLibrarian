@@ -3,7 +3,7 @@
 
 use std::path::PathBuf;
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Utc, Date};
 use common::{TagId, BookTagId, BookId, MemberId, PersonId, Source, ThumbnailStore, ImageId};
 use item::edit::BookEdit;
 use serde::{Serialize, Deserialize};
@@ -22,9 +22,23 @@ pub use error::{Result, Error};
 
 
 
-// Edits
+// Searches
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SearchGroup {
+    pub id: SearchGroupId,
 
+    pub query: String,
+    pub calls: usize,
+    pub last_found_amount: usize,
+    #[serde(serialize_with = "serialize_date", deserialize_with = "deserialize_date")]
+    pub timeframe: Date<Utc>,
+
+    #[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]
+    pub created_at: DateTime<Utc>,
+    #[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]
+    pub updated_at: DateTime<Utc>,
+}
 
 
 

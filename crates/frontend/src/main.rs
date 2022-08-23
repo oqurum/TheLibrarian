@@ -200,6 +200,7 @@ fn switch(route: &Route) -> Html {
 
             match path.as_str() {
                 "members" => html! { <pages::admin::ListMembersPage /> },
+                "searches" => html! { <pages::admin::ListSearchesPage /> },
                 _ => html! {}
             }
         }
