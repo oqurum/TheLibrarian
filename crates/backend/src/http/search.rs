@@ -29,21 +29,32 @@ pub async fn public_search(
         &db,
     ).await?;
 
-    let search_item_updated = NewSearchItemServerModel::new(sever_link_model.id, query.query.clone()).insert_or_inc(&db).await?;
+    // Only update if offset is 0.
+    if offset == 0 {
+        let search_item_updated = NewSearchItemServerModel::new(
+            sever_link_model.id,
+            query.query.clone()
+        ).insert_or_inc(&db).await?;
 
-    if search_item_updated {
-        // Only insert/update if previous one was inserted/updated.
-        NewSearchGroupModel::new(query.query.clone(), total).insert_or_inc(&db).await?;
+        if search_item_updated {
+            // Only insert/update if previous one was inserted/updated.
+            NewSearchGroupModel::new(query.query.clone(), total).insert_or_inc(&db).await?;
+        }
     }
 
-    let items = BookModel::search_book_list(
-        Some(&query.query),
-        offset,
-        limit,
-        !query.view_private,
-        None,
-        &db,
-    ).await?;
+    // Only search if our offset is less than the total amount we have.
+    let items = if offset < total {
+        BookModel::search_book_list(
+            Some(&query.query),
+            offset,
+            limit,
+            !query.view_private,
+            None,
+            &db,
+        ).await?
+    } else {
+        Vec::new()
+    };
 
     let host = format!(
         "//{}",
