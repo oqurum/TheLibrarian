@@ -132,7 +132,7 @@ mod book_edit {
     use super::*;
 
 
-    #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+    #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
     pub enum NewOrCachedImage {
         Url(String),
         Id(ImageId),

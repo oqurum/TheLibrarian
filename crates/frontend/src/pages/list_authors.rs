@@ -9,7 +9,7 @@ use yew_router::prelude::Link;
 use crate::{components::LoginBarrier, request, util, Route};
 
 
-#[derive(Properties, PartialEq)]
+#[derive(Properties, PartialEq, Eq)]
 pub struct Property {
 }
 

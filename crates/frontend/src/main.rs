@@ -113,7 +113,7 @@ impl Component for Model {
 }
 
 
-#[derive(Routable, PartialEq, Clone, Debug)]
+#[derive(Routable, PartialEq, Eq, Clone, Debug)]
 pub enum Route {
     #[at("/login")]
     Login,

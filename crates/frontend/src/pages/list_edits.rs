@@ -9,7 +9,7 @@ use yew::{prelude::*, html::Scope};
 use crate::{request, get_member_self, components::LoginBarrier};
 
 
-#[derive(Properties, PartialEq)]
+#[derive(Properties, PartialEq, Eq)]
 pub struct Property {
 }
 

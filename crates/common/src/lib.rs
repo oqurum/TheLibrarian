@@ -45,7 +45,7 @@ pub struct SearchGroup {
 
 // Tags
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct TagFE {
     pub id: TagId,
 
@@ -59,7 +59,7 @@ pub struct TagFE {
 }
 
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum TagType {
     /// Will have data
     Collection,
@@ -369,7 +369,7 @@ impl PartialEq for MediaItem {
 }
 
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum Progression {
     Ebook {
         chapter: i64,
@@ -419,7 +419,7 @@ pub struct BasicDirectory {
 
 
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MetadataItemCached {
     pub author: Option<String>,
     pub publisher: Option<String>,
@@ -476,7 +476,7 @@ impl MetadataItemCached {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SearchType {
     Book,
     Person
