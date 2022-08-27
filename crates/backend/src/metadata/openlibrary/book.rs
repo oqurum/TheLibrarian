@@ -128,6 +128,7 @@ pub struct BookSearchItem {
     pub title: Option<String>,
     pub title_suggest: Option<String>,
     pub has_fulltext: Option<bool>,
+    pub ebook_access: Option<String>,
     pub edition_count: Option<i64>,
     pub edition_key: Option<Vec<String>>,
     pub publish_date: Option<Vec<String>>,
