@@ -684,6 +684,7 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "yew",
+ "yew-hooks",
 ]
 
 [[package]]

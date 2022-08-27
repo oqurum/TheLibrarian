@@ -87,7 +87,7 @@ impl Component for AuthorListPage {
 
                 let offset = Some(
                     self.media_items.as_ref()
-                        .and_then(|v| v.resp.as_ref())
+                        .and_then(|v| v.as_ok().ok())
                         .map(|v| v.len()).unwrap_or_default()
                     ).filter(|v| *v != 0);
 
@@ -104,7 +104,8 @@ impl Component for AuthorListPage {
                     Ok(mut resp) => {
                         self.total_media_count = resp.total;
 
-                        if let Some(items) = self.media_items.as_mut().and_then(|v| v.resp.as_mut()) {
+                        // TODO: Replace match with as_mut_ok()
+                        if let Some(items) = self.media_items.as_mut().and_then(|v| match v { WrappingResponse::Resp(v) => Some(v), _ => None }) {
                             items.append(&mut resp.items);
                         } else {
                             self.media_items = Some(WrappingResponse::okay(resp.items));
@@ -482,7 +483,7 @@ impl AuthorListPage {
     // }
 
     pub fn can_req_more(&self) -> bool {
-        let count = self.media_items.as_ref().and_then(|v| v.resp.as_ref()).map(|v| v.len()).unwrap_or_default();
+        let count = self.media_items.as_ref().and_then(|v| v.as_ok().ok()).map(|v| v.len()).unwrap_or_default();
 
         count != 0 && count != self.total_media_count as usize
     }

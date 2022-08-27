@@ -81,7 +81,7 @@ impl Component for AuthorView {
                 self.cached_books = Some(resp);
             }
 
-            Msg::UpdatedPoster => if let Some(book) = self.media.as_ref().and_then(|v| v.resp.as_ref()) {
+            Msg::UpdatedPoster => if let Some(book) = self.media.as_ref().and_then(|v| v.as_ok().ok()) {
                 let person_id = ImageIdType::new_person(book.person.id);
 
                 ctx.link()
@@ -93,7 +93,7 @@ impl Component for AuthorView {
             }
 
             // Edits
-            Msg::ToggleEdit => if let Some(book) = self.media.as_ref().and_then(|v| v.resp.as_ref()) {
+            Msg::ToggleEdit => if let Some(book) = self.media.as_ref().and_then(|v| v.as_ok().ok()) {
                 if self.editing_item.is_none() {
                     self.editing_item = Some(book.clone());
 

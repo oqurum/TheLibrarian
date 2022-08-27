@@ -88,7 +88,7 @@ impl Component for BookView {
             Msg::Ignore => return false,
 
             // Multiselect
-            Msg::MultiselectToggle(inserted, tag_id) => if let Some(curr_book) = self.media.as_ref().and_then(|v| v.resp.as_ref()) {
+            Msg::MultiselectToggle(inserted, tag_id) => if let Some(curr_book) = self.media.as_ref().and_then(|v| v.as_ok().ok()) {
                 if inserted {
                     // If the tag is in the db model.
                     if curr_book.tags.iter().any(|bt| bt.tag.id == tag_id) {
@@ -166,7 +166,7 @@ impl Component for BookView {
             }
 
 
-            Msg::ReloadPosters => if let Some(curr_book) = self.media.as_ref().and_then(|v| v.resp.as_ref()) {
+            Msg::ReloadPosters => if let Some(curr_book) = self.media.as_ref().and_then(|v| v.as_ok().ok()) {
                 let book_id = curr_book.metadata.id;
 
                 ctx.link()
@@ -189,7 +189,7 @@ impl Component for BookView {
                 self.is_editing = !self.is_editing;
             }
 
-            Msg::SaveEdits => if let Some(curr_book) = self.media.as_ref().and_then(|v| v.resp.as_ref()) {
+            Msg::SaveEdits => if let Some(curr_book) = self.media.as_ref().and_then(|v| v.as_ok().ok()) {
                 let edit = self.editing_item.clone();
                 self.editing_item = BookEdit::default();
 

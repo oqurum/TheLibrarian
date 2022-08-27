@@ -85,7 +85,7 @@ impl Component for PopupSearch {
             }
 
             Msg::BookSearchResponse(search, resp) => {
-                if let Some(name) = resp.resp.as_ref().and_then(|v| v.items.keys().next()).cloned() {
+                if let Some(name) = resp.as_ok().ok().and_then(|v| v.items.keys().next()).cloned() {
                     self.selected_tab = name;
                 }
 
@@ -94,7 +94,7 @@ impl Component for PopupSearch {
             }
 
             Msg::BookItemResponse(source, resp) => {
-                if let Some(item) = resp.resp.and_then(|v| v.item) {
+                if let Some(item) = resp.ok().ok().and_then(|v| v.item) {
                     if self.left_edit.is_none() {
                         self.left_edit = Some((item.into(), source));
                     } else {

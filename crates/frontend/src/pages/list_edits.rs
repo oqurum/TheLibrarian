@@ -51,7 +51,7 @@ impl Component for EditListPage {
 
             Msg::EditListResults(mut resp) => {
                 // Default old BookEdit (generate_person_rows checks for both new/old have Some)
-                if let Some(resp) = resp.resp.as_mut() {
+                if let WrappingResponse::Resp(resp) = &mut resp {
                     resp.items.iter_mut()
                         .for_each(|v| match &mut v.data {
                             EditData::Book(v) => if v.old.is_none() { v.old = Some(Default::default()) },
@@ -72,7 +72,8 @@ impl Component for EditListPage {
                     None => return false,
                 };
 
-                if let Some(all_edit_items) = self.items_resp.as_mut().and_then(|v| v.resp.as_mut()) {
+                // TODO: Replace match with as_mut_ok()
+                if let Some(all_edit_items) = self.items_resp.as_mut().and_then(|v| match v { WrappingResponse::Resp(v) => Some(v), _ => None }) {
                     if let Some(curr_edit_model) = all_edit_items.items.iter_mut().find(|v| v.id == new_edit_model.id) {
                         // Get Our Upvote/Downvote
                         if let Some(my_vote) = item.vote.take() {
