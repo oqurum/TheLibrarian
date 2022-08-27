@@ -283,6 +283,7 @@ pub async fn init() -> Result<Database> {
             "calls"             INTEGER NOT NULL,
             "last_found_amount" INTEGER NOT NULL,
             "timeframe"         INTEGER NOT NULL,
+            "found_id"          TEXT,
 
             "created_at"        DATETIME NOT NULL,
             "updated_at"        DATETIME NOT NULL,

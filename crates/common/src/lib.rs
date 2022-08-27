@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 
 use chrono::{DateTime, Utc, Date};
-use common::{TagId, BookTagId, BookId, MemberId, PersonId, Source, ThumbnailStore, ImageId};
+use common::{TagId, BookTagId, BookId, MemberId, PersonId, Source, ThumbnailStore, ImageId, ImageIdType};
 use item::edit::BookEdit;
 use serde::{Serialize, Deserialize};
 
@@ -33,6 +33,7 @@ pub struct SearchGroup {
     pub last_found_amount: usize,
     #[serde(serialize_with = "serialize_date", deserialize_with = "deserialize_date")]
     pub timeframe: Date<Utc>,
+    pub found_id: Option<ImageIdType>,
 
     #[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]
     pub created_at: DateTime<Utc>,
@@ -138,7 +139,7 @@ impl TagType {
 }
 
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct BookTag {
     pub id: BookTagId,
 

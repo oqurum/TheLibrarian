@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc, TimeZone, Datelike};
+use common::ImageIdType;
 use common_local::{SearchGroupId, util::serialize_datetime, SearchGroup};
 use rusqlite::{params, OptionalExtension, types::{FromSql, ToSqlOutput, FromSqlResult, ValueRef, Value}, ToSql};
 use serde::Serialize;
@@ -14,6 +15,7 @@ pub struct NewSearchGroupModel {
     pub calls: usize,
     pub last_found_amount: usize,
     pub timeframe: SearchTimeFrame,
+    pub found_id: Option<ImageIdType>,
 
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -27,6 +29,7 @@ pub struct SearchGroupModel {
     pub calls: usize,
     pub last_found_amount: usize,
     pub timeframe: SearchTimeFrame,
+    pub found_id: Option<ImageIdType>,
 
     #[serde(serialize_with = "serialize_datetime")]
     pub created_at: DateTime<Utc>,
@@ -42,6 +45,7 @@ impl TableRow<'_> for SearchGroupModel {
             query: row.next()?,
             calls: row.next()?,
             last_found_amount: row.next()?,
+            found_id: row.next()?,
 
             timeframe: row.next()?,
 
@@ -60,6 +64,7 @@ impl NewSearchGroupModel {
             query,
             last_found_amount,
             calls: 1,
+            found_id: None,
             timeframe: SearchTimeFrame::now(),
             created_at: now,
             updated_at: now,
@@ -70,11 +75,11 @@ impl NewSearchGroupModel {
         let conn = db.write().await;
 
         conn.execute(r#"
-            INSERT INTO search_group (query, calls, last_found_amount, timeframe, created_at, updated_at)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+            INSERT INTO search_group (query, calls, last_found_amount, timeframe, found_id, created_at, updated_at)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
         "#,
         params![
-            &self.query, self.calls, self.last_found_amount, self.timeframe,
+            &self.query, self.calls, self.last_found_amount, self.timeframe, &self.found_id,
             self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
         ])?;
 
@@ -84,6 +89,7 @@ impl NewSearchGroupModel {
             query: self.query,
             calls: self.calls,
             last_found_amount: self.last_found_amount,
+            found_id: self.found_id,
 
             timeframe: self.timeframe,
 
@@ -153,12 +159,13 @@ impl SearchGroupModel {
                 calls = ?3,
                 last_found_amount = ?4,
                 timeframe = ?5,
-                created_at = ?6,
-                updated_at = ?7
+                found_id = ?6,
+                created_at = ?7,
+                updated_at = ?8
             WHERE id = ?1"#,
             params![
                 self.id,
-                &self.query, self.calls, self.last_found_amount, self.timeframe,
+                &self.query, self.calls, self.last_found_amount, self.timeframe, &self.found_id,
                 self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
             ]
         )?)
@@ -173,6 +180,7 @@ impl From<SearchGroupModel> for SearchGroup {
             query: model.query,
             calls: model.calls,
             last_found_amount: model.last_found_amount,
+            found_id: model.found_id,
             timeframe: Utc.ymd(model.timeframe.year as i32, model.timeframe.month, 1),
             created_at: model.created_at,
             updated_at: model.updated_at,
