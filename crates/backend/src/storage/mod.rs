@@ -1,4 +1,5 @@
-use std::{path::PathBuf, sync::{Arc, RwLock, RwLockReadGuard}};
+use std::{path::PathBuf, sync::Arc};
+use tokio::sync::{RwLock, RwLockReadGuard};
 
 use actix_web::{HttpResponse, HttpRequest};
 use lazy_static::lazy_static;
@@ -13,8 +14,8 @@ lazy_static! {
     pub static ref STORE: Arc<RwLock<Storage>> = Arc::new(RwLock::new(Storage::None));
 }
 
-pub fn get_storage<'a>() -> RwLockReadGuard<'a, Storage> {
-    STORE.read().unwrap()
+pub async fn get_storage<'a>() -> RwLockReadGuard<'a, Storage> {
+    STORE.read().await
 }
 
 

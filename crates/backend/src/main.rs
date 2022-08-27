@@ -38,7 +38,7 @@ async fn main() -> Result<()> {
     { // Initiate Storage
         let config = config::get_config();
 
-        *storage::STORE.write().unwrap() = storage::Storage::pick_service_from_config(&config.storage).await?;
+        *storage::STORE.write().await = storage::Storage::pick_service_from_config(&config.storage).await?;
     }
 
     let db = database::init().await?;

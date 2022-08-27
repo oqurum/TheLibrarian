@@ -18,7 +18,7 @@ pub async fn store_image(image: Vec<u8>, db: &Database) -> Result<UploadedImageM
         .map(|v| format!("{:02x}", v))
         .collect();
 
-    get_storage().upload(&hash, image).await?;
+    get_storage().await.upload(&hash, image).await?;
 
     NewUploadedImageModel::new(ThumbnailStore::from(hash))
         .get_or_insert(db).await

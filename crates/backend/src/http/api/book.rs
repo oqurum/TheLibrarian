@@ -265,7 +265,7 @@ async fn load_book_thumbnail(path: web::Path<BookId>, req: HttpRequest, db: web:
     let meta = BookModel::get_by_id(book_id, &db).await?;
 
     if let Some(file_name) = meta.as_ref().and_then(|v| v.thumb_path.as_value()) {
-        Ok(get_storage().get_http_response(file_name, &req).await?)
+        Ok(get_storage().await.get_http_response(file_name, &req).await?)
     } else {
         Ok(HttpResponse::NotFound().finish())
     }

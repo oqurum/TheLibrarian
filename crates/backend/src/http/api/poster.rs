@@ -11,7 +11,7 @@ use crate::{WebResult, Error, store_image, database::Database, model::{BookModel
 
 #[get("/image/{id}")]
 async fn get_local_image(id: web::Path<String>, req: HttpRequest) -> WebResult<HttpResponse> {
-    Ok(get_storage().get_http_response(&id, &req).await?)
+    Ok(get_storage().await.get_http_response(&id, &req).await?)
 }
 
 
