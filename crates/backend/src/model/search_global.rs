@@ -45,9 +45,9 @@ impl TableRow<'_> for SearchGroupModel {
             query: row.next()?,
             calls: row.next()?,
             last_found_amount: row.next()?,
-            found_id: row.next()?,
-
             timeframe: row.next()?,
+
+            found_id: row.next()?,
 
             created_at: Utc.timestamp_millis(row.next()?),
             updated_at: Utc.timestamp_millis(row.next()?),
