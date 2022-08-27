@@ -1,8 +1,8 @@
-use common::api::{WrappingResponse, QueryListResponse};
-use common_local::SearchGroup;
+use common::{api::{WrappingResponse, QueryListResponse}, ImageIdType};
+use common_local::{SearchGroup, SearchType, SearchGroupId, api::PostUpdateSearchIdBody};
 use yew::{prelude::*, html::Scope};
 
-use crate::request;
+use crate::{components::popup::search::PopupSearch, request};
 
 
 #[derive(Clone)]
@@ -10,12 +10,16 @@ pub enum Msg {
     // Requests
     RequestSearches,
 
+    Search((SearchGroupId, String)),
+    CloseSearch,
+
     // Results
     MembersResults(WrappingResponse<QueryListResponse<SearchGroup>>),
 }
 
 pub struct ListSearchesPage {
     items_resp: Option<WrappingResponse<QueryListResponse<SearchGroup>>>,
+    search_input: Option<(SearchGroupId, String)>,
 }
 
 impl Component for ListSearchesPage {
@@ -27,6 +31,7 @@ impl Component for ListSearchesPage {
 
         Self {
             items_resp: None,
+            search_input: None,
         }
     }
 
@@ -42,6 +47,9 @@ impl Component for ListSearchesPage {
             Msg::MembersResults(resp) => {
                 self.items_resp = Some(resp);
             }
+
+            Msg::Search(v) => self.search_input = Some(v),
+            Msg::CloseSearch => self.search_input = None,
         }
 
         true
@@ -56,6 +64,36 @@ impl Component for ListSearchesPage {
                     <div class="list-items">
                         { for resp.items.iter().map(|item| self.render_item(item, ctx.link())) }
                     </div>
+
+                    {
+                        if let Some((id, input_value)) = self.search_input.clone() {
+                            html! {
+                                <PopupSearch
+                                    { input_value }
+                                    search_for={ SearchType::Book }
+                                    comparable=false
+                                    search_on_init=true
+
+                                    on_close={ ctx.link().callback(|_| Msg::CloseSearch) }
+                                    on_select={ ctx.link().callback_future(move |v| async move {
+                                        // TODO: Handle Errors and responses
+                                        if let WrappingResponse::Resp(Some(book)) = request::new_book(v).await {
+                                            request::update_search_item(
+                                                id,
+                                                PostUpdateSearchIdBody {
+                                                    update_id: Some(Some(ImageIdType::new_book(book.id))),
+                                                }
+                                            ).await;
+                                        }
+
+                                        Msg::CloseSearch
+                                    }) }
+                                />
+                            }
+                        } else {
+                            html! {}
+                        }
+                    }
                 </div>
             }
         } else {
@@ -67,15 +105,19 @@ impl Component for ListSearchesPage {
 }
 
 impl ListSearchesPage {
-    fn render_item(&self, item: &SearchGroup, _scope: &Scope<Self>) -> Html {
+    fn render_item(&self, item: &SearchGroup, scope: &Scope<Self>) -> Html {
+        let id = item.id;
+        let value = item.query.clone();
+        let find_cb = scope.callback(move |_| Msg::Search((id, value.clone())));
+
         html! {
             <div class="search-item-card">
                 <div class="body">
+                    <h4>{ "Query: " } { item.query.clone() }</h4>
+
                     <div>{ "Calls: " } { item.calls }</div>
                     <div>{ "Last Found Count: " } { item.last_found_amount }</div>
                     <div>{ "Month: " } { item.timeframe.format("%Y-%m") }</div>
-
-                    <div>{ "Query: " } { item.query.clone() }</div>
                 </div>
 
                 <div class="footer">
@@ -84,7 +126,7 @@ impl ListSearchesPage {
                 </div>
 
                 <div class="tools">
-                    <button class="green">{ "Find" }</button>
+                    <button class="green" onclick={ find_cb }>{ "Find" }</button>
                     <button class="red">{ "Delete" }</button>
                 </div>
             </div>

@@ -1,6 +1,6 @@
-use actix_web::{get, web};
+use actix_web::{get, web, post};
 use common::api::{WrappingResponse, QueryListResponse};
-use common_local::{api, SearchGroup};
+use common_local::{api, SearchGroup, SearchGroupId};
 
 use crate::{http::{MemberCookie, JsonResponse}, WebResult, model::SearchGroupModel, Database};
 
@@ -34,4 +34,26 @@ pub async fn get_searches(
         total,
         items,
     })))
+}
+
+#[post("/search/{id}")]
+pub async fn update_search_id(
+    id: web::Path<SearchGroupId>,
+    body: web::Json<api::PostUpdateSearchIdBody>,
+    member: MemberCookie,
+    db: web::Data<Database>,
+) -> WebResult<JsonResponse<&'static str>> {
+    let body = body.into_inner();
+
+    let member = member.fetch_or_error(&db).await?;
+
+    if !member.permissions.is_admin() {
+        return Ok(web::Json(WrappingResponse::error("Not Admin")));
+    }
+
+    if let Some(value) = body.update_id {
+        SearchGroupModel::update_found_id(*id, value, &db).await?;
+    }
+
+    Ok(web::Json(WrappingResponse::okay("ok")))
 }

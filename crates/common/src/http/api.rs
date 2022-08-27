@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use common::{TagId, BookTagId, Either, ImageId, Source, PersonId, api::QueryListResponse};
+use common::{TagId, BookTagId, Either, ImageId, Source, PersonId, api::QueryListResponse, ImageIdType};
 use serde::{Serialize, Deserialize};
 
 use crate::{
@@ -12,6 +12,18 @@ use crate::{
     MetadataItemCached,
     item::edit::{SharedEditModel, SharedEditVoteModel, BookEdit, NewOrCachedImage}, SharedConfig,
 };
+
+
+// Searches
+
+// POST /search/{id}
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+pub struct PostUpdateSearchIdBody {
+    pub update_id: Option<Option<ImageIdType>>,
+}
+
+
+
 
 
 // Edits

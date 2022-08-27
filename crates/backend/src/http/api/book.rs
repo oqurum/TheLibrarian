@@ -4,7 +4,7 @@ use chrono::Utc;
 use common::api::WrappingResponse;
 use common::{Either, ThumbnailStore, BookId, PersonId};
 use common_local::item::edit::{BookEdit, NewOrCachedImage};
-use common_local::{api, DisplayItem, MetadataItemCached};
+use common_local::{api, DisplayItem, MetadataItemCached, DisplayMetaItem};
 
 use crate::http::{MemberCookie, JsonResponse};
 use crate::metadata::MetadataReturned;
@@ -20,7 +20,7 @@ pub async fn add_new_book(
     body: web::Json<api::NewBookBody>,
     member: MemberCookie,
     db: web::Data<Database>,
-) -> WebResult<JsonResponse<&'static str>> {
+) -> WebResult<JsonResponse<Option<DisplayMetaItem>>> {
     let body = body.into_inner();
 
     let member = member.fetch(&db).await?.unwrap();
@@ -65,6 +65,8 @@ pub async fn add_new_book(
 
                     model.insert(&db).await?;
                 }
+
+                return Ok(web::Json(WrappingResponse::okay(Some(db_book.into()))));
             }
         }
 
@@ -131,11 +133,12 @@ pub async fn add_new_book(
                 ImageLinkModel::new_book(image_id, book_model.id)
                     .insert(&db).await?;
             }
+
+            return Ok(web::Json(WrappingResponse::okay(Some(book_model.into()))));
         }
     }
 
-
-    Ok(web::Json(WrappingResponse::okay("success")))
+    Ok(web::Json(WrappingResponse::okay(None)))
 }
 
 

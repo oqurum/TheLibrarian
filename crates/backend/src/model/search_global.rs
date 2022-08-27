@@ -137,6 +137,13 @@ impl SearchGroupModel {
         )?)
     }
 
+    pub async fn update_found_id(id: SearchGroupId, value: Option<ImageIdType>, db: &Database) -> Result<usize> {
+        Ok(db.write().await.execute(
+            r#"UPDATE search_group SET updated_at = ?2, found_id = ?3 WHERE id = ?1"#,
+            params![ id, Utc::now().timestamp_millis(), value ],
+        )?)
+    }
+
     pub async fn get_count(db: &Database) -> Result<usize> {
         Ok(db.read().await.query_row(r#"SELECT COUNT(*) FROM search_group"#, [], |v| v.get(0))?)
     }

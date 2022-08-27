@@ -20,6 +20,9 @@ pub struct Property {
     pub search_for: SearchType,
 
     #[prop_or_default]
+    pub search_on_init: bool,
+
+    #[prop_or_default]
     pub comparable: bool,
 }
 
@@ -146,6 +149,12 @@ impl Component for PopupSearch {
             self.render_compare(left, right, ctx)
         } else {
             self.render_main(ctx)
+        }
+    }
+
+    fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
+        if first_render && ctx.props().search_on_init {
+            ctx.link().send_message(Msg::SearchFor(ctx.props().input_value.clone()));
         }
     }
 }

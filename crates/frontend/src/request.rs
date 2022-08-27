@@ -7,7 +7,7 @@ use wasm_bindgen::{JsValue, JsCast};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, Request, RequestMode, Response, Headers};
 
-use common_local::{api::*, SearchType, TagType, EditId, item::edit::{UpdateEditModel, BookEdit}, update::OptionsUpdate, Member, SearchGroup};
+use common_local::{api::*, SearchType, TagType, EditId, item::edit::{UpdateEditModel, BookEdit}, update::OptionsUpdate, Member, SearchGroup, SearchGroupId, DisplayMetaItem};
 
 
 // Edits
@@ -254,14 +254,14 @@ pub async fn get_person(id: PersonId) -> WrappingResponse<GetPersonResponse> {
 
 // Books
 
-pub async fn new_book(value: Either<Source, BookEdit>) {
-    let _: Option<String> = fetch(
+pub async fn new_book(value: Either<Source, BookEdit>) -> WrappingResponse<Option<DisplayMetaItem>> {
+    fetch(
         "POST",
         "/api/v1/book",
         Some(&NewBookBody {
             value
         })
-    ).await.ok();
+    ).await.unwrap_or_else(def)
 }
 
 
@@ -309,6 +309,14 @@ pub async fn get_search_list(
         "GET",
         &url,
         Option::<&()>::None
+    ).await.unwrap_or_else(def)
+}
+
+pub async fn update_search_item(id: SearchGroupId, value: PostUpdateSearchIdBody) -> WrappingResponse<String> {
+    fetch(
+        "POST",
+        &format!("/api/v1/search/{id}"),
+        Some(&value)
     ).await.unwrap_or_else(def)
 }
 
