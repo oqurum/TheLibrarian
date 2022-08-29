@@ -392,12 +392,8 @@ fn get_search_query() -> Option<api::SearchQuery> {
     let query = search_params.get("query");
     let source = search_params.get("source");
 
-    if query.is_none() && source.is_none() {
-        None
-    } else {
-        Some(api::SearchQuery {
-            query,
-            source,
-        })
-    }
+    Some(api::SearchQuery {
+        query,
+        source,
+    })
 }

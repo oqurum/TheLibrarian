@@ -1,5 +1,6 @@
 use common::{api::{WrappingResponse, QueryListResponse}, ImageIdType};
 use common_local::{SearchGroup, SearchType, SearchGroupId, api::PostUpdateSearchIdBody};
+use gloo_utils::window;
 use yew::{prelude::*, html::Scope};
 
 use crate::{components::popup::search::PopupSearch, request};
@@ -126,8 +127,11 @@ impl ListSearchesPage {
                 </div>
 
                 <div class="tools">
+                    <button class="yellow" onclick={ Callback::from(|_| {
+                        let _ = window().location().set_href("/?query=It");
+                    }) }>{ "View" }</button>
                     <button class="green" onclick={ find_cb }>{ "Find" }</button>
-                    <button class="red">{ "Delete" }</button>
+                    <button class="red disabled" disabled=true>{ "Delete" }</button>
                 </div>
             </div>
         }
