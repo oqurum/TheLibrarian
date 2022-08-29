@@ -111,6 +111,8 @@ impl ListSearchesPage {
         let value = item.query.clone();
         let find_cb = scope.callback(move |_| Msg::Search((id, value.clone())));
 
+        let value = item.query.clone();
+
         html! {
             <div class="search-item-card">
                 <div class="body">
@@ -127,8 +129,8 @@ impl ListSearchesPage {
                 </div>
 
                 <div class="tools">
-                    <button class="yellow" onclick={ Callback::from(|_| {
-                        let _ = window().location().set_href("/?query=It");
+                    <button class="yellow" onclick={ Callback::from(move |_| {
+                        let _ = window().location().set_href(&format!("/?query={}", urlencoding::encode(&value)));
                     }) }>{ "View" }</button>
                     <button class="green" onclick={ find_cb }>{ "Find" }</button>
                     <button class="red disabled" disabled=true>{ "Delete" }</button>
