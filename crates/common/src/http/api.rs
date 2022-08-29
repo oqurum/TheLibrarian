@@ -11,6 +11,7 @@ use crate::{
     Result, TagFE, BookTag, TagType,
     MetadataItemCached,
     item::edit::{SharedEditModel, SharedEditVoteModel, BookEdit, NewOrCachedImage}, SharedConfig,
+    des_if_opt_str_not_empty,
 };
 
 
@@ -168,6 +169,7 @@ pub struct BookListQuery {
     pub offset: Option<usize>,
     pub limit: Option<usize>,
     /// `SearchQuery`
+    #[serde(deserialize_with = "des_if_opt_str_not_empty")]
     pub search: Option<String>,
     pub person_id: Option<PersonId>,
 }
@@ -198,7 +200,11 @@ impl BookListQuery {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SearchQuery {
+    #[serde(deserialize_with = "des_if_opt_str_not_empty")]
+    #[serde(default)]
     pub query: Option<String>,
+    #[serde(deserialize_with = "des_if_opt_str_not_empty")]
+    #[serde(default)]
     pub source: Option<String>,
 }
 

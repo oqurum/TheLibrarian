@@ -148,9 +148,7 @@ pub async fn load_book_list(
     query: web::Query<api::BookListQuery>,
     db: web::Data<Database>,
 ) -> WebResult<JsonResponse<api::GetBookListResponse>> {
-    let (items, count) = if let Some(search) = query.search_query() {
-        let search = search?;
-
+    let (items, count) = if let Some(search) = query.search_query().transpose()? {
         let count = BookModel::count_search_book(search.query.as_deref(), false, query.person_id.map(PersonId::from), &db).await?;
 
         let items = if count == 0 {

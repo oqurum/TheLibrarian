@@ -91,3 +91,9 @@ pub fn serialize_date<S>(value: &Date<Utc>, s: S) -> std::result::Result<S::Ok, 
 pub fn deserialize_date<'de, D>(value: D) -> std::result::Result<Date<Utc>, D::Error> where D: Deserializer<'de> {
     Ok(Utc.timestamp(i64::deserialize(value)?, 0).date())
 }
+
+
+
+pub fn des_if_opt_str_not_empty<'de, D>(value: D) -> std::result::Result<Option<String>, D::Error> where D: Deserializer<'de> {
+    Ok(Option::<String>::deserialize(value)?.filter(|v| !v.trim().is_empty()))
+}
