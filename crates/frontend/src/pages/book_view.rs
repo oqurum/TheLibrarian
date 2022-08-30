@@ -4,9 +4,9 @@ use common::{
         multi_select::{MultiSelectEvent, MultiSelectModule, MultiSelectItem, MultiSelectNewItem},
         popup::{Popup, PopupType, compare::{PopupComparison, Comparable}},
     },
-    Either, LANGUAGES, ImageIdType, BookId, TagId, api::WrappingResponse
+    Either, LANGUAGES, ImageIdType, BookId, TagId, api::WrappingResponse, util::upper_case_first_char
 };
-use common_local::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse}, TagType, util::string_to_upper_case, item::edit::BookEdit, TagFE, SearchType};
+use common_local::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse}, TagType, item::edit::BookEdit, TagFE, SearchType};
 
 use js_sys::Date;
 use wasm_bindgen::{JsCast, JsValue, UnwrapThrowExt};
@@ -411,7 +411,7 @@ impl BookView {
                                                             {selected}
                                                             value={index.to_string()}
                                                         >
-                                                            { string_to_upper_case(lang.to_string()) }
+                                                            { upper_case_first_char(lang.to_string()) }
                                                         </option>
                                                     }
                                                 })

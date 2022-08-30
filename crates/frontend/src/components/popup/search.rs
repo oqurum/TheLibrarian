@@ -1,5 +1,5 @@
-use common::{component::popup::{compare::{Comparable, PopupComparison}, Popup, PopupType}, Either, Source, api::WrappingResponse};
-use common_local::{api::{SearchItem, self}, SearchType, util::string_to_upper_case, item::edit::BookEdit};
+use common::{component::popup::{compare::{Comparable, PopupComparison}, Popup, PopupType}, Either, Source, api::WrappingResponse, util::upper_case_first_char};
+use common_local::{api::{SearchItem, self}, SearchType, item::edit::BookEdit};
 use gloo_utils::document;
 use wasm_bindgen::{JsCast, UnwrapThrowExt};
 use web_sys::HtmlInputElement;
@@ -202,7 +202,7 @@ impl PopupSearch {
 
                                                             html! {
                                                                 <div class="tab-bar-item" onclick={ ctx.link().callback(move |_| Msg::OnChangeTab(name2.clone())) }>
-                                                                    { string_to_upper_case(name.clone()) } { format!(" ({})", values.len()) }
+                                                                    { upper_case_first_char(name.clone()) } { format!(" ({})", values.len()) }
                                                                 </div>
                                                             }
                                                         })
