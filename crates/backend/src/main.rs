@@ -5,8 +5,6 @@
 
 #![allow(clippy::manual_map)]
 
-// TODO: Ping/Pong if currently viewing book. View time. How long been on page. Etc.
-
 
 use actix_web::web;
 use clap::Parser;

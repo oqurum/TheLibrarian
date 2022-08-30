@@ -12,12 +12,11 @@ You can also log into it:
 
 
 Todo:
+ - **#1 Priority: Implement Full-Text Search**
  - Transfer OFF of sqlite. Used b/c it was easy to setup.
  - Implement database migrations
- - Member viewing and management
- - Implement oauth API for the reader to link to.
+ - Member management
  - Allow users to upload drafts of their own to this server if they're linked.
- - Store external searches, count, and display most requested.
  - Add task to search agents for new external searchs as to not overwhelm agents
  - and more in TODO comments throughout the code
 

@@ -1,7 +1,7 @@
 use common_local::{MetadataItemCached, DisplayMetaItem, util::{serialize_datetime, serialize_datetime_opt}, search::PublicBook};
 use chrono::{DateTime, TimeZone, Utc};
 use common::{ThumbnailStore, BookId, PersonId};
-use rusqlite::{params, OptionalExtension};
+use rusqlite::{params, OptionalExtension, ToSql};
 use serde::Serialize;
 
 use crate::{Database, Result};
@@ -246,52 +246,68 @@ impl BookModel {
     }
 
 
-    fn gen_search_query(query: Option<&str>, only_public: bool, person_id: Option<PersonId>) -> Option<String> {
+    fn gen_search_query(query: Option<&str>, only_public: bool, person_id: Option<PersonId>, parameters: &mut Vec<Box<dyn ToSql>>) -> Option<String> {
+        let base_param_len = parameters.len();
+
         let mut sql = String::from("SELECT * FROM book WHERE ");
         let orig_len = sql.len();
 
-        let mut f_comp = Vec::new();
+        let mut sql_queries = Vec::new();
 
         // Only Public
 
         if only_public {
-            f_comp.push("is_public = true".to_string());
+            sql_queries.push("is_public = ??".to_string());
+            parameters.push(Box::new(true) as Box<dyn ToSql>);
         }
 
 
         // Query
 
-        if let Some(query) = query.as_ref() {
+        if let Some(orig_query) = query.as_ref() {
+            // Used to escape percentages
             let mut escape_char = '\\';
             // Change our escape character if it's in the query.
-            if query.contains(escape_char) {
+            if orig_query.contains(escape_char) {
                 for car in [ '!', '@', '#', '$', '^', '&', '*', '-', '=', '+', '|', '~', '`', '/', '?', '>', '<', ',' ] {
-                    if !query.contains(car) {
+                    if !orig_query.contains(car) {
                         escape_char = car;
                         break;
                     }
                 }
             }
 
+            let query = orig_query.replace('%', &format!("{}%", escape_char))
+                .replace('_', &format!("{}_", escape_char));
+
+            // TODO: Seperate from here.
+            // Check for possible isbn.
+            let isbn = if let Some(isbn) = common::parse_book_id(orig_query).into_possible_isbn_value() {
+                format!(" OR isbn_10 = {isbn} OR isbn_13 = {isbn}")
+            } else {
+                String::new()
+            };
+
             // TODO: Utilize title > clean_title > description, and sort
-            f_comp.push(format!(
-                "title LIKE '%{}%' ESCAPE '{}'",
-                query.replace('%', &format!("{}%", escape_char)).replace('_', &format!("{}_", escape_char)),
-                escape_char
-            ));
+            sql_queries.push(format!("title LIKE ?? ESCAPE '{escape_char}'{isbn}"));
+            parameters.push(Box::new(format!("%{}%", &query)) as Box<dyn ToSql>);
         }
 
 
         // Search with specific person
 
         if let Some(pid) = person_id {
-            f_comp.push(format!(
-                r#"id IN (SELECT book_id FROM book_person WHERE person_id = {})"#,
-                pid
-            ));
+            sql_queries.push("id IN (SELECT book_id FROM book_person WHERE person_id = ??)".to_string());
+            parameters.push(Box::new(pid) as Box<dyn ToSql>);
         }
 
-        sql += &f_comp.join(" AND ");
+        let sql_query = sql_queries.into_iter()
+            .enumerate()
+            .map(|(i, v)| v.replace("??", &format!("?{}", base_param_len + 1 + i)))
+            .collect::<Vec<_>>()
+            .join(" AND ");
+
+        sql += &sql_query;
 
         if sql.len() == orig_len {
             // If sql is still unmodified
@@ -309,18 +325,24 @@ impl BookModel {
         person_id: Option<PersonId>,
         db: &Database
     ) -> Result<Vec<Self>> {
-        let mut sql = match Self::gen_search_query(query, only_public, person_id) {
+        let mut parameters = vec![
+            Box::new(limit) as Box<dyn ToSql>,
+            Box::new(offset) as Box<dyn ToSql>
+        ];
+
+        let mut sql = match Self::gen_search_query(query, only_public, person_id, &mut parameters) {
             Some(v) => v,
             None => return Ok(Vec::new())
         };
 
-        sql += "LIMIT ?1 OFFSET ?2";
+        sql += " LIMIT ?1 OFFSET ?2";
+
 
         let this = db.read().await;
 
         let mut conn = this.prepare(&sql)?;
 
-        let map = conn.query_map(params![limit, offset], |v| Self::from_row(v))?;
+        let map = conn.query_map(rusqlite::params_from_iter(parameters), |v| Self::from_row(v))?;
 
         Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
     }
@@ -331,11 +353,14 @@ impl BookModel {
         person_id: Option<PersonId>,
         db: &Database
     ) -> Result<usize> {
-        let sql = match Self::gen_search_query(query, only_public, person_id) {
+        let mut parameters = Vec::new();
+
+        let sql = match Self::gen_search_query(query, only_public, person_id, &mut parameters) {
             Some(v) => v.replace("SELECT *", "SELECT COUNT(*)"),
             None => return Ok(0)
         };
 
-        Ok(db.read().await.query_row(&sql, [], |v| v.get(0))?)
+
+        Ok(db.read().await.query_row(&sql, rusqlite::params_from_iter(parameters), |v| v.get(0))?)
     }
 }
