@@ -1,6 +1,6 @@
 // https://openlibrary.org/developers/api
 
-use crate::Result;
+use crate::{Result, model::{OptMetadataSearchModel, DataType}, Database};
 use async_trait::async_trait;
 use common_local::{MetadataItemCached, SearchForBooksBy};
 use serde::{Serialize, Deserialize};
@@ -22,27 +22,49 @@ impl Metadata for OpenLibraryMetadata {
         "openlibrary"
     }
 
-    async fn get_metadata_by_source_id(&mut self, value: &str, upgrade_editions: bool) -> Result<Option<MetadataReturned>> {
+    async fn get_metadata_by_source_id(&mut self, value: &str, upgrade_editions: bool, db: &Database) -> Result<Option<MetadataReturned>> {
+        let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(value, self.get_prefix(), db).await?;
+
+        if let Some(model) = existing_model.should_use_cached()? {
+            return Ok(model.inner_book_single());
+        }
+
         let id = match BookId::make_assumptions(value.to_string()) {
             Some(v) => v,
             None => return Ok(None)
         };
 
-        match self.request(id, upgrade_editions).await {
-            Ok(Some(v)) => Ok(Some(v)),
+        let resp = match self.request(id, upgrade_editions).await {
+            Ok(Some(v)) => Some(v),
             a => {
                 eprintln!("OpenLibraryMetadata::get_metadata_by_source_id {:?}", a);
 
-                Ok(None)
+                None
             }
-        }
+        };
+
+        existing_model.update_or_insert(
+            value.to_string(),
+            self.get_prefix().to_string(),
+            1,
+            DataType::BookSingle(resp.clone()),
+            db
+        ).await?;
+
+        Ok(resp)
     }
 
 
-    async fn get_person_by_source_id(&mut self, value: &str) -> Result<Option<AuthorInfo>> {
-        match author::get_author_from_url(value).await? {
+    async fn get_person_by_source_id(&mut self, value: &str, db: &Database) -> Result<Option<AuthorInfo>> {
+        let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(value, self.get_prefix(), db).await?;
+
+        if let Some(model) = existing_model.should_use_cached()? {
+            return Ok(model.inner_person_single());
+        }
+
+        let resp = match author::get_author_from_url(value).await? {
             Some(author) => {
-                Ok(Some(AuthorInfo {
+                Some(AuthorInfo {
                     source: self.prefix_text(value).try_into()?,
                     name: author.name.clone(),
                     other_names: author.alternate_names,
@@ -51,15 +73,31 @@ impl Metadata for OpenLibraryMetadata {
                     cover_image_url: Some(self::CoverId::Olid(value.to_string()).get_author_cover_url()),
                     birth_date: author.birth_date,
                     death_date: author.death_date,
-                }))
+                })
             }
 
-            None => Ok(None)
-        }
+            None => None
+        };
+
+        existing_model.update_or_insert(
+            value.to_string(),
+            self.get_prefix().to_string(),
+            1,
+            DataType::PersonSingle(resp.clone()),
+            db
+        ).await?;
+
+        Ok(resp)
     }
 
 
-    async fn search(&mut self, value: &str, search_for: SearchFor) -> Result<Vec<SearchItem>> {
+    async fn search(&mut self, value: &str, search_for: SearchFor, db: &Database) -> Result<Vec<SearchItem>> {
+        let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(value, self.get_prefix(), db).await?;
+
+        if let Some(model) = existing_model.should_use_cached()? {
+            return Ok(model.inner_search());
+        }
+
         match search_for {
             SearchFor::Person => {
                 if let Some(found) = author::search_for_authors(value).await? {
@@ -76,6 +114,14 @@ impl Metadata for OpenLibraryMetadata {
                             death_date: item.death_date,
                         }));
                     }
+
+                    existing_model.update_or_insert(
+                        value.to_string(),
+                        self.get_prefix().to_string(),
+                        authors.len(),
+                        DataType::Search(authors.clone()),
+                        db
+                    ).await?;
 
                     Ok(authors)
                 } else {
@@ -110,6 +156,14 @@ impl Metadata for OpenLibraryMetadata {
                             language: None, // TODO
                         }));
                     }
+
+                    existing_model.update_or_insert(
+                        value.to_string(),
+                        self.get_prefix().to_string(),
+                        books.len(),
+                        DataType::Search(books.clone()),
+                        db
+                    ).await?;
 
                     Ok(books)
                 } else {

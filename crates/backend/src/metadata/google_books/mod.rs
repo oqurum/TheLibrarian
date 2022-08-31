@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use crate::Result;
+use crate::{Result, Database, model::{OptMetadataSearchModel, DataType}};
 use async_trait::async_trait;
 use common_local::{MetadataItemCached, SearchForBooksBy};
 use lazy_static::lazy_static;
@@ -26,18 +26,40 @@ impl Metadata for GoogleBooksMetadata {
         "googlebooks"
     }
 
-    async fn get_metadata_by_source_id(&mut self, value: &str, _upgrade_editions: bool) -> Result<Option<MetadataReturned>> {
-        match self.request_singular_id(value).await {
-            Ok(Some(v)) => Ok(Some(v)),
+    async fn get_metadata_by_source_id(&mut self, value: &str, _upgrade_editions: bool, db: &Database) -> Result<Option<MetadataReturned>> {
+        let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(value, self.get_prefix(), db).await?;
+
+        if let Some(model) = existing_model.should_use_cached()? {
+            return Ok(model.inner_book_single());
+        }
+
+        let resp = match self.request_singular_id(value).await {
+            Ok(Some(v)) => Some(v),
             a => {
                 eprintln!("GoogleBooksMetadata::get_metadata_by_source_id {:?}", a);
 
-                Ok(None)
+                None
             }
-        }
+        };
+
+        existing_model.update_or_insert(
+            value.to_string(),
+            self.get_prefix().to_string(),
+            1,
+            DataType::BookSingle(resp.clone()),
+            db
+        ).await?;
+
+        Ok(resp)
     }
 
-    async fn search(&mut self, search: &str, search_for: SearchFor) -> Result<Vec<SearchItem>> {
+    async fn search(&mut self, search: &str, search_for: SearchFor, db: &Database) -> Result<Vec<SearchItem>> {
+        let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(search, self.get_prefix(), db).await?;
+
+        if let Some(model) = existing_model.should_use_cached()? {
+            return Ok(model.inner_search());
+        }
+
         match search_for {
             SearchFor::Person => Ok(Vec::new()),
 
@@ -83,6 +105,14 @@ impl Metadata for GoogleBooksMetadata {
                         }));
                     }
 
+                    existing_model.update_or_insert(
+                        search.to_string(),
+                        self.get_prefix().to_string(),
+                        books.len(),
+                        DataType::Search(books.clone()),
+                        db
+                    ).await?;
+
                     Ok(books)
                 } else {
                     return Ok(Vec::new());
@@ -93,24 +123,6 @@ impl Metadata for GoogleBooksMetadata {
 }
 
 impl GoogleBooksMetadata {
-    pub async fn request_query(&self, id: String) -> Result<Option<MetadataReturned>> {
-        let resp = reqwest::get(format!("https://www.googleapis.com/books/v1/volumes?q={}", BookSearchKeyword::Isbn.combile_string(&id))).await?;
-
-        let book = if resp.status().is_success() {
-            let mut books = resp.json::<BookVolumesContainer>().await?;
-
-            if books.total_items == 1 {
-                books.items.remove(0)
-            } else {
-                return Ok(None);
-            }
-        } else {
-            return Ok(None);
-        };
-
-        self.compile_book_volume_item(book).await
-    }
-
     pub async fn request_singular_id(&self, id: &str) -> Result<Option<MetadataReturned>> {
         let resp = reqwest::get(format!("https://www.googleapis.com/books/v1/volumes/{}", id)).await?;
 

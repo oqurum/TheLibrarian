@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use common::{Source, ThumbnailStore, PersonId, BookId};
 use common_local::{SearchFor, MetadataItemCached, api::MetadataBookItem};
 use chrono::Utc;
+use serde::{Serialize, Deserialize};
 
 use crate::{Result, database::Database, model::{NewPersonModel, PersonAltModel, BookModel, PersonModel}};
 
@@ -25,27 +26,29 @@ pub trait Metadata {
     fn get_prefix(&self) -> &'static str;
 
     // Metadata
-    async fn get_metadata_by_source_id(&mut self, value: &str, upgrade_editions: bool) -> Result<Option<MetadataReturned>>;
+    async fn get_metadata_by_source_id(&mut self, value: &str, upgrade_editions: bool, db: &Database) -> Result<Option<MetadataReturned>>;
 
     // Person
 
-    async fn get_person_by_source_id(&mut self, _value: &str) -> Result<Option<AuthorInfo>> {
+    #[allow(unused_variables)]
+    async fn get_person_by_source_id(&mut self, value: &str, db: &Database) -> Result<Option<AuthorInfo>> {
         Ok(None)
     }
 
 
     // Both
 
-    async fn search(&mut self, _search: &str, _search_for: SearchFor) -> Result<Vec<SearchItem>> {
+    #[allow(unused_variables)]
+    async fn search(&mut self, search: &str, search_for: SearchFor, db: &Database) -> Result<Vec<SearchItem>> {
         Ok(Vec::new())
     }
 }
 
 /// Doesn't check local
-pub async fn get_metadata_by_source(source: &Source, upgrade_editions: bool) -> Result<Option<MetadataReturned>> {
+pub async fn get_metadata_by_source(source: &Source, upgrade_editions: bool, db: &Database) -> Result<Option<MetadataReturned>> {
     match source.agent.as_str() {
-        v if v == OpenLibraryMetadata.get_prefix() => OpenLibraryMetadata.get_metadata_by_source_id(&source.value, upgrade_editions).await,
-        v if v == GoogleBooksMetadata.get_prefix() => GoogleBooksMetadata.get_metadata_by_source_id(&source.value, upgrade_editions).await,
+        v if v == OpenLibraryMetadata.get_prefix() => OpenLibraryMetadata.get_metadata_by_source_id(&source.value, upgrade_editions, db).await,
+        v if v == GoogleBooksMetadata.get_prefix() => GoogleBooksMetadata.get_metadata_by_source_id(&source.value, upgrade_editions, db).await,
 
         _ => Ok(None)
     }
@@ -54,13 +57,13 @@ pub async fn get_metadata_by_source(source: &Source, upgrade_editions: bool) -> 
 
 
 /// Searches all agents except for local.
-pub async fn search_all_agents(search: &str, search_for: SearchFor) -> Result<SearchResults> {
+pub async fn search_all_agents(search: &str, search_for: SearchFor, db: &Database) -> Result<SearchResults> {
     let mut map = HashMap::new();
 
     // Checks to see if we can use get_metadata_by_source (source:id)
     if let Ok(source) = Source::try_from(search) {
         // Check if it's a Metadata Source.
-        if let Some(val) = get_metadata_by_source(&source, false).await? {
+        if let Some(val) = get_metadata_by_source(&source, false, db).await? {
             map.insert(
                 source.agent,
                 vec![SearchItem::Book(val.meta)],
@@ -73,7 +76,7 @@ pub async fn search_all_agents(search: &str, search_for: SearchFor) -> Result<Se
     // Search all sources
     let prefixes = [OpenLibraryMetadata.get_prefix(), GoogleBooksMetadata.get_prefix()];
     let asdf = futures::future::join_all(
-        [OpenLibraryMetadata.search(search, search_for), GoogleBooksMetadata.search(search, search_for)]
+        [OpenLibraryMetadata.search(search, search_for, db), GoogleBooksMetadata.search(search, search_for, db)]
     ).await;
 
     for (val, prefix) in asdf.into_iter().zip(prefixes) {
@@ -93,10 +96,10 @@ pub async fn search_all_agents(search: &str, search_for: SearchFor) -> Result<Se
 }
 
 /// Searches all agents except for local.
-pub async fn get_person_by_source(source: &Source) -> Result<Option<AuthorInfo>> {
+pub async fn get_person_by_source(source: &Source, db: &Database) -> Result<Option<AuthorInfo>> {
     match source.agent.as_str() {
-        v if v == OpenLibraryMetadata.get_prefix() => OpenLibraryMetadata.get_person_by_source_id(&source.value).await,
-        v if v == GoogleBooksMetadata.get_prefix() => GoogleBooksMetadata.get_person_by_source_id(&source.value).await,
+        v if v == OpenLibraryMetadata.get_prefix() => OpenLibraryMetadata.get_person_by_source_id(&source.value, db).await,
+        v if v == GoogleBooksMetadata.get_prefix() => GoogleBooksMetadata.get_person_by_source_id(&source.value, db).await,
 
         _ => Ok(None)
     }
@@ -141,7 +144,7 @@ impl DerefMut for SearchResults {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SearchItem {
     Author(AuthorInfo),
     Book(FoundItem)
@@ -171,7 +174,7 @@ impl SearchItem {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthorInfo {
     pub source: Source,
 
@@ -186,7 +189,7 @@ pub struct AuthorInfo {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MetadataReturned {
     // Person, Alt Names
     pub authors: Option<Vec<AuthorInfo>>,
@@ -271,7 +274,7 @@ impl MetadataReturned {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FoundItem {
     pub source: Source,
     pub title: Option<String>,
@@ -333,7 +336,7 @@ impl From<FoundItem> for MetadataBookItem {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum FoundImageLocation {
     Url(String),
     Local(ThumbnailStore),

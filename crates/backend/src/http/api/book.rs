@@ -35,7 +35,7 @@ pub async fn add_new_book(
 
             // Check if we're searching by ISBN, if so check that we don't already have it in DB.
             if let Some(isbn) = common::parse_book_id(&find_str).into_possible_isbn_value() {
-                if BookModel::exists_by_isbn(&isbn, &db).await? {
+                if find_str.trim() == isbn && BookModel::exists_by_isbn(&isbn, &db).await? {
                     return Ok(web::Json(WrappingResponse::error("Book ISBN already exists!")));
                 }
             }
@@ -43,7 +43,8 @@ pub async fn add_new_book(
 
             let found = google_books::GoogleBooksMetadata.search(
                 &find_str,
-                common_local::SearchFor::Book(common_local::SearchForBooksBy::Query)
+                common_local::SearchFor::Book(common_local::SearchForBooksBy::Query),
+                &db
             ).await?;
 
             if let Some(item) = found.first().and_then(|v| v.as_book()) {
@@ -58,7 +59,7 @@ pub async fn add_new_book(
 
     match value {
         Either::Left(source) => {
-            if let Some(mut meta) = metadata::get_metadata_by_source(&source, true).await? {
+            if let Some(mut meta) = metadata::get_metadata_by_source(&source, true, &db).await? {
                 let (main_author, author_ids) = meta.add_or_ignore_authors_into_database(&db).await?;
 
                 let MetadataReturned { mut meta, publisher, .. } = meta;

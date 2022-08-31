@@ -15,3 +15,5 @@ create_single_id!(ServerLinkId);
 
 create_single_id!(SearchItemId);
 create_single_id!(SearchGroupId);
+
+create_single_id!(MetadataSearchId);

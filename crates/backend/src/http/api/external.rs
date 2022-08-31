@@ -23,7 +23,8 @@ pub async fn get_external_search(
             // TODO: Allow for use in Query.
             SearchType::Book => SearchFor::Book(SearchForBooksBy::Query),
             SearchType::Person => SearchFor::Person
-        }
+        },
+        &db
     ).await?;
 
     Ok(web::Json(WrappingResponse::okay(api::ExternalSearchResponse {
@@ -79,7 +80,7 @@ pub async fn get_external_item(
         return Err(ApiErrorResponse::new("You cannot do this! No Permissions!").into());
     }
 
-    if let Some(meta) = metadata::get_metadata_by_source(&*path, true).await? {
+    if let Some(meta) = metadata::get_metadata_by_source(&*path, true, &db).await? {
         Ok(web::Json(WrappingResponse::okay(api::ExternalSourceItemResponse {
             item: Some(meta.meta.into()),
         })))

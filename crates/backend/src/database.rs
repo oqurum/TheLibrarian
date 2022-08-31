@@ -251,6 +251,7 @@ pub async fn init() -> Result<Database> {
         []
     )?;
 
+
     // Linked Servers
     conn.execute(
         r#"CREATE TABLE IF NOT EXISTS "server_link" (
@@ -273,6 +274,7 @@ pub async fn init() -> Result<Database> {
         );"#,
         []
     )?;
+
 
     // Search Groupings
     conn.execute(
@@ -312,6 +314,27 @@ pub async fn init() -> Result<Database> {
         );"#,
         []
     )?;
+
+
+    // External Metadata Searches
+    conn.execute(
+        r#"CREATE TABLE IF NOT EXISTS "metadata_search" (
+            "id"                  INTEGER NOT NULL,
+
+            "query"               TEXT NOT NULL COLLATE NOCASE,
+            "agent"               TEXT NOT NULL,
+            "last_found_amount"   INTEGER NOT NULL,
+            "data"                TEXT NOT NULL,
+
+            "created_at"          DATETIME NOT NULL,
+            "updated_at"          DATETIME NOT NULL,
+
+            UNIQUE("query", "agent"),
+            PRIMARY KEY("id" AUTOINCREMENT)
+        );"#,
+        []
+    )?;
+
 
     // TODO: Tables
     // Queued External Metadata Searches (prevent continuous searching)
