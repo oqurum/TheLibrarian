@@ -196,6 +196,7 @@ pub struct BookVolumesContainer {
     pub kind: String,
     #[serde(rename = "totalItems")]
     pub total_items: i64,
+    #[serde(default)]
     pub items: Vec<BookVolumeItem>,
 }
 
