@@ -17,28 +17,28 @@ pub async fn init() -> Result<Database> {
     // Book
     conn.execute(
         r#"CREATE TABLE IF NOT EXISTS "book" (
-            "id"                    INTEGER NOT NULL,
+            "id"               INTEGER NOT NULL,
 
-            "title"                    TEXT,
-            "clean_title"            TEXT,
-            "description"            TEXT,
-            "rating"                FLOAT,
-            "thumb_url"                TEXT,
+            "title"            TEXT,
+            "clean_title"      TEXT,
+            "description"      TEXT,
+            "rating"           FLOAT,
+            "thumb_url"        TEXT,
 
-            "cached"                TEXT,
+            "cached"           TEXT,
 
-            "isbn_10"                TEXT,
-            "isbn_13"                TEXT,
+            "isbn_10"          TEXT UNIQUE,
+            "isbn_13"          TEXT UNIQUE,
 
-            "is_public"                INTEGER NOT NULL,
-            "edition_count"            INTEGER NOT NULL DEFAULT 0,
+            "is_public"        INTEGER NOT NULL,
+            "edition_count"    INTEGER NOT NULL DEFAULT 0,
 
-            "available_at"            DATETIME,
-            "language"                INTEGER,
+            "available_at"     DATETIME,
+            "language"         INTEGER,
 
-            "created_at"            DATETIME,
-            "updated_at"            DATETIME,
-            "deleted_at"            DATETIME,
+            "created_at"       DATETIME,
+            "updated_at"       DATETIME,
+            "deleted_at"       DATETIME,
 
             PRIMARY KEY("id" AUTOINCREMENT)
         );"#,
@@ -48,8 +48,8 @@ pub async fn init() -> Result<Database> {
     // Book People
     conn.execute(
         r#"CREATE TABLE IF NOT EXISTS "book_person" (
-            "book_id"        INTEGER NOT NULL,
-            "person_id"        INTEGER NOT NULL,
+            "book_id"     INTEGER NOT NULL,
+            "person_id"   INTEGER NOT NULL,
 
             UNIQUE(book_id, person_id)
         );"#,
@@ -61,16 +61,16 @@ pub async fn init() -> Result<Database> {
         r#"CREATE TABLE IF NOT EXISTS "person" (
             "id"            INTEGER NOT NULL,
 
-            "source"         TEXT NOT NULL,
+            "source"        NOT NULL,
 
-            "name"            TEXT NOT NULL COLLATE NOCASE,
-            "description"    TEXT,
+            "name"          TEXT NOT NULL COLLATE NOCASE,
+            "description"   TEXT,
             "birth_date"    INTEGER,
 
-            "thumb_url"        TEXT,
+            "thumb_url"     TEXT,
 
-            "updated_at"     DATETIME NOT NULL,
-            "created_at"     DATETIME NOT NULL,
+            "updated_at"    DATETIME NOT NULL,
+            "created_at"    DATETIME NOT NULL,
 
             PRIMARY KEY("id" AUTOINCREMENT)
         );"#,
@@ -80,9 +80,9 @@ pub async fn init() -> Result<Database> {
     // People Other names
     conn.execute(
         r#"CREATE TABLE IF NOT EXISTS "person_alt" (
-            "person_id"        INTEGER NOT NULL,
+            "person_id"   INTEGER NOT NULL,
 
-            "name"            TEXT NOT NULL COLLATE NOCASE,
+            "name"        TEXT NOT NULL COLLATE NOCASE,
 
             UNIQUE(person_id, name)
         );"#,
@@ -92,16 +92,16 @@ pub async fn init() -> Result<Database> {
     // Members
     conn.execute(
         r#"CREATE TABLE IF NOT EXISTS "members" (
-            "id"            INTEGER NOT NULL,
+            "id"           INTEGER NOT NULL,
 
-            "name"            TEXT NOT NULL COLLATE NOCASE,
-            "email"            TEXT COLLATE NOCASE,
-            "password"        TEXT,
+            "name"         TEXT NOT NULL COLLATE NOCASE,
+            "email"        TEXT COLLATE NOCASE,
+            "password"     TEXT,
 
-            "permissions"    TEXT NOT NULL,
+            "permissions"  TEXT NOT NULL,
 
-            "created_at"     DATETIME NOT NULL,
-            "updated_at"     DATETIME NOT NULL,
+            "created_at"   DATETIME NOT NULL,
+            "updated_at"   DATETIME NOT NULL,
 
             UNIQUE(email),
             PRIMARY KEY("id" AUTOINCREMENT)
@@ -112,10 +112,10 @@ pub async fn init() -> Result<Database> {
     // Auths
     conn.execute(
         r#"CREATE TABLE IF NOT EXISTS "auths" (
-            "oauth_token"            TEXT NOT NULL,
-            "oauth_token_secret"    TEXT NOT NULL,
+            "oauth_token"          TEXT NOT NULL,
+            "oauth_token_secret"   TEXT NOT NULL,
 
-            "created_at"            DATETIME NOT NULL,
+            "created_at"           DATETIME NOT NULL,
 
             UNIQUE(oauth_token)
         );"#,
@@ -125,15 +125,15 @@ pub async fn init() -> Result<Database> {
     // Tags
     conn.execute(
         r#"CREATE TABLE IF NOT EXISTS "tags" (
-            "id"            INTEGER NOT NULL,
+            "id"           INTEGER NOT NULL,
 
-            "name"            TEXT NOT NULL COLLATE NOCASE,
-            "type_of"        INTEGER NOT NULL,
+            "name"         TEXT NOT NULL COLLATE NOCASE,
+            "type_of"      INTEGER NOT NULL,
 
-            "data"            TEXT,
+            "data"         TEXT,
 
-            "created_at"     DATETIME NOT NULL,
-            "updated_at"     DATETIME NOT NULL,
+            "created_at"   DATETIME NOT NULL,
+            "updated_at"   DATETIME NOT NULL,
 
             PRIMARY KEY("id" AUTOINCREMENT),
             UNIQUE("name", "type_of")
@@ -144,14 +144,14 @@ pub async fn init() -> Result<Database> {
     // Book Tags
     conn.execute(
         r#"CREATE TABLE IF NOT EXISTS "book_tags" (
-            "id"            INTEGER NOT NULL,
+            "id"          INTEGER NOT NULL,
 
-            "book_id"        INTEGER NOT NULL,
-            "tag_id"        INTEGER NOT NULL,
+            "book_id"     INTEGER NOT NULL,
+            "tag_id"      INTEGER NOT NULL,
 
-            "windex"        INTEGER NOT NULL,
+            "windex"      INTEGER NOT NULL,
 
-            "created_at"     DATETIME NOT NULL,
+            "created_at"  DATETIME NOT NULL,
 
             PRIMARY KEY("id" AUTOINCREMENT),
             UNIQUE("book_id", "tag_id")
@@ -162,11 +162,11 @@ pub async fn init() -> Result<Database> {
     // Uploaded Images
     conn.execute(
         r#"CREATE TABLE IF NOT EXISTS "uploaded_images" (
-            "id"            INTEGER NOT NULL,
+            "id"          INTEGER NOT NULL,
 
-            "path"            TEXT NOT NULL,
+            "path"        TEXT NOT NULL,
 
-            "created_at"    DATETIME NOT NULL,
+            "created_at"  DATETIME NOT NULL,
 
             UNIQUE(path),
             PRIMARY KEY("id" AUTOINCREMENT)
@@ -177,10 +177,10 @@ pub async fn init() -> Result<Database> {
     // Image Link
     conn.execute(
         r#"CREATE TABLE IF NOT EXISTS "image_link" (
-            "image_id"        INTEGER NOT NULL,
+            "image_id"    INTEGER NOT NULL,
 
-            "link_id"        INTEGER NOT NULL,
-            "type_of"        INTEGER NOT NULL,
+            "link_id"     INTEGER NOT NULL,
+            "type_of"     INTEGER NOT NULL,
 
             UNIQUE(image_id, link_id, type_of)
         );"#,
@@ -191,24 +191,24 @@ pub async fn init() -> Result<Database> {
     // Edit
     conn.execute(
         r#"CREATE TABLE IF NOT EXISTS "edit" (
-            "id"            INTEGER NOT NULL,
+            "id"           INTEGER NOT NULL,
 
-            "type_of"        INTEGER NOT NULL,
-            "operation"        INTEGER NOT NULL,
-            "status"        INTEGER NOT NULL,
+            "type_of"      INTEGER NOT NULL,
+            "operation"    INTEGER NOT NULL,
+            "status"       INTEGER NOT NULL,
 
-            "member_id"        INTEGER NOT NULL,
-            "model_id"        INTEGER,
+            "member_id"    INTEGER NOT NULL,
+            "model_id"     INTEGER,
 
-            "is_applied"    INTEGER NOT NULL,
-            "vote_count"    INTEGER NOT NULL,
+            "is_applied"   INTEGER NOT NULL,
+            "vote_count"   INTEGER NOT NULL,
 
-            "data"            TEXT NOT NULL,
+            "data"         TEXT NOT NULL,
 
-            "ended_at"        DATETIME,
-            "expires_at"    DATETIME,
-            "created_at"    DATETIME NOT NULL,
-            "updated_at"    DATETIME NOT NULL,
+            "ended_at"     DATETIME,
+            "expires_at"   DATETIME,
+            "created_at"   DATETIME NOT NULL,
+            "updated_at"   DATETIME NOT NULL,
 
             PRIMARY KEY("id" AUTOINCREMENT)
         );"#,
@@ -218,14 +218,14 @@ pub async fn init() -> Result<Database> {
     // Edit Vote
     conn.execute(
         r#"CREATE TABLE IF NOT EXISTS "edit_vote" (
-            "id"            INTEGER NOT NULL,
+            "id"          INTEGER NOT NULL,
 
-            "edit_id"        INTEGER NOT NULL,
-            "member_id"        INTEGER NOT NULL,
+            "edit_id"     INTEGER NOT NULL,
+            "member_id"   INTEGER NOT NULL,
 
-            "vote"            INTEGER NOT NULL,
+            "vote"        INTEGER NOT NULL,
 
-            "created_at"    DATETIME NOT NULL,
+            "created_at"  DATETIME NOT NULL,
 
             UNIQUE("edit_id", "member_id"),
             PRIMARY KEY("id" AUTOINCREMENT)
@@ -236,15 +236,15 @@ pub async fn init() -> Result<Database> {
     // Edit Comment
     conn.execute(
         r#"CREATE TABLE IF NOT EXISTS "edit_comment" (
-            "id"            INTEGER NOT NULL,
+            "id"          INTEGER NOT NULL,
 
-            "edit_id"        INTEGER NOT NULL,
-            "member_id"        INTEGER NOT NULL,
+            "edit_id"     INTEGER NOT NULL,
+            "member_id"   INTEGER NOT NULL,
 
-            "text"            TEXT NOT NULL,
-            "deleted"        INTEGER NOT NULL,
+            "text"        TEXT NOT NULL,
+            "deleted"     INTEGER NOT NULL,
 
-            "created_at"    DATETIME NOT NULL,
+            "created_at"  DATETIME NOT NULL,
 
             PRIMARY KEY("id" AUTOINCREMENT)
         );"#,
