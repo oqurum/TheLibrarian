@@ -1,5 +1,5 @@
 use common::{api::{WrappingResponse, QueryListResponse}, ImageIdType};
-use common_local::{SearchGroup, SearchType, SearchGroupId, api::PostUpdateSearchIdBody};
+use common_local::{SearchGroup, SearchType, SearchGroupId, api::{PostUpdateSearchIdBody, NewBookBody}};
 use gloo_utils::window;
 use yew::{prelude::*, html::Scope};
 
@@ -11,7 +11,7 @@ pub enum Msg {
     // Requests
     RequestSearches,
 
-    Search((SearchGroupId, String)),
+    Find((SearchGroupId, String)),
     CloseSearch,
 
     // Results
@@ -49,7 +49,7 @@ impl Component for ListSearchesPage {
                 self.items_resp = Some(resp);
             }
 
-            Msg::Search(v) => self.search_input = Some(v),
+            Msg::Find(v) => self.search_input = Some(v),
             Msg::CloseSearch => self.search_input = None,
         }
 
@@ -78,7 +78,7 @@ impl Component for ListSearchesPage {
                                     on_close={ ctx.link().callback(|_| Msg::CloseSearch) }
                                     on_select={ ctx.link().callback_future(move |v| async move {
                                         // TODO: Handle Errors and responses
-                                        if let WrappingResponse::Resp(Some(book)) = request::new_book(v).await {
+                                        if let WrappingResponse::Resp(Some(book)) = request::new_book(NewBookBody::Value(Box::new(v))).await {
                                             request::update_search_item(
                                                 id,
                                                 PostUpdateSearchIdBody {
@@ -107,11 +107,27 @@ impl Component for ListSearchesPage {
 
 impl ListSearchesPage {
     fn render_item(&self, item: &SearchGroup, scope: &Scope<Self>) -> Html {
-        let id = item.id;
-        let value = item.query.clone();
-        let find_cb = scope.callback(move |_| Msg::Search((id, value.clone())));
+        let find_cb = {
+            let id = item.id;
+            let value = item.query.clone();
 
-        let value = item.query.clone();
+            scope.callback(move |_| Msg::Find((id, value.clone())))
+        };
+
+        let auto_find_cb = {
+            let value = item.query.clone();
+
+            scope.callback_future(move |_| {
+                let value = value.clone();
+                async move {
+                    request::new_book(NewBookBody::FindAndAdd(value)).await;
+
+                    Msg::CloseSearch
+                }
+            })
+        };
+
+        let query = item.query.clone();
 
         html! {
             <div class="search-item-card">
@@ -130,9 +146,10 @@ impl ListSearchesPage {
 
                 <div class="tools">
                     <button class="yellow" onclick={ Callback::from(move |_| {
-                        let _ = window().location().set_href(&format!("/?query={}", urlencoding::encode(&value)));
+                        let _ = window().location().set_href(&format!("/?query={}", urlencoding::encode(&query)));
                     }) }>{ "View" }</button>
                     <button class="green" onclick={ find_cb }>{ "Find" }</button>
+                    <button class="green" onclick={ auto_find_cb }>{ "Auto Find" }</button>
                     <button class="red disabled" disabled=true>{ "Delete" }</button>
                 </div>
             </div>

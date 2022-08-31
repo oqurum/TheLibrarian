@@ -1,7 +1,7 @@
 use std::{rc::Rc, sync::Mutex};
 
 use common::{BookId, api::WrappingResponse};
-use common_local::{api, DisplayItem, SearchType};
+use common_local::{api::{self, NewBookBody}, DisplayItem, SearchType};
 use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
 use web_sys::{HtmlElement, UrlSearchParams, HtmlInputElement};
 use yew::prelude::*;
@@ -190,7 +190,7 @@ impl Component for HomePage {
                                         search_for={ SearchType::Book }
                                         on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
                                         on_select={ ctx.link().callback_future(|value| async {
-                                            request::new_book(value).await;
+                                            request::new_book(NewBookBody::Value(Box::new(value))).await;
 
                                             Msg::Ignore
                                         }) }

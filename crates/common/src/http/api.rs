@@ -132,8 +132,9 @@ pub struct GetLibrariesResponse {
 // Book
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct NewBookBody {
-    pub value: Either<Source, BookEdit>,
+pub enum NewBookBody {
+    FindAndAdd(String),
+    Value(Box<Either<Source, BookEdit>>),
 }
 
 

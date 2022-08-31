@@ -161,6 +161,13 @@ impl SearchItem {
             _ => None,
         }
     }
+
+    pub fn as_book(&self) -> Option<&FoundItem> {
+        match self {
+            SearchItem::Book(v) => Some(v),
+            _ => None,
+        }
+    }
 }
 
 

@@ -21,15 +21,42 @@ pub async fn add_new_book(
     member: MemberCookie,
     db: web::Data<Database>,
 ) -> WebResult<JsonResponse<Option<DisplayMetaItem>>> {
-    let body = body.into_inner();
-
     let member = member.fetch(&db).await?.unwrap();
 
     if !member.permissions.has_editing_perms() {
         return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
     }
 
-    match body.value {
+    let value = match body.into_inner() {
+        // Used for the Search Item "Auto Find" Button
+        api::NewBookBody::FindAndAdd(find_str) => {
+            use metadata::{google_books, Metadata};
+
+
+            // Check if we're searching by ISBN, if so check that we don't already have it in DB.
+            if let Some(isbn) = common::parse_book_id(&find_str).into_possible_isbn_value() {
+                if BookModel::exists_by_isbn(&isbn, &db).await? {
+                    return Ok(web::Json(WrappingResponse::error("Book ISBN already exists!")));
+                }
+            }
+
+
+            let found = google_books::GoogleBooksMetadata.search(
+                &find_str,
+                common_local::SearchFor::Book(common_local::SearchForBooksBy::Query)
+            ).await?;
+
+            if let Some(item) = found.first().and_then(|v| v.as_book()) {
+                Either::Left(item.source.clone())
+            } else {
+                return Ok(web::Json(WrappingResponse::error("Unable to find an item to add!")));
+            }
+        }
+
+        api::NewBookBody::Value(v) => *v,
+    };
+
+    match value {
         Either::Left(source) => {
             if let Some(mut meta) = metadata::get_metadata_by_source(&source, true).await? {
                 let (main_author, author_ids) = meta.add_or_ignore_authors_into_database(&db).await?;

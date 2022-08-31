@@ -254,13 +254,11 @@ pub async fn get_person(id: PersonId) -> WrappingResponse<GetPersonResponse> {
 
 // Books
 
-pub async fn new_book(value: Either<Source, BookEdit>) -> WrappingResponse<Option<DisplayMetaItem>> {
+pub async fn new_book(value: NewBookBody) -> WrappingResponse<Option<DisplayMetaItem>> {
     fetch(
         "POST",
         "/api/v1/book",
-        Some(&NewBookBody {
-            value
-        })
+        Some(&value)
     ).await.unwrap_or_else(def)
 }
 

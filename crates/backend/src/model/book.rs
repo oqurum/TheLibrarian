@@ -219,6 +219,14 @@ impl BookModel {
         ).optional()?)
     }
 
+    pub async fn exists_by_isbn(value: &str, db: &Database) -> Result<bool> {
+        Ok(db.read().await.query_row(
+            r#"SELECT EXISTS(SELECT id FROM book WHERE isbn_10 = ?1 OR isbn_13 = ?1)"#,
+            [value],
+            |v| v.get(0)
+        )?)
+    }
+
     pub async fn remove_by_id(id: BookId, db: &Database) -> Result<usize> {
         Ok(db.write().await.execute(
             r#"DELETE FROM book WHERE id = ?1"#,
