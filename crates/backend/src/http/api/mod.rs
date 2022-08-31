@@ -61,6 +61,7 @@ pub fn api_route() -> Scope<
 
         // Searches
         .service(search::get_searches)
+        .service(search::update_search_id)
 
         // External
         .service(external::get_external_search)
