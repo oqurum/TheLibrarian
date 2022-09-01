@@ -29,17 +29,21 @@ pub async fn add_new_book(
 
     let value = match body.into_inner() {
         // Used for the Search Item "Auto Find" Button
-        api::NewBookBody::FindAndAdd(find_str) => {
+        api::NewBookBody::FindAndAdd(mut find_str) => {
             use metadata::{google_books, Metadata};
 
-
+            // TODO: Check to see if we already have isbn: prefixed before the find_str
             // Check if we're searching by ISBN, if so check that we don't already have it in DB.
             if let Some(isbn) = common::parse_book_id(&find_str).into_possible_isbn_value() {
-                if find_str.trim() == isbn && BookModel::exists_by_isbn(&isbn, &db).await? {
-                    return Ok(web::Json(WrappingResponse::error("Book ISBN already exists!")));
+                if find_str.trim() == isbn {
+                    if BookModel::exists_by_isbn(&isbn, &db).await? {
+                        return Ok(web::Json(WrappingResponse::error("Book ISBN already exists!")));
+                    } else {
+                        // Add isbn: before the string to specify the book we want.
+                        find_str = format!("isbn:{find_str}");
+                    }
                 }
             }
-
 
             let found = google_books::GoogleBooksMetadata.search(
                 &find_str,
