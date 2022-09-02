@@ -41,7 +41,10 @@ impl Component for ListSearchesPage {
             Msg::RequestSearches => {
                 ctx.link()
                 .send_future(async move {
-                    Msg::MembersResults(request::get_search_list(None, None).await)
+                    let page = get_page_param().unwrap_or_default();
+                    let limit = 25;
+
+                    Msg::MembersResults(request::get_search_list(Some(page * limit), Some(limit)).await)
                 });
             }
 
@@ -155,4 +158,17 @@ impl ListSearchesPage {
             </div>
         }
     }
+}
+
+
+fn get_page_param() -> Option<usize> {
+    let search_params = web_sys::UrlSearchParams::new_with_str(
+        &gloo_utils::window().location().search().ok()?
+    ).ok()?;
+
+    let page = search_params.get("page")
+        .and_then(|v| v.parse().ok())
+        .unwrap_or_default();
+
+    Some(page)
 }
