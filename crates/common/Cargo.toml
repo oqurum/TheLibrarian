@@ -7,7 +7,7 @@ edition = "2021"
 
 [features]
 backend = ["common/backend", "rusqlite"]
-frontend = ["common/frontend", "getrandom"]
+frontend = ["common/frontend", "getrandom", "web-sys"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -29,3 +29,4 @@ rusqlite = { version = "0.27", optional = true }
 
 # Frontend
 getrandom = { version = "0.2", features = ["js"], optional = true }
+web-sys = { version = "0.3", optional = true }

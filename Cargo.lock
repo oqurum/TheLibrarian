@@ -703,6 +703,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "thiserror",
+ "web-sys",
 ]
 
 [[package]]

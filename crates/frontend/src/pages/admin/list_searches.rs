@@ -1,5 +1,5 @@
 use common::{api::{WrappingResponse, QueryListResponse}, ImageIdType};
-use common_local::{SearchGroup, SearchType, SearchGroupId, api::{PostUpdateSearchIdBody, NewBookBody}};
+use common_local::{SearchGroup, SearchType, SearchGroupId, api::{PostUpdateSearchIdBody, NewBookBody, SimpleListQuery}};
 use gloo_utils::window;
 use yew::{prelude::*, html::Scope};
 
@@ -10,12 +10,15 @@ use crate::{components::popup::search::PopupSearch, request};
 pub enum Msg {
     // Requests
     RequestSearches,
+    AutoFindAll,
 
     Find((SearchGroupId, String)),
     CloseSearch,
 
     // Results
     MembersResults(WrappingResponse<QueryListResponse<SearchGroup>>),
+
+    Ignore,
 }
 
 pub struct ListSearchesPage {
@@ -41,10 +44,28 @@ impl Component for ListSearchesPage {
             Msg::RequestSearches => {
                 ctx.link()
                 .send_future(async move {
-                    let page = get_page_param().unwrap_or_default();
-                    let limit = 25;
+                    let query = SimpleListQuery::from_url_search_params();
+                    Msg::MembersResults(request::get_search_list(query.offset, query.limit).await)
+                });
+            }
 
-                    Msg::MembersResults(request::get_search_list(Some(page * limit), Some(limit)).await)
+            Msg::AutoFindAll => {
+                let searching_queries = match self.items_resp.as_ref().and_then(|v| v.as_ok().ok()) {
+                    Some(v) => v.items.iter().map(|v| v.query.clone()).collect::<Vec<_>>(),
+                    None => return false,
+                };
+
+                ctx.link()
+                .send_future(async move {
+                    log::info!("starting auto find all");
+
+                    for value in searching_queries {
+                        request::new_book(NewBookBody::FindAndAdd(value)).await;
+                    }
+
+                    log::info!("finished auto find all");
+
+                    Msg::Ignore
                 });
             }
 
@@ -54,6 +75,7 @@ impl Component for ListSearchesPage {
 
             Msg::Find(v) => self.search_input = Some(v),
             Msg::CloseSearch => self.search_input = None,
+            Msg::Ignore => return false,
         }
 
         true
@@ -66,6 +88,24 @@ impl Component for ListSearchesPage {
             html! {
                 <div class="view-container searches-list-view-container">
                     <div class="list-items">
+                        <div class="search-item-card">
+                            <button onclick={ Callback::from(|_| {
+                                let mut query = SimpleListQuery::from_url_search_params();
+                                query.set_page(query.get_page().saturating_sub(1));
+
+                                let _ = window().location().set_href(&format!("{}?{}", window().location().pathname().unwrap(), query.to_query()));
+                            }) }>{ "Previous Page" }</button>
+
+                            <button onclick={ Callback::from(|_| {
+                                let mut query = SimpleListQuery::from_url_search_params();
+                                query.set_page(query.get_page() + 1);
+
+                                let _ = window().location().set_href(&format!("{}?{}", window().location().pathname().unwrap(), query.to_query()));
+                            }) }>{ "Next Page" }</button>
+
+                            <button onclick={ ctx.link().callback(|_| Msg::AutoFindAll) } class="green">{ "Auto Find All" }</button>
+                        </div>
+
                         { for resp.items.iter().map(|item| self.render_item(item, ctx.link())) }
                     </div>
 
@@ -125,7 +165,7 @@ impl ListSearchesPage {
                 async move {
                     request::new_book(NewBookBody::FindAndAdd(value)).await;
 
-                    Msg::CloseSearch
+                    Msg::Ignore
                 }
             })
         };
@@ -158,17 +198,4 @@ impl ListSearchesPage {
             </div>
         }
     }
-}
-
-
-fn get_page_param() -> Option<usize> {
-    let search_params = web_sys::UrlSearchParams::new_with_str(
-        &gloo_utils::window().location().search().ok()?
-    ).ok()?;
-
-    let page = search_params.get("page")
-        .and_then(|v| v.parse().ok())
-        .unwrap_or_default();
-
-    Some(page)
 }

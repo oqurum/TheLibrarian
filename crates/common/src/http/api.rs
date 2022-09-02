@@ -391,9 +391,67 @@ pub struct RunTaskBody {
 
 
 
-#[derive(Deserialize)]
+#[derive(Default, Deserialize)]
 pub struct SimpleListQuery {
     pub offset: Option<usize>,
     pub limit: Option<usize>,
     pub query: Option<String>,
+}
+
+impl SimpleListQuery {
+    pub fn limit() -> usize {
+        25
+    }
+
+    #[cfg(feature = "frontend")]
+    pub fn from_url_search_params() -> Self {
+        fn create() -> Option<SimpleListQuery> {
+            let search_params = web_sys::UrlSearchParams::new_with_str(
+                &web_sys::window().unwrap().location().search().ok()?
+            ).ok()?;
+
+            let limit = search_params.get("limit")
+                .and_then(|v| v.parse::<usize>().ok());
+
+            let (offset, limit) = match search_params.get("page").and_then(|v| v.parse::<usize>().ok()) {
+                Some(page) => (page * limit.unwrap_or_else(SimpleListQuery::limit), limit),
+                None => (search_params.get("offset").and_then(|v| v.parse::<usize>().ok()).unwrap_or_default(), limit)
+            };
+
+            Some(SimpleListQuery {
+                offset: Some(offset).filter(|v| *v != 0),
+                limit,
+                query: None,
+            })
+        }
+
+        create().unwrap_or_default()
+    }
+
+    pub fn get_page(&self) -> usize {
+        self.offset.unwrap_or_default() / self.limit.unwrap_or_else(Self::limit)
+    }
+
+    pub fn set_page(&mut self, value: usize) {
+        if value == 0 {
+            self.offset = None;
+        }
+
+        if let Some(limit) = self.limit {
+            self.offset = Some(value * limit);
+        } else {
+            self.offset = Some(value * Self::limit());
+        }
+    }
+
+    pub fn to_query(&self) -> String {
+        let mut query = format!("page={}", self.get_page());
+
+        if let Some(limit) = self.limit {
+            query += "&limit=";
+            query += &limit.to_string();
+        }
+
+        query
+    }
 }
