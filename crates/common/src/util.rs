@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use chrono::{DateTime, Utc, TimeZone, Date};
 use serde::{Serializer, Deserializer, Deserialize, Serialize};
 
@@ -24,8 +26,19 @@ pub fn file_size_bytes_to_readable_string(value: i64) -> String {
     } else {
         format!("{}{}", size.floor(), FILE_SIZE_IDENTIFIERS[index])
     }
-
 }
+
+
+
+/// Parse a string which is "{number}-{description}"
+pub fn parse_num_description_string<D: FromStr>(value: &str) -> std::result::Result<D, D::Err> {
+    let value = value.split_once('-')
+        .map(|v| v.0)
+        .unwrap_or(value);
+
+    D::from_str(value)
+}
+
 
 
 // Serde

@@ -17,3 +17,6 @@ create_single_id!(SearchItemId);
 create_single_id!(SearchGroupId);
 
 create_single_id!(MetadataSearchId);
+
+create_single_id!(CollectionId);
+create_single_id!(CollectionItemId);

@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use chrono::{DateTime, Utc, Date};
 use common::{TagId, BookTagId, BookId, MemberId, PersonId, Source, ThumbnailStore, ImageId, ImageIdType};
 use item::edit::BookEdit;
+use num_enum::{FromPrimitive, IntoPrimitive};
 use serde::{Serialize, Deserialize};
 
 use util::*;
@@ -19,6 +20,35 @@ pub mod item;
 pub use http::*;
 pub use specific::*;
 pub use error::{Result, Error};
+
+
+
+// Collection
+
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+pub struct Collection {
+    pub id: CollectionId,
+
+    pub name: String,
+    pub description: Option<String>,
+    pub type_of: CollectionType,
+
+    #[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]
+    pub created_at: DateTime<Utc>,
+    #[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]
+    pub updated_at: DateTime<Utc>,
+}
+
+
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, FromPrimitive, IntoPrimitive)]
+#[repr(u8)]
+pub enum CollectionType {
+    #[num_enum(default)]
+    List,
+    Series,
+}
 
 
 

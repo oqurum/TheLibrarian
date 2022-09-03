@@ -11,7 +11,7 @@ use crate::{
     Result, TagFE, BookTag, TagType,
     MetadataItemCached,
     item::edit::{SharedEditModel, SharedEditVoteModel, BookEdit, NewOrCachedImage}, SharedConfig,
-    des_if_opt_str_not_empty,
+    des_if_opt_str_not_empty, CollectionType, Collection, CollectionItemId,
 };
 
 
@@ -25,6 +25,31 @@ pub struct PostUpdateSearchIdBody {
 
 
 
+// Collection
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GetCollectionResponse {
+    pub value: Option<Collection>
+}
+
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct NewCollectionBody {
+    pub name: String,
+    pub description: Option<String>,
+    pub type_of: CollectionType,
+}
+
+pub type NewCollectionResponse = Collection;
+
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct UpdateCollectionModel {
+    pub name: Option<String>,
+    pub description: Option<Option<String>>,
+
+    pub items: Option<Vec<CollectionItemId>>,
+}
 
 
 // Edits

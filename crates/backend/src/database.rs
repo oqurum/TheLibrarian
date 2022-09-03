@@ -335,6 +335,23 @@ pub async fn init() -> Result<Database> {
         []
     )?;
 
+    // Collection
+    conn.execute(
+        r#"CREATE TABLE IF NOT EXISTS "collection" (
+            "id"            INTEGER NOT NULL,
+
+            "name"          TEXT NOT NULL COLLATE NOCASE,
+            "description"   TEXT,
+            "type_of"       INTEGER NOT NULL,
+
+            "created_at"    DATETIME NOT NULL,
+            "updated_at"    DATETIME NOT NULL,
+
+            PRIMARY KEY("id" AUTOINCREMENT)
+        );"#,
+        []
+    )?;
+
 
     // TODO: Tables
     // Queued External Metadata Searches (prevent continuous searching)

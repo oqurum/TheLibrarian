@@ -1,6 +1,7 @@
 use actix_web::{web, Scope, dev::{ServiceFactory, ServiceRequest, ServiceResponse}, HttpResponse};
 
 pub mod book;
+pub mod collection;
 pub mod edit;
 pub mod external;
 pub mod member;
@@ -27,6 +28,11 @@ pub fn api_route() -> Scope<
         .service(book::get_book_info)
         .service(book::update_book_id)
         .service(book::load_book_thumbnail)
+
+        // Collection
+        .service(collection::get_collection_by_id)
+        .service(collection::update_collection_by_id)
+        .service(collection::create_new_collection)
 
         // Tags
         .service(tag::get_tags)
