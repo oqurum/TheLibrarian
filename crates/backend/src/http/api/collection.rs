@@ -39,6 +39,33 @@ async fn update_collection_by_id(
 }
 
 
+#[get("/collections")]
+async fn get_collection_list(
+    query: web::Query<api::SimpleListQuery>,
+    db: web::Data<Database>
+) -> WebResult<JsonResponse<api::GetCollectionListResponse>> {
+    let limit = query.limit.unwrap_or(50);
+    let offset = query.offset.unwrap_or(0);
+
+    let total = CollectionModel::count(None, None, &db).await?;
+
+    let items = CollectionModel::search(
+        query.query.as_deref(),
+        offset,
+        limit,
+        None,
+        &db
+    ).await?;
+
+    Ok(web::Json(WrappingResponse::okay(api::GetCollectionListResponse {
+        offset: 0,
+        limit: 0,
+        total,
+        items: items.into_iter().map(|v| v.into()).collect()
+    })))
+}
+
+
 #[post("/collection")]
 async fn create_new_collection(
     body: web::Json<api::NewCollectionBody>,

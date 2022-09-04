@@ -121,6 +121,12 @@ pub enum Route {
     #[at("/logout")]
     Logout,
 
+    #[at("/collections")]
+    Collections,
+
+    #[at("/collection/:path")]
+    Collection { path: String },
+
     #[at("/book/:meta_id")]
     ViewMeta { meta_id: BookId },
 
@@ -162,6 +168,14 @@ fn switch(route: &Route) -> Html {
 
         Route::Logout => {
             html! { <pages::LogoutPage /> }
+        }
+
+        Route::Collections => {
+            html! { <pages::ListCollectionsPage /> }
+        }
+
+        Route::Collection { .. } => {
+            html! {  }
         }
 
         Route::ViewMeta { meta_id } => {

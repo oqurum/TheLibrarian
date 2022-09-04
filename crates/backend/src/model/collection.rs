@@ -1,6 +1,7 @@
+use common::BookId;
 use common_local::{CollectionType, CollectionId, Collection, api::UpdateCollectionModel};
 use chrono::{DateTime, TimeZone, Utc};
-use rusqlite::{params, OptionalExtension};
+use rusqlite::{params, OptionalExtension, ToSql};
 
 use crate::{Database, Result};
 
@@ -107,6 +108,99 @@ impl CollectionModel {
             rusqlite::params_from_iter(values.iter())
         )?)
     }
+
+
+    fn gen_search_query(query: Option<&str>, book_id: Option<BookId>, parameters: &mut Vec<Box<dyn ToSql>>) -> String {
+        let base_param_len = parameters.len();
+
+        let mut sql = String::from("SELECT * FROM collection WHERE ");
+        let orig_len = sql.len();
+
+        let mut sql_queries = Vec::new();
+
+        // Query
+
+        if let Some(orig_query) = query.as_ref() {
+            // Used to escape percentages
+            let mut escape_char = '\\';
+            // Change our escape character if it's in the query.
+            if orig_query.contains(escape_char) {
+                for car in [ '!', '@', '#', '$', '^', '&', '*', '-', '=', '+', '|', '~', '`', '/', '?', '>', '<', ',' ] {
+                    if !orig_query.contains(car) {
+                        escape_char = car;
+                        break;
+                    }
+                }
+            }
+
+            let query = orig_query.replace('%', &format!("{}%", escape_char))
+                .replace('_', &format!("{}_", escape_char));
+
+            // TODO: Utilize title > description and sort
+            sql_queries.push(format!("name LIKE ?? ESCAPE '{escape_char}'"));
+            parameters.push(Box::new(format!("%{}%", &query)) as Box<dyn ToSql>);
+        }
+
+
+        // Search with specific book
+
+        if let Some(bid) = book_id {
+            sql_queries.push("id IN (SELECT collection_id FROM collection_item WHERE book_id = ??)".to_string());
+            parameters.push(Box::new(bid) as Box<dyn ToSql>);
+        }
+
+        let sql_query = sql_queries.into_iter()
+            .enumerate()
+            .map(|(i, v)| v.replace("??", &format!("?{}", base_param_len + 1 + i)))
+            .collect::<Vec<_>>()
+            .join(" AND ");
+
+        sql += &sql_query;
+
+        // If sql is still unmodified
+        if sql.len() == orig_len {
+            String::from("SELECT * FROM collection")
+        } else {
+            sql
+        }
+    }
+
+    pub async fn search(
+        query: Option<&str>,
+        offset: usize,
+        limit: usize,
+        book_id: Option<BookId>,
+        db: &Database
+    ) -> Result<Vec<Self>> {
+        let mut parameters = vec![
+            Box::new(limit) as Box<dyn ToSql>,
+            Box::new(offset) as Box<dyn ToSql>
+        ];
+
+        let mut sql = Self::gen_search_query(query, book_id, &mut parameters);
+
+        sql += " LIMIT ?1 OFFSET ?2";
+
+        let this = db.read().await;
+
+        let mut conn = this.prepare(&sql)?;
+
+        let map = conn.query_map(rusqlite::params_from_iter(parameters), |v| Self::from_row(v))?;
+
+        Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+    }
+
+    pub async fn count(
+        query: Option<&str>,
+        book_id: Option<BookId>,
+        db: &Database
+    ) -> Result<usize> {
+        let mut parameters = Vec::new();
+
+        let sql = Self::gen_search_query(query, book_id, &mut parameters).replace("SELECT *", "SELECT COUNT(*)");
+
+        Ok(db.read().await.query_row(&sql, rusqlite::params_from_iter(parameters), |v| v.get(0))?)
+    }
 }
 
 
@@ -118,7 +212,7 @@ impl NewCollectionModel {
 
         conn.execute(r#"
             INSERT INTO collection (name, description, type_of, created_at, updated_at)
-            VALUES (?1, ?2, ?3, ?4)
+            VALUES (?1, ?2, ?3, ?4, ?5)
         "#,
         params![
             &self.name,

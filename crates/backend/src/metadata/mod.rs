@@ -46,7 +46,7 @@ pub trait Metadata {
 
 /// Doesn't check local
 pub async fn get_metadata_by_source(source: &Source, upgrade_editions: bool, db: &Database) -> Result<Option<MetadataReturned>> {
-    match source.agent.as_str() {
+    match source.agent.deref().deref() {
         v if v == OpenLibraryMetadata.get_prefix() => OpenLibraryMetadata.get_metadata_by_source_id(&source.value, upgrade_editions, db).await,
         v if v == GoogleBooksMetadata.get_prefix() => GoogleBooksMetadata.get_metadata_by_source_id(&source.value, upgrade_editions, db).await,
 
@@ -65,7 +65,7 @@ pub async fn search_all_agents(search: &str, search_for: SearchFor, db: &Databas
         // Check if it's a Metadata Source.
         if let Some(val) = get_metadata_by_source(&source, false, db).await? {
             map.insert(
-                source.agent,
+                source.agent.into_owned(),
                 vec![SearchItem::Book(val.meta)],
             );
 
@@ -97,7 +97,7 @@ pub async fn search_all_agents(search: &str, search_for: SearchFor, db: &Databas
 
 /// Searches all agents except for local.
 pub async fn get_person_by_source(source: &Source, db: &Database) -> Result<Option<AuthorInfo>> {
-    match source.agent.as_str() {
+    match source.agent.deref().deref() {
         v if v == OpenLibraryMetadata.get_prefix() => OpenLibraryMetadata.get_person_by_source_id(&source.value, db).await,
         v if v == GoogleBooksMetadata.get_prefix() => GoogleBooksMetadata.get_person_by_source_id(&source.value, db).await,
 

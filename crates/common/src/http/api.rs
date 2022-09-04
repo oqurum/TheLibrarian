@@ -26,6 +26,7 @@ pub struct PostUpdateSearchIdBody {
 
 
 // Collection
+pub type GetCollectionListResponse = QueryListResponse<Collection>;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetCollectionResponse {

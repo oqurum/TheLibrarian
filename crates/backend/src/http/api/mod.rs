@@ -30,6 +30,7 @@ pub fn api_route() -> Scope<
         .service(book::load_book_thumbnail)
 
         // Collection
+        .service(collection::get_collection_list)
         .service(collection::get_collection_by_id)
         .service(collection::update_collection_by_id)
         .service(collection::create_new_collection)

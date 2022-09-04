@@ -7,7 +7,62 @@ use wasm_bindgen::{JsValue, JsCast};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{RequestInit, Request, RequestMode, Response, Headers};
 
-use common_local::{api::*, SearchType, TagType, EditId, item::edit::{UpdateEditModel, BookEdit}, update::OptionsUpdate, Member, SearchGroup, SearchGroupId, DisplayMetaItem};
+use common_local::{api::*, SearchType, TagType, EditId, item::edit::{UpdateEditModel, BookEdit}, update::OptionsUpdate, Member, SearchGroup, SearchGroupId, DisplayMetaItem, CollectionId};
+
+
+// Collection
+
+pub async fn get_collection_list(query: Option<&str>, offset: Option<usize>, limit: Option<usize>) -> WrappingResponse<GetCollectionListResponse> {
+    let mut url = String::from("/api/v1/collections?");
+
+    if let Some(value) = offset {
+        url += "offset=";
+        url += &value.to_string();
+        url += "&";
+    }
+
+    if let Some(value) = limit {
+        url += "limit=";
+        url += &value.to_string();
+        url += "&";
+    }
+
+    if let Some(value) = query {
+        url += "query=";
+        url += &urlencoding::encode(value);
+    }
+
+    fetch(
+        "GET",
+        &url,
+        Option::<&()>::None
+    ).await.unwrap_or_else(def)
+}
+
+
+pub async fn update_collection(id: CollectionId, value: &UpdateCollectionModel) {
+    let _: Option<String> = fetch(
+        "POST",
+        &format!("/api/v1/collection/{}", id),
+        Some(value)
+    ).await.ok();
+}
+
+pub async fn get_collection(path: &str) -> WrappingResponse<GetCollectionResponse> {
+    fetch(
+        "GET",
+        &format!("/api/v1/collection/{}", path),
+        Option::<&()>::None
+    ).await.unwrap_or_else(def)
+}
+
+pub async fn create_collection(value: NewCollectionBody) -> WrappingResponse<GetCollectionResponse> {
+    fetch(
+        "POST",
+        "/api/v1/collection",
+        Some(&value),
+    ).await.unwrap_or_else(def)
+}
 
 
 // Edits
