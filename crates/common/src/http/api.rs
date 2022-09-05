@@ -197,6 +197,7 @@ pub struct BookListQuery {
     pub limit: Option<usize>,
     /// `SearchQuery`
     #[serde(deserialize_with = "des_if_opt_str_not_empty")]
+    #[serde(default)] // TODO: Why is this needed for deserialize_with
     pub search: Option<String>,
     pub person_id: Option<PersonId>,
 }
