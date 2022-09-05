@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use crate::{Result, Database, model::{OptMetadataSearchModel, DataType}};
+use crate::{Result, Database, model::{OptMetadataSearchModel, DataType, MetadataSearchType}};
 use async_trait::async_trait;
 use common_local::{MetadataItemCached, SearchForBooksBy};
 use lazy_static::lazy_static;
@@ -27,7 +27,7 @@ impl Metadata for GoogleBooksMetadata {
     }
 
     async fn get_metadata_by_source_id(&mut self, value: &str, _upgrade_editions: bool, db: &Database) -> Result<Option<MetadataReturned>> {
-        let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(value, self.get_prefix(), db).await?;
+        let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Book, value, self.get_prefix(), db).await?;
 
         if let Some(model) = existing_model.should_use_cached()? {
             return Ok(model.inner_book_single());
@@ -43,6 +43,7 @@ impl Metadata for GoogleBooksMetadata {
         };
 
         existing_model.update_or_insert(
+            MetadataSearchType::Book,
             value.to_string(),
             self.get_prefix().to_string(),
             1,
@@ -54,16 +55,16 @@ impl Metadata for GoogleBooksMetadata {
     }
 
     async fn search(&mut self, search: &str, search_for: SearchFor, db: &Database) -> Result<Vec<SearchItem>> {
-        let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(search, self.get_prefix(), db).await?;
-
-        if let Some(model) = existing_model.should_use_cached()? {
-            return Ok(model.inner_search());
-        }
-
         match search_for {
             SearchFor::Person => Ok(Vec::new()),
 
             SearchFor::Book(specifically) => {
+                let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Book, search, self.get_prefix(), db).await?;
+
+                if let Some(model) = existing_model.should_use_cached()? {
+                    return Ok(model.inner_search());
+                }
+
                 let url = format!("https://www.googleapis.com/books/v1/volumes?q={}", match specifically {
                     SearchForBooksBy::AuthorName => BookSearchKeyword::InAuthor.combile_string(search),
                     SearchForBooksBy::Contents |
@@ -106,6 +107,7 @@ impl Metadata for GoogleBooksMetadata {
                     }
 
                     existing_model.update_or_insert(
+                        MetadataSearchType::Book,
                         search.to_string(),
                         self.get_prefix().to_string(),
                         books.len(),

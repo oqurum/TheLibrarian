@@ -323,6 +323,7 @@ pub async fn init() -> Result<Database> {
 
             "query"               TEXT NOT NULL COLLATE NOCASE,
             "agent"               TEXT NOT NULL,
+            "type_of"             INTEGER NOT NULL,
             "last_found_amount"   INTEGER NOT NULL,
             "data"                TEXT NOT NULL,
 

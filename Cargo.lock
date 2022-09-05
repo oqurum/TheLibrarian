@@ -1702,6 +1702,7 @@ dependencies = [
  "lazy_static",
  "lettre",
  "log",
+ "num_enum",
  "rand",
  "regex",
  "reqwest",

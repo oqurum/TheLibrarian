@@ -1,6 +1,6 @@
 // https://openlibrary.org/developers/api
 
-use crate::{Result, model::{OptMetadataSearchModel, DataType}, Database};
+use crate::{Result, model::{OptMetadataSearchModel, DataType, MetadataSearchType}, Database};
 use async_trait::async_trait;
 use common_local::{MetadataItemCached, SearchForBooksBy};
 use serde::{Serialize, Deserialize};
@@ -23,7 +23,7 @@ impl Metadata for OpenLibraryMetadata {
     }
 
     async fn get_metadata_by_source_id(&mut self, value: &str, upgrade_editions: bool, db: &Database) -> Result<Option<MetadataReturned>> {
-        let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(value, self.get_prefix(), db).await?;
+        let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Book, value, self.get_prefix(), db).await?;
 
         if let Some(model) = existing_model.should_use_cached()? {
             return Ok(model.inner_book_single());
@@ -44,6 +44,7 @@ impl Metadata for OpenLibraryMetadata {
         };
 
         existing_model.update_or_insert(
+            MetadataSearchType::Book,
             value.to_string(),
             self.get_prefix().to_string(),
             1,
@@ -56,7 +57,7 @@ impl Metadata for OpenLibraryMetadata {
 
 
     async fn get_person_by_source_id(&mut self, value: &str, db: &Database) -> Result<Option<AuthorInfo>> {
-        let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(value, self.get_prefix(), db).await?;
+        let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Person, value, self.get_prefix(), db).await?;
 
         if let Some(model) = existing_model.should_use_cached()? {
             return Ok(model.inner_person_single());
@@ -80,6 +81,7 @@ impl Metadata for OpenLibraryMetadata {
         };
 
         existing_model.update_or_insert(
+            MetadataSearchType::Person,
             value.to_string(),
             self.get_prefix().to_string(),
             1,
@@ -92,14 +94,14 @@ impl Metadata for OpenLibraryMetadata {
 
 
     async fn search(&mut self, value: &str, search_for: SearchFor, db: &Database) -> Result<Vec<SearchItem>> {
-        let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(value, self.get_prefix(), db).await?;
-
-        if let Some(model) = existing_model.should_use_cached()? {
-            return Ok(model.inner_search());
-        }
-
         match search_for {
             SearchFor::Person => {
+                let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Person, value, self.get_prefix(), db).await?;
+
+                if let Some(model) = existing_model.should_use_cached()? {
+                    return Ok(model.inner_search());
+                }
+
                 if let Some(found) = author::search_for_authors(value).await? {
                     let mut authors = Vec::new();
 
@@ -116,6 +118,7 @@ impl Metadata for OpenLibraryMetadata {
                     }
 
                     existing_model.update_or_insert(
+                        MetadataSearchType::Person,
                         value.to_string(),
                         self.get_prefix().to_string(),
                         authors.len(),
@@ -130,6 +133,12 @@ impl Metadata for OpenLibraryMetadata {
             }
 
             SearchFor::Book(specifically) => {
+                let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Book, value, self.get_prefix(), db).await?;
+
+                if let Some(model) = existing_model.should_use_cached()? {
+                    return Ok(model.inner_search());
+                }
+
                 let type_of_search = match specifically {
                     SearchForBooksBy::AuthorName => BookSearchType::Author,
                     SearchForBooksBy::Contents |
@@ -158,6 +167,7 @@ impl Metadata for OpenLibraryMetadata {
                     }
 
                     existing_model.update_or_insert(
+                        MetadataSearchType::Book,
                         value.to_string(),
                         self.get_prefix().to_string(),
                         books.len(),
