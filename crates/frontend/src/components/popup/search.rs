@@ -1,5 +1,5 @@
-use common::{component::popup::{compare::{Comparable, PopupComparison}, Popup, PopupType}, Either, Source, api::WrappingResponse, util::upper_case_first_char};
-use common_local::{api::{SearchItem, self}, SearchType, item::edit::BookEdit};
+use common::{component::popup::{compare::{Comparable, PopupComparison}, Popup, PopupType}, Either, Source, api::WrappingResponse, util::upper_case_first_char, BookId};
+use common_local::{api::{SearchItem, self, SearchQuery}, SearchType, item::edit::BookEdit, DisplayItem};
 use gloo_utils::document;
 use wasm_bindgen::{JsCast, UnwrapThrowExt};
 use web_sys::HtmlInputElement;
@@ -13,9 +13,12 @@ pub struct Property {
     #[prop_or_default]
     pub classes: Classes,
 
-    pub on_close: Callback<()>,
-    pub on_select: Callback<Either<Source, BookEdit>>,
+    pub type_of: SearchBy,
 
+    pub on_close: Callback<()>,
+    pub on_select: Callback<SearchSelectedValue>,
+
+    #[prop_or_default]
     pub input_value: String,
     pub search_for: SearchType,
 
@@ -28,22 +31,23 @@ pub struct Property {
 
 
 pub enum Msg {
-    BookSearchResponse(String, WrappingResponse<api::ExternalSearchResponse>),
-    BookItemResponse(Source, WrappingResponse<api::ExternalSourceItemResponse>),
+    BookLocalSearchResponse(String, WrappingResponse<api::GetBookListResponse>),
+    BookExternalSearchResponse(String, WrappingResponse<api::ExternalSearchResponse>),
+    BookItemResponse(Source, Box<WrappingResponse<api::ExternalSourceItemResponse>>),
 
     SearchFor(String),
 
     OnChangeTab(String),
 
-    OnSelectItem(Source),
+    OnSelectItem(SearchSelectedValue),
 
     OnSubmitSingle,
-    OnSubmitCompare(BookEdit),
 }
 
 
 pub struct PopupSearch {
-    cached_posters: Option<LoadingItem<WrappingResponse<api::ExternalSearchResponse>>>,
+    cached_ext_search: Option<LoadingItem<WrappingResponse<api::ExternalSearchResponse>>>,
+    cached_loc_search: Option<LoadingItem<WrappingResponse<api::GetBookListResponse>>>,
     input_value: String,
 
     left_edit: Option<(BookEdit, Source)>,
@@ -60,7 +64,8 @@ impl Component for PopupSearch {
 
     fn create(ctx: &Context<Self>) -> Self {
         Self {
-            cached_posters: None,
+            cached_ext_search: None,
+            cached_loc_search: None,
             input_value: ctx.props().input_value.clone(),
 
             left_edit: None,
@@ -75,24 +80,44 @@ impl Component for PopupSearch {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::SearchFor(search) => {
-                self.cached_posters = Some(LoadingItem::Loading);
+                self.cached_ext_search = Some(LoadingItem::Loading);
 
-                let search_for = ctx.props().search_for;
 
-                ctx.link()
-                .send_future(async move {
-                    let resp = request::external_search_for(&search, search_for).await;
+                if ctx.props().type_of == SearchBy::External {
+                    let search_for = ctx.props().search_for;
 
-                    Msg::BookSearchResponse(search, resp)
-                });
+                    ctx.link()
+                    .send_future(async move {
+                        let resp = request::external_search_for(&search, search_for).await;
+
+                        Msg::BookExternalSearchResponse(search, resp)
+                    });
+                } else {
+                    ctx.link()
+                    .send_future(async move {
+                        let resp = request::get_books(
+                            None,
+                            None,
+                            Some(SearchQuery { query: Some(search.clone()), source: None }),
+                            None
+                        ).await;
+
+                        Msg::BookLocalSearchResponse(search, resp)
+                    });
+                }
             }
 
-            Msg::BookSearchResponse(search, resp) => {
+            Msg::BookExternalSearchResponse(search, resp) => {
                 if let Some(name) = resp.as_ok().ok().and_then(|v| v.items.keys().next()).cloned() {
                     self.selected_tab = name;
                 }
 
-                self.cached_posters = Some(LoadingItem::Loaded(resp));
+                self.cached_ext_search = Some(LoadingItem::Loaded(resp));
+                self.input_value = search;
+            }
+
+            Msg::BookLocalSearchResponse(search, resp) => {
+                self.cached_loc_search = Some(LoadingItem::Loaded(resp));
                 self.input_value = search;
             }
 
@@ -108,32 +133,34 @@ impl Component for PopupSearch {
                 self.waiting_item_resp = false;
             }
 
-            Msg::OnSelectItem(source) => {
-                if !ctx.props().comparable {
-                    ctx.props().on_select.emit(Either::Left(source));
-                    return false;
+            Msg::OnSelectItem(value) => {
+                match value {
+                    SearchSelectedValue::Source(source) => {
+                        if !ctx.props().comparable {
+                            ctx.props().on_select.emit(SearchSelectedValue::Source(source));
+                            return false;
+                        }
+
+                        if self.waiting_item_resp {
+                            return false;
+                        }
+
+                        self.waiting_item_resp = true;
+
+                        // TODO: Only Request once we've selected both sources.
+                        ctx.link().send_future(async move {
+                            Msg::BookItemResponse(source.clone(), Box::new(request::get_external_source_item(source).await))
+                        });
+                    }
+
+                    v => ctx.props().on_select.emit(v),
                 }
-
-                if self.waiting_item_resp {
-                    return false;
-                }
-
-                self.waiting_item_resp = true;
-
-                // TODO: Only Request once we've selected both sources.
-                ctx.link().send_future(async move {
-                    Msg::BookItemResponse(source.clone(), request::get_external_source_item(source).await)
-                });
             }
 
             Msg::OnSubmitSingle => {
                 if let Some((_, source)) = self.left_edit.as_ref() {
-                    ctx.props().on_select.emit(Either::Left(source.clone()));
+                    ctx.props().on_select.emit(SearchSelectedValue::Source(source.clone()));
                 }
-            }
-
-            Msg::OnSubmitCompare(book) => {
-                ctx.props().on_select.emit(Either::Right(book));
             }
 
             Msg::OnChangeTab(name) => {
@@ -188,50 +215,85 @@ impl PopupSearch {
 
                 <div class="external-book-search-container">
                     {
-                        if let Some(loading) = self.cached_posters.as_ref() {
-                            match loading {
-                                LoadingItem::Loaded(wrapper) => {
-                                    match wrapper.as_ok() {
-                                        Ok(search) => html! {
-                                            <>
-                                                <div class="tab-bar">
-                                                {
-                                                    for search.items.iter()
-                                                        .map(|(name, values)| {
-                                                            let name2 = name.clone();
+                        match ctx.props().type_of {
+                            SearchBy::External => {
+                                if let Some(loading) = self.cached_ext_search.as_ref() {
+                                    match loading {
+                                        LoadingItem::Loaded(wrapper) => {
+                                            match wrapper.as_ok() {
+                                                Ok(search) => html! {
+                                                    <>
+                                                        <div class="tab-bar">
+                                                        {
+                                                            for search.items.iter()
+                                                                .map(|(name, values)| {
+                                                                    let name2 = name.clone();
 
-                                                            html! {
-                                                                <div class="tab-bar-item" onclick={ ctx.link().callback(move |_| Msg::OnChangeTab(name2.clone())) }>
-                                                                    { upper_case_first_char(name.clone()) } { format!(" ({})", values.len()) }
-                                                                </div>
-                                                            }
-                                                        })
-                                                }
-                                                </div>
+                                                                    html! {
+                                                                        <div class="tab-bar-item" onclick={ ctx.link().callback(move |_| Msg::OnChangeTab(name2.clone())) }>
+                                                                            { upper_case_first_char(name.clone()) } { format!(" ({})", values.len()) }
+                                                                        </div>
+                                                                    }
+                                                                })
+                                                        }
+                                                        </div>
 
-                                                <div class="book-search-items">
-                                                {
-                                                    for search.items.get(&self.selected_tab)
-                                                        .iter()
-                                                        .flat_map(|values| values.iter())
-                                                        .map(|item| Self::render_poster_container(&self.selected_tab, item, ctx))
+                                                        <div class="book-search-items">
+                                                        {
+                                                            for search.items.get(&self.selected_tab)
+                                                                .iter()
+                                                                .flat_map(|values| values.iter())
+                                                                .map(|item| Self::render_ext_search_container(&self.selected_tab, item, ctx))
+                                                        }
+                                                        </div>
+                                                    </>
+                                                },
+
+                                                Err(e) => html! {
+                                                    <h2>{ e }</h2>
                                                 }
-                                                </div>
-                                            </>
+                                            }
                                         },
 
-                                        Err(e) => html! {
-                                            <h2>{ e }</h2>
+                                        LoadingItem::Loading => html! {
+                                            <h2>{ "Loading..." }</h2>
                                         }
                                     }
-                                },
-
-                                LoadingItem::Loading => html! {
-                                    <h2>{ "Loading..." }</h2>
+                                } else {
+                                    html! {}
                                 }
                             }
-                        } else {
-                            html! {}
+
+                            SearchBy::Local => {
+                                if let Some(loading) = self.cached_loc_search.as_ref() {
+                                    match loading {
+                                        LoadingItem::Loaded(wrapper) => {
+                                            match wrapper.as_ok() {
+                                                Ok(search) => html! {
+                                                    <>
+                                                        <div class="book-search-items">
+                                                        {
+                                                            for search.items.iter()
+                                                                .map(|item| Self::render_loc_search_container(item, ctx))
+                                                        }
+                                                        </div>
+                                                    </>
+                                                },
+
+                                                Err(e) => html! {
+                                                    <h2>{ e }</h2>
+                                                }
+                                            }
+                                        },
+
+                                        LoadingItem::Loading => html! {
+                                            <h2>{ "Loading..." }</h2>
+                                        }
+                                    }
+                                } else {
+                                    html! {}
+                                }
+                            }
                         }
                     }
                 </div>
@@ -262,12 +324,12 @@ impl PopupSearch {
                 compare={ left_edit.create_comparison_with(&right_edit).unwrap_throw() }
                 show_equal_rows={ true }
                 on_close={ ctx.props().on_close.clone() }
-                on_submit={ ctx.link().callback(|v| Msg::OnSubmitCompare(BookEdit::create_from_comparison(v).unwrap_throw())) }
+                on_submit={ ctx.link().callback(|v| Msg::OnSelectItem(SearchSelectedValue::BookEdit(Box::new(BookEdit::create_from_comparison(v).unwrap_throw())))) }
             />
         }
     }
 
-    fn render_poster_container(site: &str, item: &SearchItem, ctx: &Context<Self>) -> Html {
+    fn render_ext_search_container(site: &str, item: &SearchItem, ctx: &Context<Self>) -> Html {
         let item = item.as_book();
 
         let source = item.source.clone();
@@ -275,7 +337,7 @@ impl PopupSearch {
         html! {
             <div
                 class="book-search-item"
-                onclick={ ctx.link().callback(move |_| Msg::OnSelectItem(source.clone())) }
+                onclick={ ctx.link().callback(move |_| Msg::OnSelectItem(SearchSelectedValue::Source(source.clone()))) }
             >
                 <img src={ item.thumbnail_url.to_string() } />
                 <div class="book-info">
@@ -288,6 +350,56 @@ impl PopupSearch {
                     </p>
                 </div>
             </div>
+        }
+    }
+
+    fn render_loc_search_container(item: &DisplayItem, ctx: &Context<Self>) -> Html {
+        let book_id = item.id;
+
+        html! {
+            <div
+                class="book-search-item"
+                onclick={ ctx.link().callback(move |_| Msg::OnSelectItem(SearchSelectedValue::BookId(book_id))) }
+            >
+                <img src={ item.get_thumb_url() } />
+                <div class="book-info">
+                    <h4 class="book-name">{ item.title.clone() }</h4>
+                    <span class="book-author">{ item.cached.author.clone().unwrap_or_default() }</span>
+                </div>
+            </div>
+        }
+    }
+}
+
+
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum SearchBy {
+    External,
+    Local,
+}
+
+
+#[derive(PartialEq)]
+pub enum SearchSelectedValue {
+    Source(Source),
+    BookEdit(Box<BookEdit>),
+    BookId(BookId)
+}
+
+impl SearchSelectedValue {
+    pub fn into_external(self) -> Either<Source, BookEdit> {
+        match self {
+            Self::Source(v) => Either::Left(v),
+            Self::BookEdit(v) => Either::Right(*v),
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn into_local(self) -> BookId {
+        match self {
+            Self::BookId(v) => v,
+            _ => unreachable!(),
         }
     }
 }

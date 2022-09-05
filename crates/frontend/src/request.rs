@@ -40,12 +40,12 @@ pub async fn get_collection_list(query: Option<&str>, offset: Option<usize>, lim
 }
 
 
-pub async fn update_collection(id: CollectionId, value: &UpdateCollectionModel) {
-    let _: Option<String> = fetch(
+pub async fn update_collection(id: CollectionId, value: &UpdateCollectionModel) -> WrappingResponse<String> {
+    fetch(
         "POST",
         &format!("/api/v1/collection/{}", id),
         Some(value)
-    ).await.ok();
+    ).await.unwrap_or_else(def)
 }
 
 pub async fn get_collection(path: &str) -> WrappingResponse<GetCollectionResponse> {
@@ -61,6 +61,14 @@ pub async fn create_collection(value: NewCollectionBody) -> WrappingResponse<Get
         "POST",
         "/api/v1/collection",
         Some(&value),
+    ).await.unwrap_or_else(def)
+}
+
+pub async fn get_collection_books(path: &str) -> WrappingResponse<GetBookListResponse> {
+    fetch(
+        "GET",
+        &format!("/api/v1/collection/{}/books", path),
+        Option::<&()>::None
     ).await.unwrap_or_else(def)
 }
 

@@ -32,6 +32,7 @@ pub fn api_route() -> Scope<
         // Collection
         .service(collection::get_collection_list)
         .service(collection::get_collection_by_id)
+        .service(collection::get_collection_books_by_id)
         .service(collection::update_collection_by_id)
         .service(collection::create_new_collection)
 

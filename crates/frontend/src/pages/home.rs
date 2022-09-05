@@ -7,7 +7,7 @@ use web_sys::{HtmlElement, UrlSearchParams, HtmlInputElement};
 use yew::prelude::*;
 use yew_router::prelude::Link;
 
-use crate::{Route, request, components::{LoginBarrier, MassSelectBar, PopupSearch}, get_member_self};
+use crate::{Route, request, components::{LoginBarrier, MassSelectBar, PopupSearch, popup::search::{SearchBy, SearchSelectedValue}}, get_member_self};
 
 
 #[derive(Clone)]
@@ -186,11 +186,12 @@ impl Component for HomePage {
                                 html! {
                                     <PopupSearch
                                         {input_value}
+                                        type_of={ SearchBy::External }
                                         comparable=true
                                         search_for={ SearchType::Book }
                                         on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
-                                        on_select={ ctx.link().callback_future(|value| async {
-                                            request::new_book(NewBookBody::Value(Box::new(value))).await;
+                                        on_select={ ctx.link().callback_future(|value: SearchSelectedValue| async {
+                                            request::new_book(NewBookBody::Value(Box::new(value.into_external()))).await;
 
                                             Msg::Ignore
                                         }) }

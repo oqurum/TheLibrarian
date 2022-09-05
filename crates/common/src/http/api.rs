@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use common::{TagId, BookTagId, Either, ImageId, Source, PersonId, api::QueryListResponse, ImageIdType};
+use common::{TagId, BookTagId, Either, ImageId, Source, PersonId, api::QueryListResponse, ImageIdType, BookId};
 use serde::{Serialize, Deserialize};
 
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
     Result, TagFE, BookTag, TagType,
     MetadataItemCached,
     item::edit::{SharedEditModel, SharedEditVoteModel, BookEdit, NewOrCachedImage}, SharedConfig,
-    des_if_opt_str_not_empty, CollectionType, Collection, CollectionItemId,
+    des_if_opt_str_not_empty, CollectionType, Collection,
 };
 
 
@@ -49,7 +49,7 @@ pub struct UpdateCollectionModel {
     pub name: Option<String>,
     pub description: Option<Option<String>>,
 
-    pub items: Option<Vec<CollectionItemId>>,
+    pub added_books: Option<Vec<BookId>>,
 }
 
 

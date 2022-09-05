@@ -1,6 +1,6 @@
 use actix_web::{get, post, web};
 use common::api::WrappingResponse;
-use common_local::{api, util::parse_num_description_string, CollectionId};
+use common_local::{api, util::parse_num_description_string, CollectionId, DisplayItem};
 
 use crate::{WebResult, http::{JsonResponse, MemberCookie}, Database, model::{CollectionModel, NewCollectionModel}};
 
@@ -37,6 +37,28 @@ async fn update_collection_by_id(
 
     Ok(web::Json(WrappingResponse::okay("ok")))
 }
+
+
+#[get("/collection/{id}/books")]
+async fn get_collection_books_by_id(
+    coll_id: web::Path<String>,
+    db: web::Data<Database>
+) -> WebResult<JsonResponse<api::GetBookListResponse>> {
+    let coll_id = parse_num_description_string::<CollectionId>(&coll_id).map_err(crate::Error::from)?;
+
+    let books = CollectionModel::find_books_by_id(coll_id, &db).await?;
+
+    Ok(web::Json(WrappingResponse::okay(api::GetBookListResponse {
+        count: books.len(),
+        items: books.into_iter().map(|meta| DisplayItem {
+            id: meta.id,
+            title: meta.title.or(meta.clean_title).unwrap_or_default(),
+            cached: meta.cached,
+            has_thumbnail: meta.thumb_path.is_some()
+        }).collect(),
+    })))
+}
+
 
 
 #[get("/collections")]

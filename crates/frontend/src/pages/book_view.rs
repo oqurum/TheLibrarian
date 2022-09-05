@@ -14,7 +14,7 @@ use web_sys::{HtmlInputElement, HtmlTextAreaElement, HtmlSelectElement};
 use yew::{prelude::*, html::Scope};
 
 use crate::{
-    components::{LoginBarrier, PopupEditMetadata, PopupSearch},
+    components::{LoginBarrier, PopupEditMetadata, PopupSearch, popup::search::{SearchBy, SearchSelectedValue}},
     request
 };
 
@@ -668,11 +668,12 @@ impl BookView {
                                     html! {
                                         <PopupSearch
                                             {input_value}
+                                            type_of={ SearchBy::External }
                                             search_for={ SearchType::Book }
                                             on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
-                                            on_select={ ctx.link().callback_future(|value| async {
+                                            on_select={ ctx.link().callback_future(|value: SearchSelectedValue| async {
                                                 Msg::ShowPopup(DisplayOverlay::EditFromMetadata(
-                                                    match value {
+                                                    match value.into_external() {
                                                         Either::Left(source) => {
                                                             let resp = request::get_external_source_item(source).await.ok().unwrap_throw();
 
@@ -896,11 +897,12 @@ impl BookView {
                                     html! {
                                         <PopupSearch
                                             {input_value}
+                                            type_of={ SearchBy::External }
                                             search_for={ SearchType::Book }
                                             on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
-                                            on_select={ ctx.link().callback_future(|value| async {
+                                            on_select={ ctx.link().callback_future(|value: SearchSelectedValue| async {
                                                 Msg::ShowPopup(DisplayOverlay::EditFromMetadata(
-                                                    match value {
+                                                    match value.into_external() {
                                                         Either::Left(source) => {
                                                             let resp = request::get_external_source_item(source).await.ok().unwrap_throw();
 

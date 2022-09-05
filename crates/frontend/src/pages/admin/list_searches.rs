@@ -3,7 +3,7 @@ use common_local::{SearchGroup, SearchType, SearchGroupId, api::{PostUpdateSearc
 use gloo_utils::window;
 use yew::{prelude::*, html::Scope};
 
-use crate::{components::popup::search::PopupSearch, request};
+use crate::{components::popup::search::{PopupSearch, SearchBy, SearchSelectedValue}, request};
 
 
 #[derive(Clone)]
@@ -114,14 +114,15 @@ impl Component for ListSearchesPage {
                             html! {
                                 <PopupSearch
                                     { input_value }
+                                    type_of={ SearchBy::External }
                                     search_for={ SearchType::Book }
                                     comparable=false
                                     search_on_init=true
 
                                     on_close={ ctx.link().callback(|_| Msg::CloseSearch) }
-                                    on_select={ ctx.link().callback_future(move |v| async move {
+                                    on_select={ ctx.link().callback_future(move |v: SearchSelectedValue| async move {
                                         // TODO: Handle Errors and responses
-                                        if let WrappingResponse::Resp(Some(book)) = request::new_book(NewBookBody::Value(Box::new(v))).await {
+                                        if let WrappingResponse::Resp(Some(book)) = request::new_book(NewBookBody::Value(Box::new(v.into_external()))).await {
                                             request::update_search_item(
                                                 id,
                                                 PostUpdateSearchIdBody {

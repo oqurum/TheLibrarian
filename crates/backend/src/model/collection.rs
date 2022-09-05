@@ -5,7 +5,7 @@ use rusqlite::{params, OptionalExtension, ToSql};
 
 use crate::{Database, Result};
 
-use super::{AdvRow, TableRow};
+use super::{AdvRow, TableRow, BookModel, CollectionItemModel};
 
 pub struct NewCollectionModel {
     pub name: String,
@@ -62,6 +62,16 @@ impl CollectionModel {
         ).optional()?)
     }
 
+    pub async fn find_books_by_id(id: CollectionId, db: &Database) -> Result<Vec<BookModel>> {
+        let this = db.read().await;
+
+        let mut conn = this.prepare("SELECT * FROM book WHERE id IN (SELECT book_id FROM collection_item WHERE collection_id = ?1)")?;
+
+        let map = conn.query_map([id], |v| BookModel::from_row(v))?;
+
+        Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+    }
+
     pub async fn get_all(db: &Database) -> Result<Vec<Self>> {
         let this = db.read().await;
 
@@ -72,11 +82,11 @@ impl CollectionModel {
         Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
     }
 
-    pub async fn update_by_id(id: CollectionId, edit: UpdateCollectionModel, db: &Database) -> Result<usize> {
+    pub async fn update_by_id(collection_id: CollectionId, edit: UpdateCollectionModel, db: &Database) -> Result<usize> {
         let mut items = Vec::new();
         // We have to Box because DateTime doesn't return a borrow.
         let mut values = vec![
-            &id as &dyn rusqlite::ToSql
+            &collection_id as &dyn rusqlite::ToSql
         ];
 
         if let Some(value) = edit.name.as_ref() {
@@ -89,7 +99,18 @@ impl CollectionModel {
             values.push(value as &dyn rusqlite::ToSql);
         }
 
-        // if let Some(value) = edit.items {}
+        if let Some(items) = edit.added_books {
+            let count = CollectionItemModel::count_by_collection_id(collection_id, db).await?;
+
+            // TODO: Single Query.
+            for (idx, book_id) in items.into_iter().enumerate() {
+                CollectionItemModel {
+                    collection_id,
+                    book_id,
+                    index: count + idx,
+                }.insert(db).await?;
+            }
+        }
 
         if items.is_empty() {
             return Ok(0);

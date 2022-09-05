@@ -353,6 +353,20 @@ pub async fn init() -> Result<Database> {
     )?;
 
 
+    // Collection Item
+    conn.execute(
+        r#"CREATE TABLE IF NOT EXISTS "collection_item" (
+            "collection_id"  INTEGER NOT NULL,
+            "book_id"  INTEGER NOT NULL,
+
+            "idx"  INTEGER NOT NULL,
+
+            UNIQUE("collection_id", "book_id")
+        );"#,
+        []
+    )?;
+
+
     // TODO: Tables
     // Queued External Metadata Searches (prevent continuous searching)
     // Fingerprints

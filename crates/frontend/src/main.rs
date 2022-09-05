@@ -174,8 +174,8 @@ fn switch(route: &Route) -> Html {
             html! { <pages::ListCollectionsPage /> }
         }
 
-        Route::Collection { .. } => {
-            html! {  }
+        Route::Collection { path } => {
+            html! { <pages::CollectionView {path} /> }
         }
 
         Route::ViewMeta { meta_id } => {
