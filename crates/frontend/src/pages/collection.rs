@@ -89,7 +89,7 @@ impl Component for CollectionView {
                             <h2>{ "Books" }</h2>
                             <div class="books-container">
                                 <div class="book-list normal horizontal">
-                                    <div class="add-book" title="Add Book" onclick={ ctx.link().callback(|_| Msg::ToggleBookSearch) }>
+                                    <div class="book-list-item new-container" title="Add Book" onclick={ ctx.link().callback(|_| Msg::ToggleBookSearch) }>
                                         <span class="material-icons">{ "add" }</span>
                                     </div>
                                     {

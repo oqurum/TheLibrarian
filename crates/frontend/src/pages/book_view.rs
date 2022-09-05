@@ -520,7 +520,7 @@ impl BookView {
                                             <h2>{ "Posters" }</h2>
                                             <div class="posters-container">
                                                 <UploadModule
-                                                    class="add-poster"
+                                                    class="poster new-container"
                                                     title="Add Poster"
                                                     upload_url={ format!("/api/v1/posters/{}/upload", ImageIdType::new_book(ctx.props().id)) }
                                                     on_upload={ctx.link().callback(|_| Msg::ReloadPosters)}

@@ -286,7 +286,7 @@ impl Component for AuthorView {
                                                 <h2>{ "Posters" }</h2>
                                                 <div class="posters-container">
                                                     <UploadModule
-                                                        class="add-poster"
+                                                        class="poster new-container"
                                                         title="Add Poster"
                                                         upload_url={ format!("/api/v1/posters/{}/upload", ImageIdType::new_person(ctx.props().id)) }
                                                         on_upload={ctx.link().callback(|_| Msg::UpdatedPoster)}
@@ -347,7 +347,7 @@ impl Component for AuthorView {
                             <h2>{ "Books" }</h2>
                             <div class="books-container">
                                 <div class="book-list normal horizontal">
-                                    // <div class="add-book" title="Add Book">
+                                    // <div class="book-list-item new-container" title="Add Book">
                                     //     <span class="material-icons">{ "add" }</span>
                                     // </div>
                                     {
