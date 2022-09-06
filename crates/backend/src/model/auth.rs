@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use tokio_postgres::Client;
 
 
-use crate::{Result};
+use crate::Result;
 
 
 pub struct AuthModel {
@@ -18,7 +18,7 @@ impl AuthModel {
             params![
                 &self.oauth_token,
                 &self.oauth_token_secret,
-                self.created_at.timestamp_millis()
+                self.created_at
             ],
         ).await?;
 

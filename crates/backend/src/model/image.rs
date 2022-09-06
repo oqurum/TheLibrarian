@@ -1,6 +1,6 @@
 use common_local::util::serialize_datetime;
 use common::{ThumbnailStore, ImageId, BookId, PersonId, ImageType};
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 
 use crate::{Result};
@@ -57,7 +57,7 @@ impl TableRow for ImageWithLink {
             link_id: row.next::<i64>()? as usize,
             type_of: ImageType::from_number(row.next::<i16>()? as u8).unwrap(),
             path: ThumbnailStore::from(row.next::<String>()?),
-            created_at: Utc.timestamp_millis(row.next()?),
+            created_at: row.next()?,
         })
     }
 }
@@ -69,7 +69,7 @@ impl TableRow for UploadedImageModel {
         Ok(Self {
             id: ImageId::from(row.next::<i64>()? as usize),
             path: ThumbnailStore::from(row.next::<String>()?),
-            created_at: Utc.timestamp_millis(row.next()?),
+            created_at: row.next()?,
         })
     }
 }
@@ -104,7 +104,7 @@ impl NewUploadedImageModel {
             "INSERT OR IGNORE INTO uploaded_image (path, created_at) VALUES ($1, $2)",
             params![
                 self.path.as_value(),
-                self.created_at.timestamp_millis()
+                self.created_at
             ]
         ).await?;
 

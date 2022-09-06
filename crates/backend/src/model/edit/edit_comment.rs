@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc, TimeZone};
+use chrono::{DateTime, Utc};
 use common::MemberId;
 use common_local::{EditId, EditCommentId};
 use tokio_postgres::Client;
@@ -43,7 +43,7 @@ impl TableRow for EditCommentModel {
             text: row.next()?,
             deleted: row.next()?,
 
-            created_at: Utc.timestamp_millis(row.next()?),
+            created_at: row.next()?,
         })
     }
 }
@@ -71,7 +71,7 @@ impl NewEditCommentModel {
             params![
                 self.edit_id, *self.member_id as i64,
                 self.text, self.deleted,
-                self.created_at.timestamp_millis(),
+                self.created_at,
             ]
         ).await?;
 

@@ -1,5 +1,5 @@
 use common::{BookId, TagId, BookTagId};
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Utc};
 use common_local::BookTag;
 use tokio_postgres::Client;
 
@@ -29,7 +29,7 @@ impl TableRow for BookTagModel {
 
             index: row.next::<i64>()? as usize,
 
-            created_at: Utc.timestamp_millis(row.next()?),
+            created_at: row.next()?,
         })
     }
 }
@@ -56,7 +56,7 @@ impl TableRow for BookTagWithTagModel {
             book_id: BookId::from(row.next::<i64>()? as usize),
             index: row.next::<i64>()? as usize,
 
-            created_at: Utc.timestamp_millis(row.next()?),
+            created_at: row.next()?,
 
             tag: TagModel::create(row)?
         })
@@ -112,7 +112,7 @@ impl BookTagModel {
                 *book_id as i64,
                 *tag_id as i64,
                 index as i64,
-                created_at.timestamp_millis(),
+                created_at,
             ]
         ).await?;
 

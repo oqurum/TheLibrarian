@@ -58,8 +58,8 @@ impl TableRow for MemberModel {
             email: row.next()?,
             password: row.next()?,
             permissions: row.next()?,
-            created_at: Utc.timestamp_millis(row.next()?),
-            updated_at: Utc.timestamp_millis(row.next()?),
+            created_at: row.next()?,
+            updated_at: row.next()?,
         })
     }
 }
@@ -85,7 +85,7 @@ impl NewMemberModel {
             "INSERT INTO member (name, email, password, permissions, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
             params![
                 &self.name, self.email.as_ref(), self.password.as_ref(), self.permissions,
-                self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
+                self.created_at, self.updated_at
             ]
         ).await?;
 

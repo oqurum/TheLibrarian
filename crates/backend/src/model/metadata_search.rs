@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use chrono::{DateTime, Utc, TimeZone};
+use chrono::{DateTime, Utc};
 use common_local::{MetadataSearchId, util::serialize_datetime, MetadataSearchType};
 use num_enum::{FromPrimitive, IntoPrimitive};
 use serde::{Serialize, Deserialize};
@@ -49,8 +49,8 @@ impl TableRow for MetadataSearchModel {
             last_found_amount: row.next::<i64>()? as usize,
             data: row.next()?,
 
-            created_at: Utc.timestamp_millis(row.next()?),
-            updated_at: Utc.timestamp_millis(row.next()?),
+            created_at: row.next()?,
+            updated_at: row.next()?,
         })
     }
 }
@@ -79,7 +79,7 @@ impl NewMetadataSearchModel {
                 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"#,
             params![
                 &self.query, self.agent, u8::from(self.type_of) as i64, self.last_found_amount as i64, &data,
-                self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
+                self.created_at, self.updated_at
             ]
         ).await?;
 
@@ -133,7 +133,7 @@ impl MetadataSearchModel {
             params![
                 self.id,
                 &self.query, self.agent, u8::from(self.type_of) as i16, self.last_found_amount as i64, self.data,
-                self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
+                self.created_at, self.updated_at
             ]
         ).await?)
     }

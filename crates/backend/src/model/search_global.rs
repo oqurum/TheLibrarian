@@ -52,8 +52,8 @@ impl TableRow for SearchGroupModel {
 
             found_id: row.next::<Option<String>>()?.map(|v| ImageIdType::from_str(&v)).transpose()?,
 
-            created_at: Utc.timestamp_millis(row.next()?),
-            updated_at: Utc.timestamp_millis(row.next()?),
+            created_at: row.next()?,
+            updated_at: row.next()?,
         })
     }
 }
@@ -81,7 +81,7 @@ impl NewSearchGroupModel {
             "INSERT INTO search_group (query, calls, last_found_amount, timeframe, found_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
             params![
                 &self.query, self.calls as i64, self.last_found_amount as i64, self.timeframe, self.found_id.as_ref().map(|v| v.to_string()),
-                self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
+                self.created_at, self.updated_at
             ]
         ).await?;
 
@@ -133,14 +133,14 @@ impl SearchGroupModel {
     pub async fn increment_one_by_id(id: SearchGroupId, last_found_amount: usize, db: &Client) -> Result<u64> {
         Ok(db.execute(
             "UPDATE search_group SET calls = calls + 1, updated_at = $2, last_found_amount = $3 WHERE id = $1",
-            params![ id, Utc::now().timestamp_millis(), last_found_amount as i64 ],
+            params![ id, Utc::now(), last_found_amount as i64 ],
         ).await?)
     }
 
     pub async fn update_found_id(id: SearchGroupId, value: Option<ImageIdType>, db: &Client) -> Result<u64> {
         Ok(db.execute(
             "UPDATE search_group SET updated_at = $2, found_id = $3 WHERE id = $1",
-            params![ id, Utc::now().timestamp_millis(), value.map(|v| v.to_string()) ],
+            params![ id, Utc::now(), value.map(|v| v.to_string()) ],
         ).await?)
     }
 
@@ -171,7 +171,7 @@ impl SearchGroupModel {
             params![
                 self.id,
                 &self.query, self.calls as i64, self.last_found_amount as i64, self.timeframe, self.found_id.as_ref().map(|v| v.to_string()),
-                self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
+                self.created_at, self.updated_at
             ]
         ).await?)
     }

@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc, TimeZone};
+use chrono::{DateTime, Utc};
 use common::MemberId;
 use common_local::{ServerLinkId, util::serialize_datetime};
 use serde::Serialize;
@@ -53,8 +53,8 @@ impl TableRow for ServerLinkModel {
             member_id: MemberId::from(row.next::<i64>()? as usize),
             verified: row.next()?,
 
-            created_at: Utc.timestamp_millis(row.next()?),
-            updated_at: Utc.timestamp_millis(row.next()?),
+            created_at: row.next()?,
+            updated_at: row.next()?,
         })
     }
 }
@@ -68,7 +68,7 @@ impl NewServerLinkModel {
         "#,
         params![
             self.server_owner_name.as_ref(), self.server_name.as_ref(), &self.server_id, &self.public_id, *self.member_id as i64, self.verified,
-            self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
+            self.created_at, self.updated_at
         ]).await?;
 
         Ok(ServerLinkModel {
@@ -133,7 +133,7 @@ impl ServerLinkModel {
             params![
                 self.id,
                 self.server_owner_name.as_ref(), self.server_name.as_ref(), &self.server_id, &self.public_id, *self.member_id as i64, self.verified,
-                self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
+                self.created_at, self.updated_at
             ]
         ).await?)
     }

@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc, TimeZone, Duration};
+use chrono::{DateTime, Utc, Duration};
 use common::{BookId, PersonId, TagId, MemberId};
 use common_local::{edit::*, EditId, item::edit::*};
 
@@ -81,11 +81,11 @@ impl TableRow for EditModel {
 
             data: row.next()?,
 
-            ended_at: row.next_opt()?.map(|v| Utc.timestamp_millis(v)),
-            expires_at: row.next_opt()?.map(|v| Utc.timestamp_millis(v)),
+            ended_at: row.next_opt()?,
+            expires_at: row.next_opt()?,
 
-            created_at: Utc.timestamp_millis(row.next()?),
-            updated_at: Utc.timestamp_millis(row.next()?),
+            created_at: row.next()?,
+            updated_at: row.next()?,
         })
     }
 }
@@ -122,8 +122,8 @@ impl NewEditModel {
             params![
                 self.type_of, self.operation, self.status,
                 *self.member_id as i64, self.model_id.map(|v| v as i64), self.is_applied, self.vote_count as i64, &self.data,
-                self.ended_at.map(|v| v.timestamp_millis()), self.expires_at.map(|v| v.timestamp_millis()),
-                self.created_at.timestamp_millis(), self.updated_at.timestamp_millis(),
+                self.ended_at, self.expires_at,
+                self.created_at, self.updated_at,
             ]
         ).await?;
 
@@ -230,12 +230,12 @@ impl EditModel {
 
         if let Some(value) = edit.ended_at {
             items.push("ended_at");
-            values.push(Box::new(value.map(|v| v.timestamp_millis())) as Box<dyn tokio_postgres::types::ToSql + Sync>);
+            values.push(Box::new(value) as Box<dyn tokio_postgres::types::ToSql + Sync>);
         }
 
         if let Some(value) = edit.expires_at {
             items.push("expires_at");
-            values.push(Box::new(value.map(|v| v.timestamp_millis())) as Box<dyn tokio_postgres::types::ToSql + Sync>);
+            values.push(Box::new(value) as Box<dyn tokio_postgres::types::ToSql + Sync>);
         }
 
 
@@ -287,12 +287,12 @@ impl EditModel {
 
             db.execute(
                 "UPDATE edit SET data = $2, status = $3, ended_at = $4 WHERE id = $1",
-                params![ self.id, &self.data, self.status, self.ended_at.map(|v| v.timestamp_millis()) ]
+                params![ self.id, &self.data, self.status, self.ended_at ]
             ).await?;
         } else {
             db.execute(
                 "UPDATE edit SET status = $2, ended_at = $3 WHERE id = $1",
-                params![ self.id, self.status, self.ended_at.map(|v| v.timestamp_millis()) ]
+                params![ self.id, self.status, self.ended_at ]
             ).await?;
         }
 

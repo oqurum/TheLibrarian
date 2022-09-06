@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use chrono::{DateTime, Utc, TimeZone};
+use chrono::{DateTime, Utc};
 use common_local::{ServerLinkId, SearchItemId, util::serialize_datetime};
 use serde::Serialize;
 
@@ -44,8 +44,8 @@ impl TableRow for SearchItemServerModel {
             query: row.next()?,
             calls: row.next::<i64>()? as usize,
 
-            created_at: Utc.timestamp_millis(row.next()?),
-            updated_at: Utc.timestamp_millis(row.next()?),
+            created_at: row.next()?,
+            updated_at: row.next()?,
         })
     }
 }
@@ -69,7 +69,7 @@ impl NewSearchItemServerModel {
             "INSERT INTO search_item (server_link_id, query, calls, created_at, updated_at) VALUES ($1, $2, $3, $4, $5) RETURNING id",
             params![
                 &self.server_link_id, &self.query, self.calls as i64,
-                self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
+                self.created_at, self.updated_at
             ]
         ).await?;
 
@@ -114,7 +114,7 @@ impl SearchItemServerModel {
     pub async fn increment_one_by_id(id: SearchItemId, db: &tokio_postgres::Client) -> Result<u64> {
         Ok(db.execute(
             r#"UPDATE search_item SET calls = calls + 1, updated_at = $2 WHERE id = $1"#,
-            params![ id, Utc::now().timestamp_millis() ],
+            params![ id, Utc::now() ],
         ).await?)
     }
 
@@ -130,7 +130,7 @@ impl SearchItemServerModel {
             params![
                 self.id,
                 &self.server_link_id, &self.query, self.calls as i64,
-                self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
+                self.created_at, self.updated_at
             ]
         ).await?)
     }

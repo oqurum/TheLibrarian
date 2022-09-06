@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc, TimeZone};
+use chrono::{DateTime, Utc};
 use common::MemberId;
 use common_local::{EditId, item::edit::SharedEditVoteModel, EditVoteId};
 use tokio_postgres::Client;
@@ -40,7 +40,7 @@ impl TableRow for EditVoteModel {
 
             vote: row.next()?,
 
-            created_at: Utc.timestamp_millis(row.next()?),
+            created_at: row.next()?,
         })
     }
 }
@@ -76,7 +76,7 @@ impl NewEditVoteModel {
                 self.edit_id,
                 *self.member_id as i64,
                 self.vote,
-                self.created_at.timestamp_millis(),
+                self.created_at,
             ]
         ).await?;
 

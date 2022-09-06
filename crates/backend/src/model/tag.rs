@@ -1,5 +1,5 @@
 use common_local::{TagType, TagFE};
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Utc};
 use common::TagId;
 
 use crate::Result;
@@ -29,8 +29,8 @@ impl TableRow for TagModel {
             id: TagId::from(row.next::<i64>()? as usize),
             name: row.next()?,
             type_of: TagType::from_u8(row.next::<i8>()? as u8, row.next()?),
-            created_at: Utc.timestamp_millis(row.next()?),
-            updated_at: Utc.timestamp_millis(row.next()?),
+            created_at: row.next()?,
+            updated_at: row.next()?,
         })
     }
 }
@@ -81,8 +81,8 @@ impl NewTagModel {
             &self.name,
             type_of as i16,
             data,
-            now.timestamp_millis(),
-            now.timestamp_millis()
+            now,
+            now
         ]).await?;
 
         Ok(TagModel {

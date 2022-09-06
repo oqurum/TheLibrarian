@@ -1,6 +1,6 @@
 use common::BookId;
 use common_local::{CollectionType, CollectionId, Collection, api::UpdateCollectionModel};
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Utc};
 use tokio_postgres::types::ToSql;
 
 use crate::Result;
@@ -47,8 +47,8 @@ impl TableRow for CollectionModel {
             name: row.next()?,
             description: row.next()?,
             type_of: CollectionType::from(row.next::<i16>()? as u8),
-            created_at: Utc.timestamp_millis(row.next()?),
-            updated_at: Utc.timestamp_millis(row.next()?),
+            created_at: row.next()?,
+            updated_at: row.next()?,
         })
     }
 }
@@ -231,8 +231,8 @@ impl NewCollectionModel {
                 &self.name,
                 &self.description,
                 u8::from(self.type_of) as i16,
-                now.timestamp_millis(),
-                now.timestamp_millis()
+                now,
+                now
             ]
         ).await?;
 

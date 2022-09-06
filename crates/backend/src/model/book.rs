@@ -1,5 +1,5 @@
 use common_local::{MetadataItemCached, DisplayMetaItem, util::{serialize_datetime, serialize_datetime_opt}, search::PublicBook};
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Utc};
 use common::{ThumbnailStore, BookId, PersonId};
 use serde::Serialize;
 use tokio_postgres::types::ToSql;
@@ -59,9 +59,9 @@ impl TableRow for BookModel {
             edition_count: row.next::<i64>()? as usize,
             available_at: row.next()?,
             language: row.next::<Option<i32>>()?.map(|v| v as u16),
-            created_at: Utc.timestamp_millis(row.next()?),
-            updated_at: Utc.timestamp_millis(row.next()?),
-            deleted_at: row.next_opt()?.map(|v| Utc.timestamp_millis(v)),
+            created_at: row.next()?,
+            updated_at: row.next()?,
+            deleted_at: row.next_opt()?,
         })
     }
 }
@@ -171,8 +171,8 @@ impl BookModel {
                     &self.cached.as_string_optional(), self.is_public, self.edition_count as i64,
                     &self.isbn_10, &self.isbn_13,
                     &self.available_at, self.language.map(|v| v as i32),
-                    self.created_at.timestamp_millis(), self.updated_at.timestamp_millis(),
-                    self.deleted_at.as_ref().map(|v| v.timestamp_millis()),
+                    self.created_at, self.updated_at,
+                    self.deleted_at,
                 ]
             ).await?;
 
@@ -199,7 +199,7 @@ impl BookModel {
                 &self.cached.as_string_optional(), self.is_public,
                 &self.isbn_10, &self.isbn_13,
                 &self.available_at, &self.language.map(|v| v as i32),
-                &self.updated_at.timestamp_millis(), self.deleted_at.as_ref().map(|v| v.timestamp_millis()),
+                &self.updated_at, self.deleted_at,
             ]
         ).await?;
 
