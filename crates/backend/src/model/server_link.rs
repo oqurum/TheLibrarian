@@ -1,12 +1,11 @@
 use chrono::{DateTime, Utc, TimeZone};
 use common::MemberId;
 use common_local::{ServerLinkId, util::serialize_datetime};
-use rusqlite::{params, OptionalExtension};
 use serde::Serialize;
 
-use crate::{Database, Result};
+use crate::Result;
 
-use super::{TableRow, AdvRow};
+use super::{TableRow, AdvRow, row_to_usize};
 
 
 #[derive(Debug)]
@@ -41,8 +40,8 @@ pub struct ServerLinkModel {
     pub updated_at: DateTime<Utc>,
 }
 
-impl TableRow<'_> for ServerLinkModel {
-    fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
+impl TableRow for ServerLinkModel {
+    fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
             id: row.next()?,
 
@@ -51,7 +50,7 @@ impl TableRow<'_> for ServerLinkModel {
             server_id: row.next()?,
             public_id: row.next()?,
 
-            member_id: row.next()?,
+            member_id: MemberId::from(row.next::<i64>()? as usize),
             verified: row.next()?,
 
             created_at: Utc.timestamp_millis(row.next()?),
@@ -62,20 +61,18 @@ impl TableRow<'_> for ServerLinkModel {
 
 
 impl NewServerLinkModel {
-    pub async fn insert(self, db: &Database) -> Result<ServerLinkModel> {
-        let conn = db.write().await;
-
-        conn.execute(r#"
+    pub async fn insert(self, db: &tokio_postgres::Client) -> Result<ServerLinkModel> {
+        let row = db.query_one(r#"
             INSERT INTO server_link (server_owner_name, server_name, server_id, public_id, member_id, verified, created_at, updated_at)
             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
         "#,
         params![
-            self.server_owner_name.as_ref(), self.server_name.as_ref(), &self.server_id, &self.public_id, self.member_id, self.verified,
+            self.server_owner_name.as_ref(), self.server_name.as_ref(), &self.server_id, &self.public_id, *self.member_id as i64, self.verified,
             self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
-        ])?;
+        ]).await?;
 
         Ok(ServerLinkModel {
-            id: ServerLinkId::from(conn.last_insert_rowid() as usize),
+            id: ServerLinkId::from(row_to_usize(row)?),
 
             server_owner_name: self.server_owner_name,
             server_name: self.server_name,
@@ -92,42 +89,37 @@ impl NewServerLinkModel {
 }
 
 impl ServerLinkModel {
-    pub async fn get_by_server_id(value: &str, db: &Database) -> Result<Option<Self>> {
-        Ok(db.read().await.query_row(
+    pub async fn get_by_server_id(value: &str, db: &tokio_postgres::Client) -> Result<Option<Self>> {
+        db.query_opt(
             r#"SELECT * FROM server_link WHERE server_id = ?1"#,
-            [value],
-            |v| Self::from_row(v)
-        ).optional()?)
+            params![ value ],
+        ).await?.map(Self::from_row).transpose()
     }
 
-    pub async fn does_exist_by_server_id(value: &str, db: &Database) -> Result<bool> {
-        Ok(db.read().await.query_row(
+    pub async fn does_exist_by_server_id(value: &str, db: &tokio_postgres::Client) -> Result<bool> {
+        Ok(row_to_usize(db.query_one(
             "SELECT EXISTS(SELECT id FROM server_link WHERE server_id = ?1)",
-            [ value ],
-            |v| Ok(v.get::<_, usize>(0)? != 0)
-        )?)
+            params![ value ],
+        ).await?)? != 0)
     }
 
-    pub async fn get_by_public_id(value: &str, db: &Database) -> Result<Option<Self>> {
-        Ok(db.read().await.query_row(
+    pub async fn get_by_public_id(value: &str, db: &tokio_postgres::Client) -> Result<Option<Self>> {
+        db.query_opt(
             r#"SELECT * FROM server_link WHERE public_id = ?1"#,
-            [value],
-            |v| Self::from_row(v)
-        ).optional()?)
+            params![ value ],
+        ).await?.map(Self::from_row).transpose()
     }
 
-    pub async fn get_by_id(id: MemberId, db: &Database) -> Result<Option<Self>> {
-        Ok(db.read().await.query_row(
+    pub async fn get_by_id(id: MemberId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
+        db.query_opt(
             r#"SELECT * FROM server_link WHERE id = ?1"#,
-            [id],
-            |v| Self::from_row(v)
-        ).optional()?)
+            params![ *id as i64 ],
+        ).await?.map(Self::from_row).transpose()
     }
 
 
-    pub async fn update(&self, db: &Database) -> Result<usize> {
-        Ok(db.write().await
-        .execute(r#"
+    pub async fn update(&self, db: &tokio_postgres::Client) -> Result<u64> {
+        Ok(db.execute(r#"
             UPDATE server_link SET
                 server_owner_name = ?2,
                 server_name = ?3,
@@ -140,9 +132,9 @@ impl ServerLinkModel {
             WHERE id = ?1"#,
             params![
                 self.id,
-                self.server_owner_name.as_ref(), self.server_name.as_ref(), &self.server_id, &self.public_id, self.member_id, self.verified,
+                self.server_owner_name.as_ref(), self.server_name.as_ref(), &self.server_id, &self.public_id, *self.member_id as i64, self.verified,
                 self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
             ]
-        )?)
+        ).await?)
     }
 }

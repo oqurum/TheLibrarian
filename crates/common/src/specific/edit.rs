@@ -1,9 +1,10 @@
-use num_enum::{IntoPrimitive, TryFromPrimitive};
+use std::error::Error;
 
-#[cfg(feature = "backend")]
-use rusqlite::{types::{ValueRef, FromSql, FromSqlResult, ToSqlOutput}, ToSql, Result};
+use num_enum::{IntoPrimitive, TryFromPrimitive};
 use serde::{Serialize, Deserialize};
 
+#[cfg(feature = "backend")]
+use tokio_postgres::types::{FromSql, ToSql, Type, private::BytesMut, IsNull, to_sql_checked};
 
 
 
@@ -91,51 +92,75 @@ impl EditType {
 
 
 #[cfg(feature = "backend")]
-impl FromSql for EditOperation {
-    #[inline]
-    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
-        Ok(Self::try_from(u8::column_result(value)?).unwrap())
+impl<'a> FromSql<'a> for EditOperation {
+    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        Ok(Self::try_from(i16::from_sql(ty, raw)? as u8).unwrap())
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <i16 as FromSql>::accepts(ty)
     }
 }
 
 #[cfg(feature = "backend")]
 impl ToSql for EditOperation {
-    #[inline]
-    fn to_sql(&self) -> Result<ToSqlOutput<'_>> {
-        Ok(ToSqlOutput::from(u8::from(*self)))
+    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
+        (u8::from(*self) as i16).to_sql(ty, out)
     }
+
+    fn accepts(ty: &Type) -> bool {
+        <i16 as ToSql>::accepts(ty)
+    }
+
+    to_sql_checked!();
 }
 
 
 #[cfg(feature = "backend")]
-impl FromSql for EditStatus {
-    #[inline]
-    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
-        Ok(Self::try_from(u8::column_result(value)?).unwrap())
+impl<'a> FromSql<'a> for EditStatus {
+    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        Ok(Self::try_from(i16::from_sql(ty, raw)? as u8).unwrap())
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <i16 as FromSql>::accepts(ty)
     }
 }
 
 #[cfg(feature = "backend")]
 impl ToSql for EditStatus {
-    #[inline]
-    fn to_sql(&self) -> Result<ToSqlOutput<'_>> {
-        Ok(ToSqlOutput::from(u8::from(*self)))
+    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
+        (u8::from(*self) as i16).to_sql(ty, out)
     }
+
+    fn accepts(ty: &Type) -> bool {
+        <i16 as ToSql>::accepts(ty)
+    }
+
+    to_sql_checked!();
 }
 
 
 #[cfg(feature = "backend")]
-impl FromSql for EditType {
-    #[inline]
-    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
-        Ok(Self::try_from(u8::column_result(value)?).unwrap())
+impl<'a> FromSql<'a> for EditType {
+    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        Ok(Self::try_from(i16::from_sql(ty, raw)? as u8).unwrap())
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <i16 as FromSql>::accepts(ty)
     }
 }
 
 #[cfg(feature = "backend")]
 impl ToSql for EditType {
-    #[inline]
-    fn to_sql(&self) -> Result<ToSqlOutput<'_>> {
-        Ok(ToSqlOutput::from(u8::from(*self)))
+    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
+        (u8::from(*self) as i16).to_sql(ty, out)
     }
+
+    fn accepts(ty: &Type) -> bool {
+        <i16 as ToSql>::accepts(ty)
+    }
+
+    to_sql_checked!();
 }

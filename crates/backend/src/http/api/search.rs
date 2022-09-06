@@ -2,7 +2,7 @@ use actix_web::{get, web, post};
 use common::api::{WrappingResponse, QueryListResponse};
 use common_local::{api, SearchGroup, SearchGroupId};
 
-use crate::{http::{MemberCookie, JsonResponse}, WebResult, model::SearchGroupModel, Database};
+use crate::{http::{MemberCookie, JsonResponse}, WebResult, model::SearchGroupModel};
 
 
 
@@ -10,7 +10,7 @@ use crate::{http::{MemberCookie, JsonResponse}, WebResult, model::SearchGroupMod
 #[get("/searches")]
 pub async fn get_searches(
     query: web::Query<api::SimpleListQuery>,
-    db: web::Data<Database>,
+    db: web::Data<tokio_postgres::Client>,
     member: MemberCookie,
 ) -> WebResult<JsonResponse<QueryListResponse<SearchGroup>>> {
     let member = member.fetch_or_error(&db).await?;
@@ -41,7 +41,7 @@ pub async fn update_search_id(
     id: web::Path<SearchGroupId>,
     body: web::Json<api::PostUpdateSearchIdBody>,
     member: MemberCookie,
-    db: web::Data<Database>,
+    db: web::Data<tokio_postgres::Client>,
 ) -> WebResult<JsonResponse<&'static str>> {
     let body = body.into_inner();
 

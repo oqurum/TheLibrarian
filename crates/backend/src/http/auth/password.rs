@@ -15,7 +15,6 @@ use serde::{Serialize, Deserialize};
 use crate::Error;
 use crate::WebResult;
 use crate::config::get_config;
-use crate::database::Database;
 use crate::http::JsonResponse;
 use crate::model::MemberModel;
 use crate::model::NewMemberModel;
@@ -35,7 +34,7 @@ pub struct PostPasswordCallback {
 pub async fn post_password_oauth(
     query: web::Json<PostPasswordCallback>,
     identity: Identity,
-    db: web::Data<Database>,
+    db: web::Data<tokio_postgres::Client>,
 ) -> WebResult<JsonResponse<String>> {
     if identity.identity().is_some() {
         return Err(ApiErrorResponse::new("Already logged in").into());

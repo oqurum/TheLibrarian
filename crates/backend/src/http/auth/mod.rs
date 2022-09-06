@@ -6,8 +6,9 @@ use common::{MemberId, api::ApiErrorResponse};
 use chrono::Utc;
 use futures::{future::LocalBoxFuture, FutureExt};
 use serde::{Deserialize, Serialize};
+use tokio_postgres::Client;
 
-use crate::{Result, model::MemberModel, Database, WebError, InternalError};
+use crate::{Result, model::MemberModel, WebError, InternalError};
 
 pub mod password;
 pub mod passwordless;
@@ -45,12 +46,12 @@ impl MemberCookie {
         self.0.member_id
     }
 
-    pub async fn fetch(&self, db: &Database) -> Result<Option<MemberModel>> {
-        MemberModel::get_by_id(self.member_id(), db).await
+    pub async fn fetch(&self, client: &Client) -> Result<Option<MemberModel>> {
+        MemberModel::get_by_id(self.member_id(), client).await
     }
 
-    pub async fn fetch_or_error(&self, db: &Database) -> Result<MemberModel> {
-        match self.fetch(db).await? {
+    pub async fn fetch_or_error(&self, client: &Client) -> Result<MemberModel> {
+        match self.fetch(client).await? {
             Some(v) => Ok(v),
             None => Err(InternalError::UserMissing.into()),
         }

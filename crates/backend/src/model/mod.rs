@@ -1,4 +1,4 @@
-use rusqlite::{Row, types::FromSql};
+use tokio_postgres::{Row, types::FromSql};
 
 mod auth;
 mod book;
@@ -24,6 +24,8 @@ pub use book_tag::*;
 pub use collection::*;
 pub use collection_item::*;
 pub use edit::*;
+use crate::Result;
+
 pub use self::image::*;
 pub use member::*;
 pub use metadata_search::*;
@@ -34,10 +36,10 @@ pub use server_link::*;
 pub use search_global::*;
 pub use search_servers::*;
 
-pub trait TableRow<'a> where Self: Sized {
-    fn create(row: &mut AdvRow<'a>) -> rusqlite::Result<Self>;
+pub trait TableRow where Self: Sized {
+    fn create(row: &mut AdvRow) -> Result<Self>;
 
-    fn from_row(value: &'a Row<'a>) -> rusqlite::Result<Self> {
+    fn from_row(value: Row) -> Result<Self> {
         Self::create(&mut AdvRow {
             index: 0,
             row: value
@@ -46,20 +48,30 @@ pub trait TableRow<'a> where Self: Sized {
 }
 
 
-pub struct AdvRow<'a> {
+pub struct AdvRow {
     index: usize,
-    row: &'a Row<'a>,
+    row: Row,
 }
 
-impl<'a> AdvRow<'a> {
+impl AdvRow {
     #[allow(clippy::should_implement_trait)]
-    pub fn next<T: FromSql>(&mut self) -> rusqlite::Result<T> {
+    pub fn next<'a, T: FromSql<'a>>(&'a mut self) -> Result<T> {
         self.index += 1;
 
-        self.row.get(self.index - 1)
+        Ok(self.row.try_get(self.index - 1)?)
     }
 
-    pub fn next_opt<T: FromSql>(&mut self) -> rusqlite::Result<Option<T>> {
+    pub fn next_opt<'a, T: FromSql<'a>>(&'a mut self) -> Result<Option<T>> {
         self.next()
     }
+}
+
+
+pub fn row_to_usize(value: Row) -> Result<usize> {
+    Ok(value.try_get::<_, i64>(0)? as usize)
+}
+
+
+fn boxed_to_dyn_vec<V: ?Sized>(value: &[Box<V>]) -> Vec<&V> {
+    value.iter().map(|v| &**v).collect()
 }

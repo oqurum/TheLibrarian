@@ -1,12 +1,12 @@
 use chrono::Utc;
 use common_local::edit::*;
-use rusqlite::params;
+use tokio_postgres::Client;
 
-use crate::{Database, Result, model::{NewEditCommentModel, EditModel, SYSTEM_MEMBER, TableRow}};
+use crate::{Result, model::{NewEditCommentModel, EditModel, SYSTEM_MEMBER, TableRow}};
 
 
 
-pub async fn task_update_pending(db: &Database) -> Result<()> {
+pub async fn task_update_pending(client: &Client) -> Result<()> {
     let now = Utc::now().timestamp_millis();
     let pending = u8::from(EditStatus::Pending);
 
@@ -14,16 +14,12 @@ pub async fn task_update_pending(db: &Database) -> Result<()> {
 
     { // Get all rejected
         let items = {
-            let this = db.read().await;
+            let conn = client.query(
+                sql_rejected,
+                params![ EditStatus::Rejected, now, pending as i16 ],
+            ).await?;
 
-            let mut conn = this.prepare(sql_rejected)?;
-
-            let map = conn.query_map(
-                params![ EditStatus::Rejected, now, pending ],
-                |v| EditModel::from_row(v)
-            )?;
-
-            map.collect::<std::result::Result<Vec<_>, _>>()?
+            conn.into_iter().map(EditModel::from_row).collect::<Result<Vec<_>>>()?
         };
 
         for item in items {
@@ -31,35 +27,33 @@ pub async fn task_update_pending(db: &Database) -> Result<()> {
                 item.id,
                 SYSTEM_MEMBER.id,
                 String::from(r#"SYSTEM: Auto denied."#)
-            ).insert(db).await?;
+            ).insert(client).await?;
         }
     }
 
     // Reject All
-    db.write().await
-    .execute(sql_rejected, params![ EditStatus::Rejected, now, pending ])?;
+    client.execute(sql_rejected, params![ EditStatus::Rejected, now, pending as i16 ]).await?;
 
 
     { // Get all approved
         let items = {
-            let this = db.read().await;
+            let conn = client.query(
+                "SELECT * FROM edit WHERE expires_at < ?1 AND status = ?2 AND vote_count >= 0",
+                params![ now, pending as i16 ],
+            ).await?;
 
-            let mut conn = this.prepare("SELECT * FROM edit WHERE expires_at < ?1 AND status = ?2 AND vote_count >= 0")?;
-
-            let map = conn.query_map(params![ now, pending ], |v| EditModel::from_row(v))?;
-
-            map.collect::<std::result::Result<Vec<_>, _>>()?
+            conn.into_iter().map(EditModel::from_row).collect::<Result<Vec<_>>>()?
         };
 
         for mut item in items {
             println!("{:#?}", item);
-            item.process_status_change(EditStatus::Accepted, db).await?;
+            item.process_status_change(EditStatus::Accepted, client).await?;
 
             NewEditCommentModel::new(
                 item.id,
                 SYSTEM_MEMBER.id,
                 String::from(r#"SYSTEM: Auto accepted."#)
-            ).insert(db).await?;
+            ).insert(client).await?;
         }
     }
 

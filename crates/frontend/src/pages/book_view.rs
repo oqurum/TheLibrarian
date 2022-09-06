@@ -576,7 +576,7 @@ impl BookView {
                         <section>
                             <h2>{ "Characters" }</h2>
                             <div class="characters-container">
-                                <div class="add-person" title="Add Book Character">
+                                <div class="person-item new-container" title="Add Book Character">
                                     <span class="material-icons">{ "add" }</span>
                                 </div>
                             </div>
@@ -585,7 +585,7 @@ impl BookView {
                         <section>
                             <h2>{ "People" }</h2>
                             <div class="authors-container">
-                                <div class="add-person" title="Add Person">
+                                <div class="person-item new-container" title="Add Person">
                                     <span class="material-icons">{ "add" }</span>
                                 </div>
 

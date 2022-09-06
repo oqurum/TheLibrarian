@@ -1,8 +1,8 @@
 // https://openlibrary.org/developers/api
 
-use crate::{Result, model::{OptMetadataSearchModel, DataType, MetadataSearchType}, Database};
+use crate::{Result, model::{OptMetadataSearchModel, DataType}};
 use async_trait::async_trait;
-use common_local::{MetadataItemCached, SearchForBooksBy};
+use common_local::{MetadataItemCached, SearchForBooksBy, MetadataSearchType};
 use serde::{Serialize, Deserialize};
 
 use self::book::BookSearchType;
@@ -22,7 +22,7 @@ impl Metadata for OpenLibraryMetadata {
         "openlibrary"
     }
 
-    async fn get_metadata_by_source_id(&mut self, value: &str, upgrade_editions: bool, db: &Database) -> Result<Option<MetadataReturned>> {
+    async fn get_metadata_by_source_id(&mut self, value: &str, upgrade_editions: bool, db: &tokio_postgres::Client) -> Result<Option<MetadataReturned>> {
         let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Book, value, self.get_prefix(), db).await?;
 
         if let Some(model) = existing_model.should_use_cached()? {
@@ -56,7 +56,7 @@ impl Metadata for OpenLibraryMetadata {
     }
 
 
-    async fn get_person_by_source_id(&mut self, value: &str, db: &Database) -> Result<Option<AuthorInfo>> {
+    async fn get_person_by_source_id(&mut self, value: &str, db: &tokio_postgres::Client) -> Result<Option<AuthorInfo>> {
         let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Person, value, self.get_prefix(), db).await?;
 
         if let Some(model) = existing_model.should_use_cached()? {
@@ -93,7 +93,7 @@ impl Metadata for OpenLibraryMetadata {
     }
 
 
-    async fn search(&mut self, value: &str, search_for: SearchFor, db: &Database) -> Result<Vec<SearchItem>> {
+    async fn search(&mut self, value: &str, search_for: SearchFor, db: &tokio_postgres::Client) -> Result<Vec<SearchItem>> {
         match search_for {
             SearchFor::Person => {
                 let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Person, value, self.get_prefix(), db).await?;

@@ -4,9 +4,9 @@
 
 use std::collections::HashMap;
 
-use crate::{Result, Database, model::{OptMetadataSearchModel, DataType, MetadataSearchType}};
+use crate::{Result, model::{OptMetadataSearchModel, DataType}};
 use async_trait::async_trait;
-use common_local::{MetadataItemCached, SearchForBooksBy};
+use common_local::{MetadataItemCached, SearchForBooksBy, MetadataSearchType};
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Serialize, Deserialize};
@@ -26,7 +26,7 @@ impl Metadata for GoogleBooksMetadata {
         "googlebooks"
     }
 
-    async fn get_metadata_by_source_id(&mut self, value: &str, _upgrade_editions: bool, db: &Database) -> Result<Option<MetadataReturned>> {
+    async fn get_metadata_by_source_id(&mut self, value: &str, _upgrade_editions: bool, db: &tokio_postgres::Client) -> Result<Option<MetadataReturned>> {
         let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Book, value, self.get_prefix(), db).await?;
 
         if let Some(model) = existing_model.should_use_cached()? {
@@ -54,7 +54,7 @@ impl Metadata for GoogleBooksMetadata {
         Ok(resp)
     }
 
-    async fn search(&mut self, search: &str, search_for: SearchFor, db: &Database) -> Result<Vec<SearchItem>> {
+    async fn search(&mut self, search: &str, search_for: SearchFor, db: &tokio_postgres::Client) -> Result<Vec<SearchItem>> {
         match search_for {
             SearchFor::Person => Ok(Vec::new()),
 

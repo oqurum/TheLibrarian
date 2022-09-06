@@ -5,7 +5,7 @@ use common::{Either, ImageIdType, ImageType, BookId, PersonId, api::WrappingResp
 use futures::TryStreamExt;
 use common_local::{Poster, api};
 
-use crate::{WebResult, Error, store_image, database::Database, model::{BookModel, ImageLinkModel, UploadedImageModel, PersonModel}, http::{JsonResponse, MemberCookie}, storage::get_storage};
+use crate::{WebResult, Error, store_image, model::{BookModel, ImageLinkModel, UploadedImageModel, PersonModel}, http::{JsonResponse, MemberCookie}, storage::get_storage};
 
 
 
@@ -19,7 +19,7 @@ async fn get_local_image(id: web::Path<String>, req: HttpRequest) -> WebResult<H
 #[get("/posters/{id}")]
 async fn get_poster_list(
     image: web::Path<ImageIdType>,
-    db: web::Data<Database>
+    db: web::Data<tokio_postgres::Client>
 ) -> WebResult<JsonResponse<api::GetPostersResponse>> {
     let current_thumb = match image.type_of {
         ImageType::Book => BookModel::get_by_id(BookId::from(image.id), &db).await?.unwrap().thumb_path,
@@ -50,7 +50,7 @@ async fn post_change_poster(
     image: web::Path<ImageIdType>,
     body: web::Json<api::ChangePosterBody>,
     member: MemberCookie,
-    db: web::Data<Database>
+    db: web::Data<tokio_postgres::Client>
 ) -> WebResult<JsonResponse<&'static str>> {
     let member = member.fetch(&db).await?.unwrap();
 
@@ -133,7 +133,7 @@ async fn post_upload_poster(
     image: web::Path<ImageIdType>,
     mut body: web::Payload,
     member: MemberCookie,
-    db: web::Data<Database>,
+    db: web::Data<tokio_postgres::Client>,
 ) -> WebResult<JsonResponse<&'static str>> {
     let member = member.fetch(&db).await?.unwrap();
 

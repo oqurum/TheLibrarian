@@ -2,13 +2,13 @@ use actix_web::{web, get, HttpResponse, HttpRequest};
 use common::{PersonId, api::WrappingResponse};
 use common_local::api;
 
-use crate::{database::Database, WebResult, model::PersonModel, http::JsonResponse, storage::get_storage};
+use crate::{WebResult, model::PersonModel, http::JsonResponse, storage::get_storage};
 
 
 // Get List Of People and Search For People
 #[get("/people")]
 pub async fn load_author_list(
-    db: web::Data<Database>,
+    db: web::Data<tokio_postgres::Client>,
     query: web::Query<api::SimpleListQuery>,
 ) -> WebResult<JsonResponse<api::GetPeopleResponse>> {
     let offset = query.offset.unwrap_or(0);
@@ -48,7 +48,7 @@ pub async fn load_author_list(
 
 // Person
 #[get("/person/{id}")]
-async fn load_person(person_id: web::Path<PersonId>, db: web::Data<Database>) -> WebResult<JsonResponse<api::GetPersonResponse>> {
+async fn load_person(person_id: web::Path<PersonId>, db: web::Data<tokio_postgres::Client>) -> WebResult<JsonResponse<api::GetPersonResponse>> {
     let person = PersonModel::get_by_id(*person_id, &db).await?.unwrap();
 
     Ok(web::Json(WrappingResponse::okay(api::GetPersonResponse {
@@ -59,7 +59,7 @@ async fn load_person(person_id: web::Path<PersonId>, db: web::Data<Database>) ->
 
 // Person Thumbnail
 #[get("/person/{id}/thumbnail")]
-async fn load_person_thumbnail(person_id: web::Path<PersonId>, req: HttpRequest, db: web::Data<Database>) -> WebResult<HttpResponse> {
+async fn load_person_thumbnail(person_id: web::Path<PersonId>, req: HttpRequest, db: web::Data<tokio_postgres::Client>) -> WebResult<HttpResponse> {
     let meta = PersonModel::get_by_id(*person_id, &db).await?;
 
     if let Some(file_name) = meta.as_ref().and_then(|v| v.thumb_url.as_value()) {

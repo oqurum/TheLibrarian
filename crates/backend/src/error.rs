@@ -9,7 +9,7 @@ use thiserror::Error as ThisError;
 
 use bcrypt::BcryptError;
 use common::error::Error as CommonError;
-use rusqlite::Error as RusqliteError;
+use tokio_postgres::Error as PostgresError;
 use lettre::error::Error as LettreError;
 use lettre::address::AddressError;
 use lettre::transport::smtp::Error as SmtpError;
@@ -122,8 +122,8 @@ pub enum Error {
     Smtp(#[from] SmtpError),
     #[error("Address Error: {0}")]
     Address(#[from] AddressError),
-    #[error("Rusqlite Error: {0}")]
-    Rusqlite(#[from] RusqliteError),
+    #[error("Postgres Error: {0}")]
+    Postgres(#[from] PostgresError),
     #[error("Bcrypt Error: {0}")]
     Bcrypt(#[from] BcryptError),
 

@@ -1,12 +1,12 @@
 use common::{BookId, TagId, BookTagId};
 use chrono::{DateTime, TimeZone, Utc};
 use common_local::BookTag;
-use rusqlite::{OptionalExtension, params};
+use tokio_postgres::Client;
 
 
-use crate::{Database, Result};
+use crate::Result;
 
-use super::{TagModel, AdvRow, TableRow};
+use super::{TagModel, AdvRow, TableRow, row_to_usize};
 
 pub struct BookTagModel {
     pub id: BookTagId,
@@ -19,15 +19,15 @@ pub struct BookTagModel {
     pub created_at: DateTime<Utc>,
 }
 
-impl TableRow<'_> for BookTagModel {
-    fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
+impl TableRow for BookTagModel {
+    fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
-            id: row.next()?,
+            id: BookTagId::from(row.next::<i64>()? as usize),
 
-            book_id: row.next()?,
-            tag_id: row.next()?,
+            book_id: BookId::from(row.next::<i64>()? as usize),
+            tag_id: TagId::from(row.next::<i64>()? as usize),
 
-            index: row.next()?,
+            index: row.next::<i64>()? as usize,
 
             created_at: Utc.timestamp_millis(row.next()?),
         })
@@ -48,13 +48,13 @@ pub struct BookTagWithTagModel {
     pub tag: TagModel,
 }
 
-impl TableRow<'_> for BookTagWithTagModel {
-    fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
+impl TableRow for BookTagWithTagModel {
+    fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
-            id: row.next()?,
+            id: BookTagId::from(row.next::<i64>()? as usize),
 
-            book_id: row.next()?,
-            index: row.next()?,
+            book_id: BookId::from(row.next::<i64>()? as usize),
+            index: row.next::<i64>()? as usize,
 
             created_at: Utc.timestamp_millis(row.next()?),
 
@@ -78,52 +78,46 @@ impl From<BookTagWithTagModel> for BookTag {
 
 
 impl BookTagModel {
-    pub async fn get_by_id(id: BookTagId, db: &Database) -> Result<Option<Self>> {
-        Ok(db.read().await.query_row(
-            r#"SELECT * FROM book_tags WHERE id = ?1"#,
-            params![id],
-            |v| Self::from_row(v)
-        ).optional()?)
+    pub async fn get_by_id(id: BookTagId, db: &Client) -> Result<Option<Self>> {
+        db.query_opt(
+            "SELECT * FROM book_tags WHERE id = ?1",
+            params![ *id as i64 ],
+        ).await?.map(Self::from_row).transpose()
     }
 
-    pub async fn remove(book_id: BookId, tag_id: TagId, db: &Database) -> Result<usize> {
-        Ok(db.write().await.execute(
-            r#"DELETE FROM book_tags WHERE book_id = ?1 AND tag_id = ?2"#,
-            params![book_id, tag_id],
-        )?)
+    pub async fn remove(book_id: BookId, tag_id: TagId, db: &Client) -> Result<u64> {
+        Ok(db.execute(
+            "DELETE FROM book_tags WHERE book_id = ?1 AND tag_id = ?2",
+            params![ *book_id as i64, *tag_id as i64 ],
+        ).await?)
     }
 
-    pub async fn insert(book_id: BookId, tag_id: TagId, index: Option<usize>, db: &Database) -> Result<Self> {
+    pub async fn insert(book_id: BookId, tag_id: TagId, index: Option<usize>, db: &Client) -> Result<Self> {
         let index = if let Some(index) = index {
-            db.write().await.execute(
-                r#"UPDATE book_tags
-                SET windex = windex + 1
-                WHERE book_id = ?1 AND tag_id = ?2 AND windex >= ?3"#,
-                params![book_id, tag_id, index],
-            )?;
+            db.execute(
+                "UPDATE book_tags SET windex = windex + 1 WHERE book_id = ?1 AND tag_id = ?2 AND windex >= ?3",
+                params![ *book_id as i64, *tag_id as i64, index as i64 ],
+            ).await?;
 
             index
         } else {
             Self::count_book_tags_by_bid_tid(book_id, tag_id, db).await?
         };
 
-        let conn = db.write().await;
-
         let created_at = Utc::now();
 
-        conn.execute(r#"
-            INSERT INTO book_tags (book_id, tag_id, windex, created_at)
-            VALUES (?1, ?2, ?3, ?4)
-        "#,
-        params![
-            book_id,
-            tag_id,
-            index,
-            created_at.timestamp_millis(),
-        ])?;
+        let row = db.query_one(
+            "INSERT INTO book_tags (book_id, tag_id, windex, created_at) VALUES (?1, ?2, ?3, ?4)",
+            params![
+                *book_id as i64,
+                *tag_id as i64,
+                index as i64,
+                created_at.timestamp_millis(),
+            ]
+        ).await?;
 
         Ok(Self {
-            id: BookTagId::from(conn.last_insert_rowid() as usize),
+            id: BookTagId::from(row_to_usize(row)?),
             book_id,
             tag_id,
             index,
@@ -131,50 +125,44 @@ impl BookTagModel {
         })
     }
 
-    pub async fn count_book_tags_by_bid_tid(book_id: BookId, tag_id: TagId, db: &Database) -> Result<usize> {
-        Ok(db.read().await.query_row(
-            r#"SELECT COUNT(*) FROM book_tags WHERE book_id = ?1 AND tag_id = ?2"#,
-            params![book_id, tag_id],
-            |v| v.get(0)
-        )?)
+    pub async fn count_book_tags_by_bid_tid(book_id: BookId, tag_id: TagId, db: &Client) -> Result<usize> {
+        row_to_usize(db.query_one(
+            "SELECT COUNT(*) FROM book_tags WHERE book_id = ?1 AND tag_id = ?2",
+            params![ *book_id as i64, *tag_id as i64 ],
+        ).await?)
     }
 
-    pub async fn get_books_by_book_id(book_id: BookId, db: &Database) -> Result<Vec<Self>> {
-        let this = db.read().await;
+    pub async fn get_books_by_book_id(book_id: BookId, db: &Client) -> Result<Vec<Self>> {
+        let conn = db.query(
+            "SELECT * FROM book_tags WHERE book_id = ?1",
+            params![ *book_id as i64 ]
+        ).await?;
 
-        let mut conn = this.prepare("SELECT * FROM book_tags WHERE book_id = ?1")?;
-
-        let map = conn.query_map([book_id], |v| Self::from_row(v))?;
-
-        Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+        conn.into_iter().map(Self::from_row).collect()
     }
 }
 
 
 impl BookTagWithTagModel {
-    pub async fn get_by_book_id(book_id: BookId, db: &Database) -> Result<Vec<Self>> {
-        let this = db.read().await;
-
-        let mut conn = this.prepare(
+    pub async fn get_by_book_id(book_id: BookId, db: &Client) -> Result<Vec<Self>> {
+        let conn = db.query(
             r#"SELECT book_tags.id, book_tags.book_id, windex, book_tags.created_at, tags.*
             FROM book_tags
             JOIN tags ON book_tags.tag_id == tags.id
-            WHERE book_id = ?1"#
-        )?;
+            WHERE book_id = ?1"#,
+            params![ *book_id as i64 ]
+        ).await?;
 
-        let map = conn.query_map([book_id], |v| Self::from_row(v))?;
-
-        Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+        conn.into_iter().map(Self::from_row).collect()
     }
 
-    pub async fn get_by_book_id_and_tag_id(book_id: BookId, tag_id: TagId, db: &Database) -> Result<Option<Self>> {
-        Ok(db.read().await.query_row(
+    pub async fn get_by_book_id_and_tag_id(book_id: BookId, tag_id: TagId, db: &Client) -> Result<Option<Self>> {
+        db.query_opt(
             r#"SELECT book_tags.id, book_tags.book_id, windex, book_tags.created_at, tags.*
             FROM book_tags
             JOIN tags ON book_tags.tag_id == tags.id
             WHERE book_id = ?1 AND tag_id = ?2"#,
-            params![book_id, tag_id],
-            |v| Self::from_row(v)
-        ).optional()?)
+            params![ *book_id as i64, *tag_id as i64 ],
+        ).await?.map(Self::from_row).transpose()
     }
 }

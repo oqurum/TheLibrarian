@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 common-local = { path = "../common", features = ["backend"] }
-common = { path = "../../global_common", features = ["backend"] }
+common = { path = "../../global_common" }
 
 actix = "0.13"
 actix-web = "4.0"
@@ -35,6 +35,7 @@ bcrypt = "0.12"
 sha1 = "0.10"
 sha2 = "0.10"
 strsim = "0.10"
+bytes = "1.2"
 
 concread = "0.3"
 clap = { version = "3.2", features = ["derive"] }
@@ -51,4 +52,4 @@ url = "2.2"
 
 lettre = "0.10.0-rc.5"
 
-rusqlite = { version = "0.27", features = [ "bundled", "trace", "blob", "serde_json" ] }
+tokio-postgres = "0.7"

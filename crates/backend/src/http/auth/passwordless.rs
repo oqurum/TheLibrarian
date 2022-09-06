@@ -22,8 +22,6 @@ use rand::Rng;
 use rand::prelude::ThreadRng;
 use serde::{Serialize, Deserialize};
 
-use crate::database::Database;
-
 
 pub static PASSWORDLESS_PATH: &str = "/auth/passwordless";
 pub static PASSWORDLESS_PATH_CB: &str = "/auth/passwordless/response";
@@ -38,7 +36,7 @@ pub async fn post_passwordless_oauth(
     req: HttpRequest,
     query: web::Json<PostPasswordlessCallback>,
     identity: Identity,
-    db: web::Data<Database>,
+    db: web::Data<tokio_postgres::Client>,
 ) -> WebResult<JsonResponse<String>> {
     if identity.identity().is_some() {
         return Err(ApiErrorResponse::new("Already logged in").into());
@@ -101,7 +99,7 @@ pub struct QueryCallback {
 pub async fn get_passwordless_oauth_callback(
     query: web::Query<QueryCallback>,
     identity: Identity,
-    db: web::Data<Database>,
+    db: web::Data<tokio_postgres::Client>,
 ) -> WebResult<HttpResponse> {
     if identity.identity().is_some() {
         return Ok(HttpResponse::Found()

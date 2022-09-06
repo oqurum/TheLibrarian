@@ -2,7 +2,7 @@ use actix_web::{get, web, post, delete};
 use common::{BookId, TagId, api::{WrappingResponse, DeletionResponse}};
 use common_local::{api::{self, NewTagBody}};
 
-use crate::{database::Database, WebResult, model::{TagModel, NewTagModel, BookTagWithTagModel, BookTagModel}, http::{JsonResponse, MemberCookie}};
+use crate::{WebResult, model::{TagModel, NewTagModel, BookTagWithTagModel, BookTagModel}, http::{JsonResponse, MemberCookie}};
 
 
 
@@ -12,7 +12,7 @@ use crate::{database::Database, WebResult, model::{TagModel, NewTagModel, BookTa
 #[get("/tag/{id}")]
 async fn get_tag_by_id(
     tag_id: web::Path<TagId>,
-    db: web::Data<Database>
+    db: web::Data<tokio_postgres::Client>
 ) -> WebResult<JsonResponse<api::GetTagResponse>> {
     Ok(web::Json(WrappingResponse::okay(api::GetTagResponse {
         value: TagModel::get_by_id(*tag_id, &db).await?.map(|v| v.into()),
@@ -23,7 +23,7 @@ async fn get_tag_by_id(
 async fn create_new_tag(
     body: web::Json<api::NewTagBody>,
     member: MemberCookie,
-    db: web::Data<Database>
+    db: web::Data<tokio_postgres::Client>
 ) -> WebResult<JsonResponse<api::NewTagResponse>> {
     let member = member.fetch(&db).await?.unwrap();
 
@@ -39,7 +39,7 @@ async fn create_new_tag(
 }
 
 #[get("/tags")]
-async fn get_tags(db: web::Data<Database>) -> WebResult<JsonResponse<api::GetTagsResponse>> {
+async fn get_tags(db: web::Data<tokio_postgres::Client>) -> WebResult<JsonResponse<api::GetTagsResponse>> {
     Ok(web::Json(WrappingResponse::okay(api::GetTagsResponse {
         items: TagModel::get_all(&db).await?
             .into_iter()
@@ -57,7 +57,7 @@ async fn get_tags(db: web::Data<Database>) -> WebResult<JsonResponse<api::GetTag
 #[get("/tag/{tag_id}/book/{book_id}")]
 async fn get_book_tag(
     id: web::Path<(TagId, BookId)>,
-    db: web::Data<Database>
+    db: web::Data<tokio_postgres::Client>
 ) -> WebResult<JsonResponse<api::GetBookTagResponse>> {
     Ok(web::Json(WrappingResponse::okay(api::GetBookTagResponse {
         value: BookTagWithTagModel::get_by_book_id_and_tag_id(id.1, id.0, &db).await?.map(|v| v.into()),
@@ -68,7 +68,7 @@ async fn get_book_tag(
 async fn delete_book_tag(
     id: web::Path<(TagId, BookId)>,
     member: MemberCookie,
-    db: web::Data<Database>
+    db: web::Data<tokio_postgres::Client>
 ) -> WebResult<JsonResponse<DeletionResponse>> {
     let member = member.fetch(&db).await?.unwrap();
 
@@ -77,7 +77,7 @@ async fn delete_book_tag(
     }
 
     Ok(web::Json(WrappingResponse::okay(DeletionResponse {
-        total: BookTagModel::remove(id.1, id.0, &db).await?,
+        total: BookTagModel::remove(id.1, id.0, &db).await? as usize,
     })))
 }
 
@@ -85,7 +85,7 @@ async fn delete_book_tag(
 #[get("/tags/book/{id}")]
 async fn get_tags_for_book_id(
     book_id: web::Path<BookId>,
-    db: web::Data<Database>
+    db: web::Data<tokio_postgres::Client>
 ) -> WebResult<JsonResponse<api::GetBookTagsResponse>> {
     Ok(web::Json(WrappingResponse::okay(api::GetBookTagsResponse {
         items: BookTagWithTagModel::get_by_book_id(*book_id, &db).await?
@@ -101,7 +101,7 @@ async fn add_book_tag(
     book_id: web::Path<BookId>,
     member: MemberCookie,
     body: web::Json<api::NewBookTagBody>,
-    db: web::Data<Database>
+    db: web::Data<tokio_postgres::Client>
 ) -> WebResult<JsonResponse<api::NewBookTagResponse>> {
     let member = member.fetch(&db).await?.unwrap();
 

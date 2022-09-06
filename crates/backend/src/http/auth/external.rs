@@ -3,7 +3,7 @@ use common::api::{librarian::{AuthFormLink, AuthQueryHandshake, Scope}, reader::
 use rand::{distributions::{Alphanumeric, DistString}, thread_rng, Rng, prelude::Distribution};
 use reqwest::Url;
 
-use crate::{WebResult, Database, model::{NewServerLinkModel, ServerLinkModel}};
+use crate::{WebResult, model::{NewServerLinkModel, ServerLinkModel}};
 
 use super::MemberCookie;
 
@@ -15,7 +15,7 @@ pub static AUTH_HANDSHAKE_PATH: &str = "/auth/handshake";
 pub async fn post_oauth_link(
     form: web::Form<AuthFormLink>,
     member: MemberCookie,
-    db: web::Data<Database>,
+    db: web::Data<tokio_postgres::Client>,
 ) -> WebResult<HttpResponse> {
     let member = member.fetch_or_error(&db).await?;
 
@@ -71,7 +71,7 @@ pub async fn post_oauth_link(
 //   - Called on server start, periodically to ensure ip routing is correct (ip used for simple connecting through this server)
 pub async fn get_oauth_handshake(
     query: web::Query<AuthQueryHandshake>,
-    db: web::Data<Database>,
+    db: web::Data<tokio_postgres::Client>,
 ) -> WebResult<HttpResponse> {
     let query = query.into_inner();
 

@@ -1,8 +1,10 @@
+use std::error::Error;
+
 use bitflags::bitflags;
 use serde::{Serialize, Deserialize, Deserializer, Serializer};
 
 #[cfg(feature = "backend")]
-use rusqlite::{Result, types::{FromSql, FromSqlResult, ValueRef, ToSql, ToSqlOutput}};
+use tokio_postgres::types::{FromSql, ToSql, Type, private::BytesMut, IsNull, to_sql_checked};
 
 
 bitflags! {
@@ -163,26 +165,34 @@ impl SpecificPermissions {
 
 
 #[cfg(feature = "backend")]
-impl FromSql for Permissions {
-    #[inline]
-    fn column_result(value: ValueRef<'_>) -> FromSqlResult<Self> {
-        let val = String::column_result(value)?;
+impl<'a> FromSql<'a> for Permissions {
+    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+            let val = String::from_sql(ty, raw)?;
 
-        let (l, r) = val.split_once('-').unwrap();
+            let (l, r) = val.split_once('-').unwrap();
 
-        Ok(Self {
-            group: GroupPermissions { bits: l.parse().unwrap() },
-            specific: SpecificPermissions { bits: r.parse().unwrap() },
-        })
+            Ok(Self {
+                group: GroupPermissions { bits: l.parse().unwrap() },
+                specific: SpecificPermissions { bits: r.parse().unwrap() },
+            })
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <&str as FromSql>::accepts(ty)
     }
 }
 
 #[cfg(feature = "backend")]
 impl ToSql for Permissions {
-    #[inline]
-    fn to_sql(&self) -> Result<ToSqlOutput<'_>> {
-        Ok(format!("{}-{}", self.group.bits, self.specific.bits).into())
+    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
+        format!("{}-{}", self.group.bits, self.specific.bits).to_sql(ty, out)
     }
+
+    fn accepts(ty: &Type) -> bool {
+        <&str as ToSql>::accepts(ty)
+    }
+
+    to_sql_checked!();
 }
 
 

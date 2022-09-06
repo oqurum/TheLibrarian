@@ -4,13 +4,13 @@ use actix_web::{web, get, post};
 use common::api::{QueryListResponse, WrappingResponse};
 use common_local::{api, EditId, item::edit::*};
 
-use crate::{database::Database, WebResult, model::{EditModel, BookModel, MemberModel, EditVoteModel, NewEditVoteModel}, http::{MemberCookie, JsonResponse}};
+use crate::{WebResult, model::{EditModel, BookModel, MemberModel, EditVoteModel, NewEditVoteModel}, http::{MemberCookie, JsonResponse}};
 
 
 // Get List Of Edits
 #[get("/edits")]
 pub async fn load_edit_list(
-    db: web::Data<Database>,
+    db: web::Data<tokio_postgres::Client>,
     this_member: Option<MemberCookie>,
     query: web::Query<api::SimpleListQuery>,
 ) -> WebResult<JsonResponse<api::GetEditListResponse>> {
@@ -84,7 +84,7 @@ pub async fn load_edit_list(
 
 // Edit
 #[get("/edit/{id}")]
-async fn load_edit(edit_id: web::Path<EditId>, db: web::Data<Database>) -> WebResult<JsonResponse<api::GetEditResponse>> {
+async fn load_edit(edit_id: web::Path<EditId>, db: web::Data<tokio_postgres::Client>) -> WebResult<JsonResponse<api::GetEditResponse>> {
     let model = EditModel::get_by_id(*edit_id, &db).await?.unwrap();
 
     let member = MemberModel::get_by_id(model.member_id, &db).await?;
@@ -100,7 +100,7 @@ async fn update_edit(
     edit_id: web::Path<EditId>,
     json: web::Json<UpdateEditModel>,
     member: MemberCookie,
-    db: web::Data<Database>
+    db: web::Data<tokio_postgres::Client>
 ) -> WebResult<JsonResponse<api::PostEditResponse>> {
     let mut update = json.into_inner();
 

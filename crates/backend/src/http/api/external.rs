@@ -2,14 +2,14 @@ use actix_web::{get, web};
 use common::{Source, api::{ApiErrorResponse, WrappingResponse}};
 use common_local::{api, SearchType, SearchForBooksBy, SearchFor};
 
-use crate::{WebResult, metadata, http::{JsonResponse, MemberCookie}, Database};
+use crate::{WebResult, metadata, http::{JsonResponse, MemberCookie}};
 
 
 #[get("/external/search")]
 pub async fn get_external_search(
     body: web::Query<api::GetMetadataSearch>,
     member: MemberCookie,
-    db: web::Data<Database>,
+    db: web::Data<tokio_postgres::Client>,
 ) -> WebResult<JsonResponse<api::ExternalSearchResponse>> {
     let member = member.fetch(&db).await?.unwrap();
 
@@ -72,7 +72,7 @@ pub async fn get_external_search(
 pub async fn get_external_item(
     path: web::Path<Source>,
     member: MemberCookie,
-    db: web::Data<Database>,
+    db: web::Data<tokio_postgres::Client>,
 ) -> WebResult<JsonResponse<api::ExternalSourceItemResponse>> {
     let member = member.fetch(&db).await?.unwrap();
 

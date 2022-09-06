@@ -1,11 +1,10 @@
 use common_local::{TagType, TagFE};
 use chrono::{DateTime, TimeZone, Utc};
 use common::TagId;
-use rusqlite::{params, OptionalExtension};
 
-use crate::{Database, Result};
+use crate::Result;
 
-use super::{AdvRow, TableRow};
+use super::{AdvRow, TableRow, row_to_usize};
 
 pub struct NewTagModel {
     pub name: String,
@@ -24,12 +23,12 @@ pub struct TagModel {
 }
 
 
-impl TableRow<'_> for TagModel {
-    fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
+impl TableRow for TagModel {
+    fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
-            id: row.next()?,
+            id: TagId::from(row.next::<i64>()? as usize),
             name: row.next()?,
-            type_of: TagType::from_u8(row.next()?, row.next()?),
+            type_of: TagType::from_u8(row.next::<i8>()? as u8, row.next()?),
             created_at: Utc.timestamp_millis(row.next()?),
             updated_at: Utc.timestamp_millis(row.next()?),
         })
@@ -50,48 +49,44 @@ impl From<TagModel> for TagFE {
 
 
 impl TagModel {
-    pub async fn get_by_id(id: TagId, db: &Database) -> Result<Option<Self>> {
-        Ok(db.read().await.query_row(
-            r#"SELECT * FROM tags WHERE id = ?1"#,
-            params![id],
-            |v| Self::from_row(v)
-        ).optional()?)
+    pub async fn get_by_id(id: TagId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
+        db.query_opt(
+            "SELECT * FROM tags WHERE id = ?1",
+            params![ *id as i64 ],
+        ).await?.map(Self::from_row).transpose()
     }
 
-    pub async fn get_all(db: &Database) -> Result<Vec<Self>> {
-        let this = db.read().await;
+    pub async fn get_all(db: &tokio_postgres::Client) -> Result<Vec<Self>> {
+        let conn = db.query(
+            "SELECT * FROM tags",
+            &[]
+        ).await?;
 
-        let mut conn = this.prepare("SELECT * FROM tags")?;
-
-        let map = conn.query_map([], |v| Self::from_row(v))?;
-
-        Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+        conn.into_iter().map(Self::from_row).collect()
     }
 }
 
 
 impl NewTagModel {
-    pub async fn insert(self, db: &Database) -> Result<TagModel> {
-        let conn = db.write().await;
-
+    pub async fn insert(self, db: &tokio_postgres::Client) -> Result<TagModel> {
         let now = Utc::now();
 
         let (type_of, data) = self.type_of.clone().split();
 
-        conn.execute(r#"
+        let row = db.query_one(r#"
             INSERT INTO tags (name, type_of, data, created_at, updated_at)
             VALUES (?1, ?2, ?3, ?4, ?5)
         "#,
         params![
             &self.name,
-            type_of,
+            type_of as i16,
             data,
             now.timestamp_millis(),
             now.timestamp_millis()
-        ])?;
+        ]).await?;
 
         Ok(TagModel {
-            id: TagId::from(conn.last_insert_rowid() as usize),
+            id: TagId::from(row_to_usize(row)?),
 
             name: self.name,
             type_of: self.type_of,

@@ -2,12 +2,12 @@ use actix_web::{web, get, post};
 use common::api::{WrappingResponse, ApiErrorResponse};
 use common_local::{api, update::OptionsUpdate};
 
-use crate::{database::Database, WebResult, http::{JsonResponse, MemberCookie}, config};
+use crate::{WebResult, http::{JsonResponse, MemberCookie}, config};
 
 
 
 #[get("/settings")]
-async fn get_settings(member: MemberCookie, db: web::Data<Database>) -> WebResult<JsonResponse<api::GetSettingsResponse>> {
+async fn get_settings(member: MemberCookie, db: web::Data<tokio_postgres::Client>) -> WebResult<JsonResponse<api::GetSettingsResponse>> {
     let member = member.fetch_or_error(&db).await?;
 
     if !member.permissions.is_admin() {
@@ -29,7 +29,7 @@ async fn get_settings(member: MemberCookie, db: web::Data<Database>) -> WebResul
 
 
 #[post("/settings")]
-async fn update_settings(modify: web::Json<OptionsUpdate>, member: MemberCookie, db: web::Data<Database>) -> WebResult<JsonResponse<String>> {
+async fn update_settings(modify: web::Json<OptionsUpdate>, member: MemberCookie, db: web::Data<tokio_postgres::Client>) -> WebResult<JsonResponse<String>> {
     let update = modify.into_inner();
 
     let member = member.fetch_or_error(&db).await?;

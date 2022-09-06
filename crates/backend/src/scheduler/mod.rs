@@ -1,10 +1,10 @@
 use std::{thread, time::Duration};
 
-use crate::{Result, Database};
+use crate::Result;
 
 mod pending;
 
-pub fn start(db: actix_web::web::Data<Database>) -> thread::JoinHandle<Result<()>> {
+pub fn start(db: actix_web::web::Data<tokio_postgres::Client>) -> thread::JoinHandle<Result<()>> {
     thread::spawn(move || {
         let rt = tokio::runtime::Runtime::new().unwrap();
 

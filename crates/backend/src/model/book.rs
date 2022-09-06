@@ -1,12 +1,12 @@
 use common_local::{MetadataItemCached, DisplayMetaItem, util::{serialize_datetime, serialize_datetime_opt}, search::PublicBook};
 use chrono::{DateTime, TimeZone, Utc};
 use common::{ThumbnailStore, BookId, PersonId};
-use rusqlite::{params, OptionalExtension, ToSql};
 use serde::Serialize;
+use tokio_postgres::types::ToSql;
 
-use crate::{Database, Result};
+use crate::Result;
 
-use super::{TableRow, AdvRow};
+use super::{TableRow, AdvRow, row_to_usize};
 
 
 #[derive(Debug, Clone, Serialize)]
@@ -41,10 +41,10 @@ pub struct BookModel {
 }
 
 
-impl TableRow<'_> for BookModel {
-    fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
+impl TableRow for BookModel {
+    fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
-            id: row.next()?,
+            id: BookId::from(row.next::<i64>()? as usize),
             title: row.next()?,
             clean_title: row.next()?,
             description: row.next()?,
@@ -56,9 +56,9 @@ impl TableRow<'_> for BookModel {
             isbn_10: row.next()?,
             isbn_13: row.next()?,
             is_public: row.next()?,
-            edition_count: row.next()?,
+            edition_count: row.next::<i64>()? as usize,
             available_at: row.next()?,
-            language: row.next()?,
+            language: row.next::<Option<i32>>()?.map(|v| v as u16),
             created_at: Utc.timestamp_millis(row.next()?),
             updated_at: Utc.timestamp_millis(row.next()?),
             deleted_at: row.next_opt()?.map(|v| Utc.timestamp_millis(v)),
@@ -140,11 +140,11 @@ impl Into<PublicBook> for BookModel {
 
 
 impl BookModel {
-    pub async fn get_book_count(db: &Database) -> Result<usize> {
-        Ok(db.read().await.query_row(r#"SELECT COUNT(*) FROM book"#, [], |v| v.get(0))?)
+    pub async fn get_book_count(db: &tokio_postgres::Client) -> Result<usize> {
+        row_to_usize(db.query_one(r#"SELECT COUNT(*) FROM book"#, &[]).await?)
     }
 
-    pub async fn add_or_update_book(&mut self, db: &Database) -> Result<()> {
+    pub async fn add_or_update_book(&mut self, db: &tokio_postgres::Client) -> Result<()> {
         let does_book_exist = if self.id != 0 {
             // TODO: Make sure we don't for some use a non-existent id and remove this block.
             Self::get_by_id(self.id, db).await?.is_some()
@@ -157,9 +157,7 @@ impl BookModel {
 
             Ok(())
         } else {
-            let lock = db.write().await;
-
-            lock.execute(r#"
+            let row = db.query_one(r#"
                 INSERT INTO book (
                     title, clean_title, description, rating, thumb_url,
                     cached, is_public,
@@ -172,25 +170,22 @@ impl BookModel {
                     &self.title, &self.clean_title, &self.description, self.rating, self.thumb_path.as_value(),
                     &self.cached.as_string_optional(), self.is_public,
                     &self.isbn_10, &self.isbn_13,
-                    &self.available_at, self.language,
+                    &self.available_at, self.language.map(|v| v as i32),
                     self.created_at.timestamp_millis(), self.updated_at.timestamp_millis(),
                     self.deleted_at.as_ref().map(|v| v.timestamp_millis()),
                 ]
-            )?;
+            ).await?;
 
-            self.id = BookId::from(lock.last_insert_rowid() as usize);
-
-            drop(lock);
+            self.id = BookId::from(row_to_usize(row)?);
 
             Ok(())
         }
     }
 
-    pub async fn update_book(&mut self, db: &Database) -> Result<()> {
+    pub async fn update_book(&mut self, db: &tokio_postgres::Client) -> Result<()> {
         self.updated_at = Utc::now();
 
-        db.write().await
-        .execute(r#"
+        db.execute(r#"
             UPDATE book SET
                 title = ?2, clean_title = ?3, description = ?4, rating = ?5, thumb_url = ?6,
                 cached = ?7, is_public = ?8,
@@ -199,62 +194,59 @@ impl BookModel {
                 updated_at = ?13, deleted_at = ?14
             WHERE id = ?1"#,
             params![
-                self.id,
+                *self.id as i64,
                 &self.title, &self.clean_title, &self.description, &self.rating, self.thumb_path.as_value(),
                 &self.cached.as_string_optional(), self.is_public,
                 &self.isbn_10, &self.isbn_13,
-                &self.available_at, &self.language,
+                &self.available_at, &self.language.map(|v| v as i32),
                 &self.updated_at.timestamp_millis(), self.deleted_at.as_ref().map(|v| v.timestamp_millis()),
             ]
-        )?;
+        ).await?;
 
         Ok(())
     }
 
-    pub async fn get_by_id(id: BookId, db: &Database) -> Result<Option<Self>> {
-        Ok(db.read().await.query_row(
-            r#"SELECT * FROM book WHERE id = ?1"#,
-            params![id],
-            |v| Self::from_row(v)
-        ).optional()?)
+    pub async fn get_by_id(id: BookId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
+        db.query_opt(
+            "SELECT * FROM book WHERE id = ?1",
+            params![ *id as i64 ],
+        ).await?.map(Self::from_row).transpose()
     }
 
-    pub async fn exists_by_isbn(value: &str, db: &Database) -> Result<bool> {
-        Ok(db.read().await.query_row(
-            r#"SELECT EXISTS(SELECT id FROM book WHERE isbn_10 = ?1 OR isbn_13 = ?1)"#,
-            [value],
-            |v| v.get(0)
-        )?)
+    pub async fn exists_by_isbn(value: &str, db: &tokio_postgres::Client) -> Result<bool> {
+        Ok(row_to_usize(db.query_one(
+            "SELECT EXISTS(SELECT id FROM book WHERE isbn_10 = ?1 OR isbn_13 = ?1)",
+            params![ value ],
+        ).await?)? != 0)
     }
 
-    pub async fn remove_by_id(id: BookId, db: &Database) -> Result<usize> {
-        Ok(db.write().await.execute(
-            r#"DELETE FROM book WHERE id = ?1"#,
-            params![id]
-        )?)
+    pub async fn remove_by_id(id: BookId, db: &tokio_postgres::Client) -> Result<u64> {
+        Ok(db.execute(
+            "DELETE FROM book WHERE id = ?1",
+            params![ *id as i64 ]
+        ).await?)
     }
 
-    pub async fn get_book_by(offset: usize, limit: usize, _only_public: bool, person_id: Option<PersonId>, db: &Database) -> Result<Vec<Self>> {
-        let this = db.read().await;
-
+    pub async fn get_book_by(offset: usize, limit: usize, _only_public: bool, person_id: Option<PersonId>, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
         let inner_query = if let Some(pid) = person_id {
             format!(
-                r#"WHERE id IN (SELECT book_id FROM book_person WHERE person_id = {})"#,
+                "WHERE id IN (SELECT book_id FROM book_person WHERE person_id = {})",
                 pid
             )
         } else {
             String::new()
         };
 
-        let mut conn = this.prepare(&format!("SELECT * FROM book {} LIMIT ?1 OFFSET ?2", inner_query))?;
+        let values = db.query(
+            &format!("SELECT * FROM book {} LIMIT ?1 OFFSET ?2", inner_query),
+            params![ limit as i64, offset as i64 ]
+        ).await?;
 
-        let map = conn.query_map([limit, offset], |v| Self::from_row(v))?;
-
-        Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+        values.into_iter().map(Self::from_row).collect()
     }
 
 
-    fn gen_search_query(query: Option<&str>, only_public: bool, person_id: Option<PersonId>, parameters: &mut Vec<Box<dyn ToSql>>) -> Option<String> {
+    fn gen_search_query(query: Option<&str>, only_public: bool, person_id: Option<PersonId>, parameters: &mut Vec<Box<dyn ToSql + Sync>>) -> Option<String> {
         let base_param_len = parameters.len();
 
         let mut sql = String::from("SELECT * FROM book WHERE ");
@@ -266,7 +258,7 @@ impl BookModel {
 
         if only_public {
             sql_queries.push("is_public = ??".to_string());
-            parameters.push(Box::new(true) as Box<dyn ToSql>);
+            parameters.push(Box::new(true) as Box<dyn ToSql + Sync>);
         }
 
 
@@ -298,7 +290,7 @@ impl BookModel {
 
             // TODO: Utilize title > clean_title > description, and sort
             sql_queries.push(format!("title LIKE ?? ESCAPE '{escape_char}'{isbn}"));
-            parameters.push(Box::new(format!("%{}%", &query)) as Box<dyn ToSql>);
+            parameters.push(Box::new(format!("%{}%", &query)) as Box<dyn ToSql + Sync>);
         }
 
 
@@ -306,7 +298,7 @@ impl BookModel {
 
         if let Some(pid) = person_id {
             sql_queries.push("id IN (SELECT book_id FROM book_person WHERE person_id = ??)".to_string());
-            parameters.push(Box::new(pid) as Box<dyn ToSql>);
+            parameters.push(Box::new(*pid as i64) as Box<dyn ToSql + Sync>);
         }
 
         let sql_query = sql_queries.into_iter()
@@ -331,11 +323,11 @@ impl BookModel {
         limit: usize,
         only_public: bool,
         person_id: Option<PersonId>,
-        db: &Database
+        db: &tokio_postgres::Client
     ) -> Result<Vec<Self>> {
         let mut parameters = vec![
-            Box::new(limit) as Box<dyn ToSql>,
-            Box::new(offset) as Box<dyn ToSql>
+            Box::new(limit as i64) as Box<dyn ToSql + Sync>,
+            Box::new(offset as i64) as Box<dyn ToSql + Sync>
         ];
 
         let mut sql = match Self::gen_search_query(query, only_public, person_id, &mut parameters) {
@@ -345,21 +337,19 @@ impl BookModel {
 
         sql += " LIMIT ?1 OFFSET ?2";
 
+        let values = db.query(
+            &sql,
+            &super::boxed_to_dyn_vec(&parameters)
+        ).await?;
 
-        let this = db.read().await;
-
-        let mut conn = this.prepare(&sql)?;
-
-        let map = conn.query_map(rusqlite::params_from_iter(parameters), |v| Self::from_row(v))?;
-
-        Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+        values.into_iter().map(Self::from_row).collect()
     }
 
     pub async fn count_search_book(
         query: Option<&str>,
         only_public: bool,
         person_id: Option<PersonId>,
-        db: &Database
+        db: &tokio_postgres::Client
     ) -> Result<usize> {
         let mut parameters = Vec::new();
 
@@ -369,6 +359,6 @@ impl BookModel {
         };
 
 
-        Ok(db.read().await.query_row(&sql, rusqlite::params_from_iter(parameters), |v| v.get(0))?)
+        row_to_usize(db.query_one(&sql, &super::boxed_to_dyn_vec(&parameters)).await?)
     }
 }

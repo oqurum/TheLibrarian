@@ -2,13 +2,13 @@ use actix_web::{get, post, web};
 use common::api::WrappingResponse;
 use common_local::{api, util::parse_num_description_string, CollectionId, DisplayItem};
 
-use crate::{WebResult, http::{JsonResponse, MemberCookie}, Database, model::{CollectionModel, NewCollectionModel}};
+use crate::{WebResult, http::{JsonResponse, MemberCookie}, model::{CollectionModel, NewCollectionModel}};
 
 
 #[get("/collection/{id}")]
 async fn get_collection_by_id(
     coll_id: web::Path<String>,
-    db: web::Data<Database>
+    db: web::Data<tokio_postgres::Client>
 ) -> WebResult<JsonResponse<api::GetCollectionResponse>> {
     let coll_id = parse_num_description_string::<CollectionId>(&coll_id).map_err(crate::Error::from)?;
 
@@ -23,7 +23,7 @@ async fn update_collection_by_id(
     coll_id: web::Path<String>,
     body: web::Json<api::UpdateCollectionModel>,
     member: MemberCookie,
-    db: web::Data<Database>
+    db: web::Data<tokio_postgres::Client>
 ) -> WebResult<JsonResponse<&'static str>> {
     let coll_id = parse_num_description_string::<CollectionId>(&coll_id).map_err(crate::Error::from)?;
 
@@ -42,7 +42,7 @@ async fn update_collection_by_id(
 #[get("/collection/{id}/books")]
 async fn get_collection_books_by_id(
     coll_id: web::Path<String>,
-    db: web::Data<Database>
+    db: web::Data<tokio_postgres::Client>
 ) -> WebResult<JsonResponse<api::GetBookListResponse>> {
     let coll_id = parse_num_description_string::<CollectionId>(&coll_id).map_err(crate::Error::from)?;
 
@@ -64,7 +64,7 @@ async fn get_collection_books_by_id(
 #[get("/collections")]
 async fn get_collection_list(
     query: web::Query<api::SimpleListQuery>,
-    db: web::Data<Database>
+    db: web::Data<tokio_postgres::Client>
 ) -> WebResult<JsonResponse<api::GetCollectionListResponse>> {
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
@@ -92,7 +92,7 @@ async fn get_collection_list(
 async fn create_new_collection(
     body: web::Json<api::NewCollectionBody>,
     member: MemberCookie,
-    db: web::Data<Database>
+    db: web::Data<tokio_postgres::Client>
 ) -> WebResult<JsonResponse<api::NewCollectionResponse>> {
     let member = member.fetch(&db).await?.unwrap();
 

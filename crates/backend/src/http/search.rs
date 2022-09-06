@@ -2,7 +2,7 @@ use actix_web::{get, web, HttpRequest};
 use common::api::WrappingResponse;
 use common_local::search::{self, BookSearchResponse, PublicBook};
 
-use crate::{WebResult, database::Database, model::{BookModel, ServerLinkModel, NewSearchGroupModel, NewSearchItemServerModel}, http::JsonResponse};
+use crate::{WebResult, model::{BookModel, ServerLinkModel, NewSearchGroupModel, NewSearchItemServerModel}, http::JsonResponse};
 
 
 // TODO: Author Search
@@ -12,7 +12,7 @@ use crate::{WebResult, database::Database, model::{BookModel, ServerLinkModel, N
 pub async fn public_search(
     req: HttpRequest,
     query: web::Query<search::GetSearchQuery>,
-    db: web::Data<Database>,
+    db: web::Data<tokio_postgres::Client>,
 ) -> WebResult<JsonResponse<BookSearchResponse>> {
     let sever_link_model = match ServerLinkModel::get_by_server_id(&query.server_id, &db).await? {
         Some(v) => v,

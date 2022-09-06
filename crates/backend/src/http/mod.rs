@@ -7,7 +7,6 @@ use common::api::WrappingResponse;
 
 use crate::CliArgs;
 use crate::config::get_config;
-use crate::database::Database;
 
 mod api;
 mod auth;
@@ -33,7 +32,7 @@ async fn logout(ident: Identity) -> HttpResponse {
 }
 
 
-pub async fn register_http_service(cli_args: &CliArgs, db_data: web::Data<Database>) -> std::io::Result<()> {
+pub async fn register_http_service(cli_args: &CliArgs, db_data: web::Data<tokio_postgres::Client>) -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(db_data.clone())

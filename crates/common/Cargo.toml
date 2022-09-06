@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-backend = ["common/backend", "rusqlite"]
+backend = ["tokio-postgres"]
 frontend = ["common/frontend", "getrandom", "web-sys"]
 
 [dependencies]
@@ -25,7 +25,7 @@ rand = "0.8"
 common = { path = "../../global_common" }
 
 # Backend
-rusqlite = { version = "0.27", optional = true }
+tokio-postgres = { version = "0.7", optional = true }
 
 # Frontend
 getrandom = { version = "0.2", features = ["js"], optional = true }

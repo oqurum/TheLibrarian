@@ -2,14 +2,14 @@ use actix_web::{get, web};
 use common::api::{WrappingResponse, QueryListResponse};
 use common_local::{api, Member};
 
-use crate::{database::Database, http::{JsonResponse, MemberCookie}, WebResult, model::MemberModel};
+use crate::{http::{JsonResponse, MemberCookie}, WebResult, model::MemberModel};
 
 
 
 // TODO: Add body requests for specifics
 #[get("/member")]
 pub async fn load_member_self(
-    db: web::Data<Database>,
+    db: web::Data<tokio_postgres::Client>,
     member: MemberCookie,
 ) -> WebResult<JsonResponse<api::GetMemberSelfResponse>> {
     let member = member.fetch_or_error(&db).await?;
@@ -23,7 +23,7 @@ pub async fn load_member_self(
 #[get("/members")]
 pub async fn get_members(
     query: web::Query<api::SimpleListQuery>,
-    db: web::Data<Database>,
+    db: web::Data<tokio_postgres::Client>,
     member: MemberCookie,
 ) -> WebResult<JsonResponse<QueryListResponse<Member>>> {
     let member = member.fetch_or_error(&db).await?;

@@ -1,12 +1,11 @@
 use common_local::util::serialize_datetime;
 use common::{ThumbnailStore, ImageId, BookId, PersonId, ImageType};
 use chrono::{DateTime, TimeZone, Utc};
-use rusqlite::{params, OptionalExtension};
 use serde::Serialize;
 
-use crate::{Result, Database};
+use crate::{Result};
 
-use super::{TableRow, AdvRow};
+use super::{TableRow, AdvRow, row_to_usize};
 
 
 #[derive(Debug, Serialize)]
@@ -51,24 +50,36 @@ pub struct ImageWithLink {
 }
 
 
-
-
-impl TableRow<'_> for UploadedImageModel {
-    fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
+impl TableRow for ImageWithLink {
+    fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
-            id: row.next()?,
+            image_id: ImageId::from(row.next::<i64>()? as usize),
+            link_id: row.next::<i64>()? as usize,
+            type_of: ImageType::from_number(row.next::<i16>()? as u8).unwrap(),
             path: ThumbnailStore::from(row.next::<String>()?),
             created_at: Utc.timestamp_millis(row.next()?),
         })
     }
 }
 
-impl TableRow<'_> for ImageLinkModel {
-    fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
+
+
+impl TableRow for UploadedImageModel {
+    fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
-            image_id: row.next()?,
-            link_id: row.next()?,
-            type_of: ImageType::from_number(row.next()?).unwrap(),
+            id: ImageId::from(row.next::<i64>()? as usize),
+            path: ThumbnailStore::from(row.next::<String>()?),
+            created_at: Utc.timestamp_millis(row.next()?),
+        })
+    }
+}
+
+impl TableRow for ImageLinkModel {
+    fn create(row: &mut AdvRow) -> Result<Self> {
+        Ok(Self {
+            image_id: ImageId::from(row.next::<i64>()? as usize),
+            link_id: row.next::<i64>()? as usize,
+            type_of: ImageType::from_number(row.next::<i16>()? as u8).unwrap(),
         })
     }
 }
@@ -80,7 +91,7 @@ impl NewUploadedImageModel {
         Self { path, created_at: Utc::now() }
     }
 
-    pub async fn get_or_insert(self, db: &Database) -> Result<UploadedImageModel> {
+    pub async fn get_or_insert(self, db: &tokio_postgres::Client) -> Result<UploadedImageModel> {
         if let Some(value) = UploadedImageModel::get_by_path(self.path.as_value().unwrap(), db).await? {
             Ok(value)
         } else {
@@ -88,62 +99,52 @@ impl NewUploadedImageModel {
         }
     }
 
-    pub async fn insert(self, db: &Database) -> Result<UploadedImageModel> {
-        let conn = db.write().await;
-
-        conn.execute(r#"
-            INSERT OR IGNORE INTO uploaded_images (path, created_at)
-            VALUES (?1, ?2)
-        "#,
-        params![
-            self.path.as_value(),
-            self.created_at.timestamp_millis()
-        ])?;
+    pub async fn insert(self, db: &tokio_postgres::Client) -> Result<UploadedImageModel> {
+        let row = db.query_one(
+            "INSERT OR IGNORE INTO uploaded_images (path, created_at) VALUES (?1, ?2)",
+            params![
+                self.path.as_value(),
+                self.created_at.timestamp_millis()
+            ]
+        ).await?;
 
         Ok(UploadedImageModel {
-            id: ImageId::from(conn.last_insert_rowid() as usize),
+            id: ImageId::from(row_to_usize(row)?),
             path: self.path,
             created_at: self.created_at,
         })
     }
 
-    pub async fn path_exists(path: &str, db: &Database) -> Result<bool> {
-        Ok(db.read().await.query_row(
+    pub async fn path_exists(path: &str, db: &tokio_postgres::Client) -> Result<bool> {
+        Ok(row_to_usize(db.query_one(
             "SELECT COUNT(*) FROM uploaded_images WHERE path = ?1",
-            [ path ],
-            |v| Ok(v.get::<_, usize>(0)? != 0)
-        )?)
+            params![ path ],
+        ).await?)? != 0)
     }
 }
 
 
 impl UploadedImageModel {
-    pub async fn get_by_path(value: &str, db: &Database) -> Result<Option<Self>> {
-        Ok(db.read().await.query_row(
+    pub async fn get_by_path(value: &str, db: &tokio_postgres::Client) -> Result<Option<Self>> {
+        db.query_opt(
             r#"SELECT * FROM uploaded_images WHERE path = ?1"#,
-            [value],
-            |v| Self::from_row(v)
-        ).optional()?)
+            params![ value ],
+        ).await?.map(Self::from_row).transpose()
     }
 
-    pub async fn get_by_id(value: ImageId, db: &Database) -> Result<Option<Self>> {
-        Ok(db.read().await.query_row(
+    pub async fn get_by_id(value: ImageId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
+        db.query_opt(
             r#"SELECT * FROM uploaded_images WHERE id = ?1"#,
-            [value],
-            |v| Self::from_row(v)
-        ).optional()?)
+            params![ *value as i64 ],
+        ).await?.map(Self::from_row).transpose()
     }
 
-    pub async fn remove(link_id: BookId, path: ThumbnailStore, db: &Database) -> Result<()> {
+    pub async fn remove(link_id: BookId, path: ThumbnailStore, db: &tokio_postgres::Client) -> Result<()> {
         // TODO: Check for currently set images
         // TODO: Remove image links.
-        db.write().await
-        .execute(r#"DELETE FROM uploaded_images WHERE link_id = ?1 AND path = ?2"#,
-            params![
-                link_id,
-                path.as_value(),
-            ]
-        )?;
+        db.execute("DELETE FROM uploaded_images WHERE link_id = ?1 AND path = ?2",
+            params![ *link_id as i64, path.as_value() ]
+        ).await?;
 
         Ok(())
     }
@@ -168,57 +169,41 @@ impl ImageLinkModel {
     }
 
 
-    pub async fn insert(&self, db: &Database) -> Result<()> {
-        let conn = db.write().await;
-
-        conn.execute(r#"
-            INSERT OR IGNORE INTO image_link (image_id, link_id, type_of)
-            VALUES (?1, ?2, ?3)
-        "#,
+    pub async fn insert(&self, db: &tokio_postgres::Client) -> Result<()> {
+        db.execute("INSERT OR IGNORE INTO image_link (image_id, link_id, type_of) VALUES (?1, ?2, ?3)",
         params![
-            self.image_id.to_string(),
-            self.link_id.to_string(),
-            self.type_of.as_num()
-        ])?;
+            *self.image_id as i64,
+            self.link_id as i64,
+            self.type_of.as_num() as i16
+        ]).await?;
 
         Ok(())
     }
 
-    pub async fn remove(self, db: &Database) -> Result<()> {
-        db.write().await
-        .execute(r#"DELETE FROM image_link WHERE image_id = ?1 AND link_id = ?2 AND type_of = ?3"#,
+    pub async fn remove(self, db: &tokio_postgres::Client) -> Result<()> {
+        db.execute("DELETE FROM image_link WHERE image_id = ?1 AND link_id = ?2 AND type_of = ?3",
             params![
-                self.image_id,
-                self.link_id,
-                self.type_of.as_num(),
+                *self.image_id as i64,
+                self.link_id as i64,
+                self.type_of.as_num() as i16,
             ]
-        )?;
+        ).await?;
 
         Ok(())
     }
 
     // TODO: Place into ImageWithLink struct?
-    pub async fn get_by_linked_id(id: usize, type_of: ImageType, db: &Database) -> Result<Vec<ImageWithLink>> {
-        let this = db.read().await;
+    pub async fn get_by_linked_id(id: usize, type_of: ImageType, db: &tokio_postgres::Client) -> Result<Vec<ImageWithLink>> {
+        let values = db.query(
+            r#"SELECT image_link.*, uploaded_images.path, uploaded_images.created_at
+                FROM image_link
+                INNER JOIN uploaded_images
+                    ON uploaded_images.id = image_link.image_id
+                WHERE link_id = ?1 AND type_of = ?2
+            "#,
+            params![ id as i64, type_of.as_num() as i16 ]
+        ).await?;
 
-        let mut conn = this.prepare(r#"
-            SELECT image_link.*, uploaded_images.path, uploaded_images.created_at
-            FROM image_link
-            INNER JOIN uploaded_images
-                ON uploaded_images.id = image_link.image_id
-            WHERE link_id = ?1 AND type_of = ?2
-        "#)?;
-
-        let map = conn.query_map(params![id, type_of.as_num()], |row| {
-            Ok(ImageWithLink {
-                image_id: row.get(0)?,
-                link_id: row.get(1)?,
-                type_of: ImageType::from_number(row.get(2)?).unwrap(),
-                path: ThumbnailStore::from(row.get::<_, String>(3)?),
-                created_at: Utc.timestamp_millis(row.get(4)?),
-            })
-        })?;
-
-        Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+        values.into_iter().map(ImageWithLink::from_row).collect()
     }
 }

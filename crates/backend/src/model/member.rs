@@ -2,12 +2,12 @@ use lazy_static::lazy_static;
 use common_local::{util::serialize_datetime, Permissions};
 use chrono::{DateTime, TimeZone, Utc};
 use common::MemberId;
-use rusqlite::{params, OptionalExtension};
 use serde::Serialize;
+use tokio_postgres::Client;
 
-use crate::{Database, Result};
+use crate::Result;
 
-use super::{TableRow, AdvRow};
+use super::{TableRow, AdvRow, row_to_usize};
 
 lazy_static! {
     pub static ref SYSTEM_MEMBER: MemberModel = MemberModel {
@@ -50,10 +50,10 @@ pub struct MemberModel {
     pub updated_at: DateTime<Utc>,
 }
 
-impl TableRow<'_> for MemberModel {
-    fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
+impl TableRow for MemberModel {
+    fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
-            id: row.next()?,
+            id: MemberId::from(row.next::<i64>()? as usize),
             name: row.next()?,
             email: row.next()?,
             password: row.next()?,
@@ -80,20 +80,17 @@ impl From<MemberModel> for common_local::Member {
 
 
 impl NewMemberModel {
-    pub async fn insert(self, db: &Database) -> Result<MemberModel> {
-        let conn = db.write().await;
-
-        conn.execute(r#"
-            INSERT INTO members (name, email, password, permissions, created_at, updated_at)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6)
-        "#,
-        params![
-            &self.name, self.email.as_ref(), self.password.as_ref(), self.permissions,
-            self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
-        ])?;
+    pub async fn insert(self, db: &Client) -> Result<MemberModel> {
+        let row = db.query_one(
+            "INSERT INTO members (name, email, password, permissions, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                &self.name, self.email.as_ref(), self.password.as_ref(), self.permissions,
+                self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
+            ]
+        ).await?;
 
         Ok(MemberModel {
-            id: MemberId::from(conn.last_insert_rowid() as usize),
+            id: MemberId::from(row_to_usize(row)?),
             name: self.name,
             email: self.email,
             password: self.password,
@@ -105,37 +102,34 @@ impl NewMemberModel {
 }
 
 impl MemberModel {
-    pub async fn get_by_email(value: &str, db: &Database) -> Result<Option<Self>> {
-        Ok(db.read().await.query_row(
-            r#"SELECT * FROM members WHERE email = ?1"#,
-            params![value],
-            |v| Self::from_row(v)
-        ).optional()?)
+    pub async fn get_by_email(value: &str, db: &Client) -> Result<Option<Self>> {
+        db.query_opt(
+            "SELECT * FROM members WHERE email = ?1",
+            params![ value ],
+        ).await?.map(Self::from_row).transpose()
     }
 
-    pub async fn get_by_id(id: MemberId, db: &Database) -> Result<Option<Self>> {
+    pub async fn get_by_id(id: MemberId, db: &Client) -> Result<Option<Self>> {
         if id == 0 {
             Ok(Some(SYSTEM_MEMBER.clone()))
         } else {
-            Ok(db.read().await.query_row(
-                r#"SELECT * FROM members WHERE id = ?1"#,
-                params![id],
-                |v| Self::from_row(v)
-            ).optional()?)
+            db.query_opt(
+                "SELECT * FROM members WHERE id = ?1",
+                params![ *id as i64 ],
+            ).await?.map(Self::from_row).transpose()
         }
     }
 
-    pub async fn get_count(db: &Database) -> Result<usize> {
-        Ok(db.read().await.query_row(r#"SELECT COUNT(*) FROM members"#, [], |v| v.get(0))?)
+    pub async fn get_count(db: &Client) -> Result<usize> {
+        row_to_usize(db.query_one("SELECT COUNT(*) FROM members", &[]).await?)
     }
 
-    pub async fn find_all(offset: usize, limit: usize, db: &Database) -> Result<Vec<Self>> {
-        let this = db.read().await;
+    pub async fn find_all(offset: usize, limit: usize, db: &Client) -> Result<Vec<Self>> {
+        let values = db.query(
+            "SELECT * FROM members LIMIT ?1 OFFSET ?2",
+            params![ limit as i64, offset as i64 ]
+        ).await?;
 
-        let mut conn = this.prepare(r#"SELECT * FROM members LIMIT ?1 OFFSET ?2"#)?;
-
-        let map = conn.query_map([limit, offset], |v| Self::from_row(v))?;
-
-        Ok(map.collect::<rusqlite::Result<Vec<_>>>()?)
+        values.into_iter().map(Self::from_row).collect()
     }
 }

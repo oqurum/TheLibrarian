@@ -1,12 +1,11 @@
 use common_local::{Person, util::serialize_datetime};
 use chrono::{DateTime, TimeZone, Utc};
 use common::{BookId, PersonId, Source, ThumbnailStore};
-use rusqlite::{params, OptionalExtension};
 use serde::Serialize;
 
-use crate::{Database, Result};
+use crate::Result;
 
-use super::{PersonAltModel, TableRow, AdvRow};
+use super::{PersonAltModel, TableRow, AdvRow, row_to_usize};
 
 
 
@@ -42,10 +41,10 @@ pub struct PersonModel {
     pub created_at: DateTime<Utc>,
 }
 
-impl TableRow<'_> for PersonModel {
-    fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
+impl TableRow for PersonModel {
+    fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
-            id: row.next()?,
+            id: PersonId::from(row.next::<i64>()? as usize),
 
             source: Source::try_from(row.next::<String>()?).unwrap(),
 
@@ -78,20 +77,17 @@ impl From<PersonModel> for Person {
 
 
 impl NewPersonModel {
-    pub async fn insert(self, db: &Database) -> Result<PersonModel> {
-        let conn = db.write().await;
-
-        conn.execute(r#"
-            INSERT INTO person (source, name, description, birth_date, thumb_url, updated_at, created_at)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
-        "#,
-        params![
-            self.source.to_string(), &self.name, &self.description, &self.birth_date, self.thumb_url.as_value(),
-            self.updated_at.timestamp_millis(), self.created_at.timestamp_millis()
-        ])?;
+    pub async fn insert(self, db: &tokio_postgres::Client) -> Result<PersonModel> {
+        let row = db.query_one(
+            "INSERT INTO person (source, name, description, birth_date, thumb_url, updated_at, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                self.source.to_string(), &self.name, &self.description, &self.birth_date, self.thumb_url.as_value(),
+                self.updated_at.timestamp_millis(), self.created_at.timestamp_millis()
+            ]
+        ).await?;
 
         Ok(PersonModel {
-            id: PersonId::from(conn.last_insert_rowid() as usize),
+            id: PersonId::from(row_to_usize(row)?),
             source: self.source,
             name: self.name,
             description: self.description,
@@ -105,32 +101,30 @@ impl NewPersonModel {
 
 
 impl PersonModel {
-    pub async fn get_all(offset: usize, limit: usize, db: &Database) -> Result<Vec<Self>> {
-        let this = db.read().await;
+    pub async fn get_all(offset: usize, limit: usize, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
+        let values = db.query(
+            r#"
+                SELECT person.* FROM book_person
+                LEFT JOIN
+                    person ON person.id = book_person.person_id
+                WHERE book_id = ?1
+            "#,
+            params![ limit as i64, offset as i64 ]
+        ).await?;
 
-        let mut conn = this.prepare(r#"SELECT * FROM person LIMIT ?1 OFFSET ?2"#)?;
-
-        let map = conn.query_map([limit, offset], |v| Self::from_row(v))?;
-
-        Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+        values.into_iter().map(Self::from_row).collect()
     }
 
-    pub async fn get_all_by_book_id(book_id: BookId, db: &Database) -> Result<Vec<Self>> {
-        let this = db.read().await;
+    pub async fn get_all_by_book_id(book_id: BookId, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
+        let values = db.query(
+            "SELECT * FROM person LIMIT ?1 OFFSET ?2",
+            params![ *book_id as i64 ]
+        ).await?;
 
-        let mut conn = this.prepare(r#"
-            SELECT person.* FROM book_person
-            LEFT JOIN
-                person ON person.id = book_person.person_id
-            WHERE book_id = ?1
-        "#)?;
-
-        let map = conn.query_map([book_id], |v| Self::from_row(v))?;
-
-        Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+        values.into_iter().map(Self::from_row).collect()
     }
 
-    pub async fn search(query: &str, offset: usize, limit: usize, db: &Database) -> Result<Vec<Self>> {
+    pub async fn search(query: &str, offset: usize, limit: usize, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
         let mut escape_char = '\\';
 
         // Change our escape character if it's in the query.
@@ -150,24 +144,22 @@ impl PersonModel {
         );
 
 
-        let this = db.read().await;
+        let values = db.query(
+            &sql,
+            params![ limit as i64, offset as i64 ]
+        ).await?;
 
-        let mut conn = this.prepare(&sql)?;
-
-        let map = conn.query_map(params![limit, offset], |v| Self::from_row(v))?;
-
-        Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+        values.into_iter().map(Self::from_row).collect()
     }
 
-    pub async fn get_by_name(value: &str, db: &Database) -> Result<Option<Self>> {
-        let person = db.read().await.query_row(
+    pub async fn get_by_name(value: &str, db: &tokio_postgres::Client) -> Result<Option<Self>> {
+        let person = db.query_opt(
             r#"SELECT * FROM person WHERE name = ?1"#,
-            params![value],
-            |v| Self::from_row(v)
-        ).optional()?;
+            params![ value ],
+        ).await?;
 
         if let Some(person) = person {
-            Ok(Some(person))
+            Ok(Some(Self::from_row(person)?))
         } else if let Some(alt) = PersonAltModel::get_by_name(value, db).await? {
             Self::get_by_id(alt.person_id, db).await
         } else {
@@ -175,29 +167,26 @@ impl PersonModel {
         }
     }
 
-    pub async fn get_by_id(id: PersonId, db: &Database) -> Result<Option<Self>> {
-        Ok(db.read().await.query_row(
+    pub async fn get_by_id(id: PersonId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
+        db.query_opt(
             r#"SELECT * FROM person WHERE id = ?1"#,
-            params![id],
-            |v| Self::from_row(v)
-        ).optional()?)
+            params![ *id as i64 ],
+        ).await?.map(Self::from_row).transpose()
     }
 
-    pub async fn get_by_source(value: &str, db: &Database) -> Result<Option<Self>> {
-        Ok(db.read().await.query_row(
-            r#"SELECT * FROM person WHERE source = ?1"#,
-            params![value],
-            |v| Self::from_row(v)
-        ).optional()?)
+    pub async fn get_by_source(value: &str, db: &tokio_postgres::Client) -> Result<Option<Self>> {
+        db.query_opt(
+            "SELECT * FROM person WHERE source = ?1",
+            params![ value ],
+        ).await?.map(Self::from_row).transpose()
     }
 
-    pub async fn get_count(db: &Database) -> Result<usize> {
-        Ok(db.read().await.query_row(r#"SELECT COUNT(*) FROM person"#, [], |v| v.get(0))?)
+    pub async fn get_count(db: &tokio_postgres::Client) -> Result<usize> {
+        row_to_usize(db.query_one("SELECT COUNT(*) FROM person", &[]).await?)
     }
 
-    pub async fn update(&self, db: &Database) -> Result<()> {
-        db.write().await
-        .execute(r#"
+    pub async fn update(&self, db: &tokio_postgres::Client) -> Result<()> {
+        db.execute(r#"
             UPDATE person SET
                 source = ?2,
                 name = ?3,
@@ -208,19 +197,19 @@ impl PersonModel {
                 created_at = ?8
             WHERE id = ?1"#,
             params![
-                self.id,
+                *self.id as i64,
                 self.source.to_string(), &self.name, &self.description, &self.birth_date, self.thumb_url.as_value(),
                 self.updated_at.timestamp_millis(), self.created_at.timestamp_millis()
             ]
-        )?;
+        ).await?;
 
         Ok(())
     }
 
-    pub async fn remove_by_id(id: usize, db: &Database) -> Result<usize> {
-        Ok(db.write().await.execute(
-            r#"DELETE FROM person WHERE id = ?1"#,
-            params![id]
-        )?)
+    pub async fn remove_by_id(id: usize, db: &tokio_postgres::Client) -> Result<u64> {
+        Ok(db.execute(
+            "DELETE FROM person WHERE id = ?1",
+            params![ id as i64 ]
+        ).await?)
     }
 }

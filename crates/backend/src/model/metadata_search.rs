@@ -1,14 +1,14 @@
 use std::time::Duration;
 
 use chrono::{DateTime, Utc, TimeZone};
-use common_local::{MetadataSearchId, util::serialize_datetime};
+use common_local::{MetadataSearchId, util::serialize_datetime, MetadataSearchType};
 use num_enum::{FromPrimitive, IntoPrimitive};
-use rusqlite::{params, OptionalExtension};
 use serde::{Serialize, Deserialize};
+use tokio_postgres::Client;
 
-use crate::{Database, Result, metadata::{MetadataReturned, SearchItem, AuthorInfo}};
+use crate::{Result, metadata::{MetadataReturned, SearchItem, AuthorInfo}};
 
-use super::{TableRow, AdvRow};
+use super::{TableRow, AdvRow, row_to_usize};
 
 
 pub struct NewMetadataSearchModel {
@@ -38,15 +38,15 @@ pub struct MetadataSearchModel {
     pub updated_at: DateTime<Utc>,
 }
 
-impl TableRow<'_> for MetadataSearchModel {
-    fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
+impl TableRow for MetadataSearchModel {
+    fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
             id: row.next()?,
 
             query: row.next()?,
             agent: row.next()?,
-            type_of: MetadataSearchType::from(row.next::<u8>()?),
-            last_found_amount: row.next()?,
+            type_of: MetadataSearchType::from(row.next::<i16>()? as u8),
+            last_found_amount: row.next::<i64>()? as usize,
             data: row.next()?,
 
             created_at: Utc.timestamp_millis(row.next()?),
@@ -71,22 +71,20 @@ impl NewMetadataSearchModel {
         }
     }
 
-    pub async fn insert(self, db: &Database) -> Result<MetadataSearchModel> {
-        let conn = db.write().await;
-
+    pub async fn insert(self, client: &Client) -> Result<MetadataSearchModel> {
         let data = serde_json::to_string(&self.data)?;
 
-        conn.execute(r#"
-            INSERT INTO metadata_search (query, agent, type_of, last_found_amount, data, created_at, updated_at)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
-        "#,
-        params![
-            &self.query, self.agent, u8::from(self.type_of), self.last_found_amount, &data,
-            self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
-        ])?;
+        let row = client.query_one(
+            r#"INSERT INTO metadata_search (query, agent, type_of, last_found_amount, data, created_at, updated_at)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7) RETURNING id"#,
+            params![
+                &self.query, self.agent, u8::from(self.type_of) as i64, self.last_found_amount as i64, &data,
+                self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
+            ]
+        ).await?;
 
         Ok(MetadataSearchModel {
-            id: MetadataSearchId::from(conn.last_insert_rowid() as usize),
+            id: MetadataSearchId::from(row_to_usize(row)?),
 
             query: self.query,
             agent: self.agent,
@@ -114,17 +112,15 @@ impl MetadataSearchModel {
         Ok(serde_json::from_str(&self.data)?)
     }
 
-    pub async fn find_one_by_query_and_agent(type_of: MetadataSearchType, query: &str, agent: &str, db: &Database) -> Result<Option<Self>> {
-        Ok(db.read().await.query_row(
+    pub async fn find_one_by_query_and_agent(type_of: MetadataSearchType, query: &str, agent: &str, client: &Client) -> Result<Option<Self>> {
+        client.query_opt(
             "SELECT * FROM metadata_search WHERE type_of = ?1 AND query = ?2 AND agent = ?3",
-            params![ u8::from(type_of), query, agent ],
-            |v| Self::from_row(v)
-        ).optional()?)
+            params![ u8::from(type_of) as i16, query, agent ],
+        ).await?.map(Self::from_row).transpose()
     }
 
-    pub async fn update(&self, db: &Database) -> Result<usize> {
-        Ok(db.write().await
-        .execute(r#"
+    pub async fn update(&self, client: &Client) -> Result<u64> {
+        Ok(client.execute(r#"
             UPDATE metadata_search SET
                 query = ?2,
                 agent = ?3,
@@ -136,10 +132,10 @@ impl MetadataSearchModel {
             WHERE id = ?1"#,
             params![
                 self.id,
-                &self.query, self.agent, u8::from(self.type_of), self.last_found_amount, self.data,
+                &self.query, self.agent, u8::from(self.type_of) as i16, self.last_found_amount as i64, self.data,
                 self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
             ]
-        )?)
+        ).await?)
     }
 }
 
@@ -148,8 +144,8 @@ impl MetadataSearchModel {
 pub struct OptMetadataSearchModel(Option<MetadataSearchModel>);
 
 impl OptMetadataSearchModel {
-    pub async fn find_one_by_query_and_agent(type_of: MetadataSearchType, query: &str, agent: &str, db: &Database) -> Result<Self> {
-        if let Some(model) = MetadataSearchModel::find_one_by_query_and_agent(type_of, query, agent, db).await? {
+    pub async fn find_one_by_query_and_agent(type_of: MetadataSearchType, query: &str, agent: &str, client: &Client) -> Result<Self> {
+        if let Some(model) = MetadataSearchModel::find_one_by_query_and_agent(type_of, query, agent, client).await? {
             Ok(Self(Some(model)))
         } else {
             Ok(Self(None))
@@ -164,16 +160,16 @@ impl OptMetadataSearchModel {
             .transpose()
     }
 
-    pub async fn update_or_insert(self, type_of: MetadataSearchType, query: String, agent: String, last_found_amount: usize, data: DataType, db: &Database) -> Result<()> {
+    pub async fn update_or_insert(self, type_of: MetadataSearchType, query: String, agent: String, last_found_amount: usize, data: DataType, client: &Client) -> Result<()> {
         if let Some(mut model) = self.0 {
             model.last_found_amount = last_found_amount;
             model.data = serde_json::to_string(&data)?;
 
-            model.update(db).await?;
+            model.update(client).await?;
         } else {
             let model = NewMetadataSearchModel::new(type_of, query, agent, last_found_amount, data);
 
-            model.insert(db).await?;
+            model.insert(client).await?;
         }
 
         Ok(())
@@ -213,13 +209,3 @@ impl DataType {
         }
     }
 }
-
-
-#[derive(Clone, Copy, PartialEq, Eq, Serialize, FromPrimitive, IntoPrimitive)]
-#[repr(u8)]
-pub enum MetadataSearchType {
-    #[num_enum(default)]
-    Book,
-    Person,
-}
-

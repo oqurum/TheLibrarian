@@ -5,13 +5,13 @@ use common::api::WrappingResponse;
 use common::{Either, ThumbnailStore, BookId, PersonId};
 use common_local::item::edit::{BookEdit, NewOrCachedImage};
 use common_local::{api, DisplayItem, MetadataItemCached, DisplayMetaItem};
+use tokio_postgres::Client;
 
 use crate::http::{MemberCookie, JsonResponse};
 use crate::metadata::MetadataReturned;
 use crate::model::{BookPersonModel, BookModel, BookTagWithTagModel, PersonModel, NewEditModel, ImageLinkModel, UploadedImageModel};
 use crate::storage::get_storage;
 use crate::{WebResult, metadata, Error};
-use crate::database::Database;
 
 
 
@@ -19,7 +19,7 @@ use crate::database::Database;
 pub async fn add_new_book(
     body: web::Json<api::NewBookBody>,
     member: MemberCookie,
-    db: web::Data<Database>,
+    db: web::Data<Client>,
 ) -> WebResult<JsonResponse<Option<DisplayMetaItem>>> {
     let member = member.fetch(&db).await?.unwrap();
 
@@ -178,7 +178,7 @@ pub async fn add_new_book(
 #[get("/books")]
 pub async fn load_book_list(
     query: web::Query<api::BookListQuery>,
-    db: web::Data<Database>,
+    db: web::Data<Client>,
 ) -> WebResult<JsonResponse<api::GetBookListResponse>> {
     let (items, count) = if let Some(search) = query.search_query().transpose()? {
         let count = BookModel::count_search_book(search.query.as_deref(), false, query.person_id.map(PersonId::from), &db).await?;
@@ -240,7 +240,7 @@ pub async fn load_book_list(
 
 
 #[get("/book/{id}")]
-pub async fn get_book_info(book_id: web::Path<BookId>, db: web::Data<Database>) -> WebResult<JsonResponse<api::MediaViewResponse>> {
+pub async fn get_book_info(book_id: web::Path<BookId>, db: web::Data<Client>) -> WebResult<JsonResponse<api::MediaViewResponse>> {
     let book = BookModel::get_by_id(*book_id, &db).await?.unwrap();
     let people = PersonModel::get_all_by_book_id(book.id, &db).await?;
     let tags = BookTagWithTagModel::get_by_book_id(book.id, &db).await?;
@@ -262,7 +262,7 @@ pub async fn update_book_id(
     book_id: web::Path<BookId>,
     body: web::Json<BookEdit>,
     member: MemberCookie,
-    db: web::Data<Database>,
+    db: web::Data<Client>,
 ) -> WebResult<JsonResponse<&'static str>> {
     let body = body.into_inner();
 
@@ -292,7 +292,7 @@ pub async fn update_book_id(
 
 
 #[get("/book/{id}/thumbnail")]
-async fn load_book_thumbnail(path: web::Path<BookId>, req: HttpRequest, db: web::Data<Database>) -> WebResult<HttpResponse> {
+async fn load_book_thumbnail(path: web::Path<BookId>, req: HttpRequest, db: web::Data<Client>) -> WebResult<HttpResponse> {
     let book_id = path.into_inner();
 
     let meta = BookModel::get_by_id(book_id, &db).await?;

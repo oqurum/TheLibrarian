@@ -1,11 +1,11 @@
 use common::BookId;
 use common_local::{CollectionType, CollectionId, Collection, api::UpdateCollectionModel};
 use chrono::{DateTime, TimeZone, Utc};
-use rusqlite::{params, OptionalExtension, ToSql};
+use tokio_postgres::types::ToSql;
 
-use crate::{Database, Result};
+use crate::Result;
 
-use super::{AdvRow, TableRow, BookModel, CollectionItemModel};
+use super::{AdvRow, TableRow, BookModel, CollectionItemModel, row_to_usize};
 
 pub struct NewCollectionModel {
     pub name: String,
@@ -40,13 +40,13 @@ impl From<CollectionModel> for Collection {
 }
 
 
-impl TableRow<'_> for CollectionModel {
-    fn create(row: &mut AdvRow<'_>) -> rusqlite::Result<Self> {
+impl TableRow for CollectionModel {
+    fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
             id: row.next()?,
             name: row.next()?,
             description: row.next()?,
-            type_of: CollectionType::from(row.next::<u8>()?),
+            type_of: CollectionType::from(row.next::<i16>()? as u8),
             created_at: Utc.timestamp_millis(row.next()?),
             updated_at: Utc.timestamp_millis(row.next()?),
         })
@@ -54,49 +54,46 @@ impl TableRow<'_> for CollectionModel {
 }
 
 impl CollectionModel {
-    pub async fn find_by_id(id: CollectionId, db: &Database) -> Result<Option<Self>> {
-        Ok(db.read().await.query_row(
-            r#"SELECT * FROM collection WHERE id = ?1"#,
-            params![id],
-            |v| Self::from_row(v)
-        ).optional()?)
+    pub async fn find_by_id(id: CollectionId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
+        db.query_opt(
+            "SELECT * FROM collection WHERE id = ?1",
+            params![ id ],
+        ).await?.map(Self::from_row).transpose()
     }
 
-    pub async fn find_books_by_id(id: CollectionId, db: &Database) -> Result<Vec<BookModel>> {
-        let this = db.read().await;
+    pub async fn find_books_by_id(id: CollectionId, db: &tokio_postgres::Client) -> Result<Vec<BookModel>> {
+        let values = db.query(
+            "SELECT * FROM book WHERE id IN (SELECT book_id FROM collection_item WHERE collection_id = ?1)",
+            params![ id ]
+        ).await?;
 
-        let mut conn = this.prepare("SELECT * FROM book WHERE id IN (SELECT book_id FROM collection_item WHERE collection_id = ?1)")?;
-
-        let map = conn.query_map([id], |v| BookModel::from_row(v))?;
-
-        Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+        values.into_iter().map(BookModel::from_row).collect()
     }
 
-    pub async fn get_all(db: &Database) -> Result<Vec<Self>> {
-        let this = db.read().await;
+    pub async fn get_all(db: &tokio_postgres::Client) -> Result<Vec<Self>> {
+        let values = db.query(
+            "SELECT * FROM collection",
+            &[]
+        ).await?;
 
-        let mut conn = this.prepare("SELECT * FROM collection")?;
-
-        let map = conn.query_map([], |v| Self::from_row(v))?;
-
-        Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+        values.into_iter().map(Self::from_row).collect()
     }
 
-    pub async fn update_by_id(collection_id: CollectionId, edit: UpdateCollectionModel, db: &Database) -> Result<usize> {
+    pub async fn update_by_id(collection_id: CollectionId, edit: UpdateCollectionModel, db: &tokio_postgres::Client) -> Result<u64> {
         let mut items = Vec::new();
         // We have to Box because DateTime doesn't return a borrow.
         let mut values = vec![
-            &collection_id as &dyn rusqlite::ToSql
+            &collection_id as &(dyn tokio_postgres::types::ToSql + Sync)
         ];
 
         if let Some(value) = edit.name.as_ref() {
             items.push("name");
-            values.push(value as &dyn rusqlite::ToSql);
+            values.push(value as &(dyn tokio_postgres::types::ToSql + Sync));
         }
 
         if let Some(value) = edit.description.as_ref() {
             items.push("description");
-            values.push(value as &dyn rusqlite::ToSql);
+            values.push(value as &(dyn tokio_postgres::types::ToSql + Sync));
         }
 
         if let Some(items) = edit.added_books {
@@ -116,8 +113,7 @@ impl CollectionModel {
             return Ok(0);
         }
 
-        Ok(db.write().await
-        .execute(
+        Ok(db.execute(
             &format!(
                 "UPDATE collection SET {} WHERE id = ?1",
                 items.into_iter()
@@ -126,12 +122,12 @@ impl CollectionModel {
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
-            rusqlite::params_from_iter(values.iter())
-        )?)
+            &values
+        ).await?)
     }
 
 
-    fn gen_search_query(query: Option<&str>, book_id: Option<BookId>, parameters: &mut Vec<Box<dyn ToSql>>) -> String {
+    fn gen_search_query(query: Option<&str>, book_id: Option<BookId>, parameters: &mut Vec<Box<dyn ToSql + Sync>>) -> String {
         let base_param_len = parameters.len();
 
         let mut sql = String::from("SELECT * FROM collection WHERE ");
@@ -159,7 +155,7 @@ impl CollectionModel {
 
             // TODO: Utilize title > description and sort
             sql_queries.push(format!("name LIKE ?? ESCAPE '{escape_char}'"));
-            parameters.push(Box::new(format!("%{}%", &query)) as Box<dyn ToSql>);
+            parameters.push(Box::new(format!("%{}%", &query)) as Box<dyn ToSql + Sync>);
         }
 
 
@@ -167,7 +163,7 @@ impl CollectionModel {
 
         if let Some(bid) = book_id {
             sql_queries.push("id IN (SELECT collection_id FROM collection_item WHERE book_id = ??)".to_string());
-            parameters.push(Box::new(bid) as Box<dyn ToSql>);
+            parameters.push(Box::new(*bid as i64) as Box<dyn ToSql + Sync>);
         }
 
         let sql_query = sql_queries.into_iter()
@@ -191,60 +187,57 @@ impl CollectionModel {
         offset: usize,
         limit: usize,
         book_id: Option<BookId>,
-        db: &Database
+        db: &tokio_postgres::Client
     ) -> Result<Vec<Self>> {
         let mut parameters = vec![
-            Box::new(limit) as Box<dyn ToSql>,
-            Box::new(offset) as Box<dyn ToSql>
+            Box::new(limit as i64) as Box<dyn ToSql + Sync>,
+            Box::new(offset as i64) as Box<dyn ToSql + Sync>
         ];
 
         let mut sql = Self::gen_search_query(query, book_id, &mut parameters);
 
         sql += " LIMIT ?1 OFFSET ?2";
 
-        let this = db.read().await;
 
-        let mut conn = this.prepare(&sql)?;
+        let values = db.query(
+            &sql,
+            &super::boxed_to_dyn_vec(&parameters)
+        ).await?;
 
-        let map = conn.query_map(rusqlite::params_from_iter(parameters), |v| Self::from_row(v))?;
-
-        Ok(map.collect::<std::result::Result<Vec<_>, _>>()?)
+        values.into_iter().map(Self::from_row).collect()
     }
 
     pub async fn count(
         query: Option<&str>,
         book_id: Option<BookId>,
-        db: &Database
+        db: &tokio_postgres::Client
     ) -> Result<usize> {
         let mut parameters = Vec::new();
 
         let sql = Self::gen_search_query(query, book_id, &mut parameters).replace("SELECT *", "SELECT COUNT(*)");
 
-        Ok(db.read().await.query_row(&sql, rusqlite::params_from_iter(parameters), |v| v.get(0))?)
+        row_to_usize(db.query_one(&sql, &super::boxed_to_dyn_vec(&parameters)).await?)
     }
 }
 
 
 impl NewCollectionModel {
-    pub async fn insert(self, db: &Database) -> Result<CollectionModel> {
-        let conn = db.write().await;
-
+    pub async fn insert(self, db: &tokio_postgres::Client) -> Result<CollectionModel> {
         let now = Utc::now();
 
-        conn.execute(r#"
-            INSERT INTO collection (name, description, type_of, created_at, updated_at)
-            VALUES (?1, ?2, ?3, ?4, ?5)
-        "#,
-        params![
-            &self.name,
-            &self.description,
-            u8::from(self.type_of),
-            now.timestamp_millis(),
-            now.timestamp_millis()
-        ])?;
+        let row = db.query_one(
+            "INSERT INTO collection (name, description, type_of, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                &self.name,
+                &self.description,
+                u8::from(self.type_of) as i16,
+                now.timestamp_millis(),
+                now.timestamp_millis()
+            ]
+        ).await?;
 
         Ok(CollectionModel {
-            id: CollectionId::from(conn.last_insert_rowid() as usize),
+            id: CollectionId::from(row_to_usize(row)?),
 
             name: self.name,
             description: self.description,

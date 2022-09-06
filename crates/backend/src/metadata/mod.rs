@@ -5,8 +5,9 @@ use common::{Source, ThumbnailStore, PersonId, BookId};
 use common_local::{SearchFor, MetadataItemCached, api::MetadataBookItem};
 use chrono::Utc;
 use serde::{Serialize, Deserialize};
+use tokio_postgres::Client;
 
-use crate::{Result, database::Database, model::{NewPersonModel, PersonAltModel, BookModel, PersonModel}};
+use crate::{Result, model::{NewPersonModel, PersonAltModel, BookModel, PersonModel}};
 
 use self::{
     google_books::GoogleBooksMetadata,
@@ -26,12 +27,12 @@ pub trait Metadata {
     fn get_prefix(&self) -> &'static str;
 
     // Metadata
-    async fn get_metadata_by_source_id(&mut self, value: &str, upgrade_editions: bool, db: &Database) -> Result<Option<MetadataReturned>>;
+    async fn get_metadata_by_source_id(&mut self, value: &str, upgrade_editions: bool, db: &Client) -> Result<Option<MetadataReturned>>;
 
     // Person
 
     #[allow(unused_variables)]
-    async fn get_person_by_source_id(&mut self, value: &str, db: &Database) -> Result<Option<AuthorInfo>> {
+    async fn get_person_by_source_id(&mut self, value: &str, db: &Client) -> Result<Option<AuthorInfo>> {
         Ok(None)
     }
 
@@ -39,13 +40,13 @@ pub trait Metadata {
     // Both
 
     #[allow(unused_variables)]
-    async fn search(&mut self, search: &str, search_for: SearchFor, db: &Database) -> Result<Vec<SearchItem>> {
+    async fn search(&mut self, search: &str, search_for: SearchFor, db: &Client) -> Result<Vec<SearchItem>> {
         Ok(Vec::new())
     }
 }
 
 /// Doesn't check local
-pub async fn get_metadata_by_source(source: &Source, upgrade_editions: bool, db: &Database) -> Result<Option<MetadataReturned>> {
+pub async fn get_metadata_by_source(source: &Source, upgrade_editions: bool, db: &Client) -> Result<Option<MetadataReturned>> {
     match source.agent.deref().deref() {
         v if v == OpenLibraryMetadata.get_prefix() => OpenLibraryMetadata.get_metadata_by_source_id(&source.value, upgrade_editions, db).await,
         v if v == GoogleBooksMetadata.get_prefix() => GoogleBooksMetadata.get_metadata_by_source_id(&source.value, upgrade_editions, db).await,
@@ -57,7 +58,7 @@ pub async fn get_metadata_by_source(source: &Source, upgrade_editions: bool, db:
 
 
 /// Searches all agents except for local.
-pub async fn search_all_agents(search: &str, search_for: SearchFor, db: &Database) -> Result<SearchResults> {
+pub async fn search_all_agents(search: &str, search_for: SearchFor, db: &Client) -> Result<SearchResults> {
     let mut map = HashMap::new();
 
     // Checks to see if we can use get_metadata_by_source (source:id)
@@ -96,7 +97,7 @@ pub async fn search_all_agents(search: &str, search_for: SearchFor, db: &Databas
 }
 
 /// Searches all agents except for local.
-pub async fn get_person_by_source(source: &Source, db: &Database) -> Result<Option<AuthorInfo>> {
+pub async fn get_person_by_source(source: &Source, db: &Client) -> Result<Option<AuthorInfo>> {
     match source.agent.deref().deref() {
         v if v == OpenLibraryMetadata.get_prefix() => OpenLibraryMetadata.get_person_by_source_id(&source.value, db).await,
         v if v == GoogleBooksMetadata.get_prefix() => GoogleBooksMetadata.get_person_by_source_id(&source.value, db).await,
@@ -201,14 +202,14 @@ pub struct MetadataReturned {
 
 impl MetadataReturned {
     /// Returns (Main Author, Person IDs)
-    pub async fn add_or_ignore_authors_into_database(&mut self, db: &Database) -> Result<(Option<String>, Vec<PersonId>)> {
+    pub async fn add_or_ignore_authors_into_database(&mut self, client: &Client) -> Result<(Option<String>, Vec<PersonId>)> {
         let mut main_author = None;
         let mut person_ids = Vec::new();
 
         if let Some(authors_with_alts) = self.authors.take() {
             for author_info in authors_with_alts {
                 // Check if we already have a person by that name anywhere in the two database tables.
-                if let Some(person) = PersonModel::get_by_name(&author_info.name, db).await? {
+                if let Some(person) = PersonModel::get_by_name(&author_info.name, client).await? {
                     person_ids.push(person.id);
 
                     if main_author.is_none() {
@@ -227,7 +228,7 @@ impl MetadataReturned {
                     if resp.status().is_success() {
                         let bytes = resp.bytes().await?;
 
-                        match crate::store_image(bytes.to_vec(), db).await {
+                        match crate::store_image(bytes.to_vec(), client).await {
                             Ok(model) => thumb_url = model.path,
                             Err(e) => {
                                 eprintln!("add_or_ignore_authors_into_database Error: {}", e);
@@ -250,12 +251,12 @@ impl MetadataReturned {
                     created_at: Utc::now(),
                 };
 
-                let person = new_person.insert(db).await?;
+                let person = new_person.insert(client).await?;
 
                 if let Some(alts) = author_info.other_names {
                     for name in alts {
                         // Ignore errors. Errors should just be UNIQUE constraint failed
-                        if let Err(e) = (PersonAltModel { person_id: person.id, name, }).insert(db).await {
+                        if let Err(e) = (PersonAltModel { person_id: person.id, name, }).insert(client).await {
                             eprintln!("[OL]: Add Alt Name Error: {e}");
                         }
                     }
@@ -379,7 +380,7 @@ impl FoundImageLocation {
         matches!(self, Self::Url(_))
     }
 
-    pub async fn download(&mut self, db: &Database) -> Result<()> {
+    pub async fn download(&mut self, db: &Client) -> Result<()> {
         if let FoundImageLocation::Url(ref url) = self {
             let resp = reqwest::get(url)
                 .await?

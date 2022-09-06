@@ -6,6 +6,17 @@
 #![allow(clippy::manual_map)]
 
 
+#[macro_export]
+macro_rules! params {
+    () => {
+        &[] as &[&(dyn tokio_postgres::types::ToSql + Sync)]
+    };
+    ($($param:expr),+ $(,)?) => {
+        &[$(&$param as &(dyn tokio_postgres::types::ToSql + Sync)),+] as &[&(dyn tokio_postgres::types::ToSql + Sync)]
+    };
+}
+
+
 use actix_web::web;
 use clap::Parser;
 
@@ -20,7 +31,6 @@ mod scheduler;
 mod util;
 
 pub use cli::CliArgs;
-pub use database::Database;
 pub use error::{Result, WebResult, WebError, Error, InternalError};
 pub use util::*;
 
@@ -33,14 +43,14 @@ async fn main() -> Result<()> {
     // Initial Register of lazy_static CONFIG. Also updates the config if we changed it.
     config::save_config().await?;
 
-    { // Initiate Storage
-        let config = config::get_config();
+    let config = config::get_config();
 
+    { // Initiate Storage
         *storage::STORE.write().await = storage::Storage::pick_service_from_config(&config.storage).await?;
     }
 
-    let db = database::init().await?;
-    let db_data = web::Data::new(db);
+    let client = database::init(&config).await?;
+    let db_data = web::Data::new(client);
 
     scheduler::start(db_data.clone());
 
