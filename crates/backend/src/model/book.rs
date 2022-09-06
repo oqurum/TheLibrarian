@@ -160,7 +160,7 @@ impl BookModel {
             let row = db.query_one(r#"
                 INSERT INTO book (
                     title, clean_title, description, rating, thumb_url,
-                    cached, is_public,
+                    cached, is_public, edition_count,
                     isbn_10, isbn_13,
                     available_at, language,
                     created_at, updated_at, deleted_at
@@ -168,7 +168,7 @@ impl BookModel {
                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)"#,
                 params![
                     &self.title, &self.clean_title, &self.description, self.rating, self.thumb_path.as_value(),
-                    &self.cached.as_string_optional(), self.is_public,
+                    &self.cached.as_string_optional(), self.is_public, self.edition_count as i64,
                     &self.isbn_10, &self.isbn_13,
                     &self.available_at, self.language.map(|v| v as i32),
                     self.created_at.timestamp_millis(), self.updated_at.timestamp_millis(),

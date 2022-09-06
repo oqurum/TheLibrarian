@@ -51,6 +51,7 @@ pub async fn save_config() -> Result<()> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
+    pub database: DatabaseConfig,
     pub server: ConfigServer,
     pub auth: AuthConfig,
     pub email: Option<ConfigEmail>,
@@ -61,6 +62,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            database: DatabaseConfig { url: String::from("postgresql://127.0.0.1:5433") },
             server: ConfigServer::default(),
             auth: AuthConfig::default(),
             email: Some(ConfigEmail::default()),
@@ -79,6 +81,14 @@ impl From<Config> for SharedConfig {
             email: val.email,
         }
     }
+}
+
+
+// Database
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DatabaseConfig {
+    pub url: String,
 }
 
 

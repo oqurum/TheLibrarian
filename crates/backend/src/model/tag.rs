@@ -51,14 +51,14 @@ impl From<TagModel> for TagFE {
 impl TagModel {
     pub async fn get_by_id(id: TagId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         db.query_opt(
-            "SELECT * FROM tags WHERE id = ?1",
+            "SELECT * FROM tag WHERE id = ?1",
             params![ *id as i64 ],
         ).await?.map(Self::from_row).transpose()
     }
 
     pub async fn get_all(db: &tokio_postgres::Client) -> Result<Vec<Self>> {
         let conn = db.query(
-            "SELECT * FROM tags",
+            "SELECT * FROM tag",
             &[]
         ).await?;
 
@@ -74,7 +74,7 @@ impl NewTagModel {
         let (type_of, data) = self.type_of.clone().split();
 
         let row = db.query_one(r#"
-            INSERT INTO tags (name, type_of, data, created_at, updated_at)
+            INSERT INTO tag (name, type_of, data, created_at, updated_at)
             VALUES (?1, ?2, ?3, ?4, ?5)
         "#,
         params![

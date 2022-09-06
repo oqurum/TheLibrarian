@@ -101,7 +101,7 @@ impl NewUploadedImageModel {
 
     pub async fn insert(self, db: &tokio_postgres::Client) -> Result<UploadedImageModel> {
         let row = db.query_one(
-            "INSERT OR IGNORE INTO uploaded_images (path, created_at) VALUES (?1, ?2)",
+            "INSERT OR IGNORE INTO uploaded_image (path, created_at) VALUES (?1, ?2)",
             params![
                 self.path.as_value(),
                 self.created_at.timestamp_millis()
@@ -117,7 +117,7 @@ impl NewUploadedImageModel {
 
     pub async fn path_exists(path: &str, db: &tokio_postgres::Client) -> Result<bool> {
         Ok(row_to_usize(db.query_one(
-            "SELECT COUNT(*) FROM uploaded_images WHERE path = ?1",
+            "SELECT COUNT(*) FROM uploaded_image WHERE path = ?1",
             params![ path ],
         ).await?)? != 0)
     }
@@ -127,14 +127,14 @@ impl NewUploadedImageModel {
 impl UploadedImageModel {
     pub async fn get_by_path(value: &str, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         db.query_opt(
-            r#"SELECT * FROM uploaded_images WHERE path = ?1"#,
+            r#"SELECT * FROM uploaded_image WHERE path = ?1"#,
             params![ value ],
         ).await?.map(Self::from_row).transpose()
     }
 
     pub async fn get_by_id(value: ImageId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         db.query_opt(
-            r#"SELECT * FROM uploaded_images WHERE id = ?1"#,
+            r#"SELECT * FROM uploaded_image WHERE id = ?1"#,
             params![ *value as i64 ],
         ).await?.map(Self::from_row).transpose()
     }
@@ -142,7 +142,7 @@ impl UploadedImageModel {
     pub async fn remove(link_id: BookId, path: ThumbnailStore, db: &tokio_postgres::Client) -> Result<()> {
         // TODO: Check for currently set images
         // TODO: Remove image links.
-        db.execute("DELETE FROM uploaded_images WHERE link_id = ?1 AND path = ?2",
+        db.execute("DELETE FROM uploaded_image WHERE link_id = ?1 AND path = ?2",
             params![ *link_id as i64, path.as_value() ]
         ).await?;
 
@@ -195,10 +195,10 @@ impl ImageLinkModel {
     // TODO: Place into ImageWithLink struct?
     pub async fn get_by_linked_id(id: usize, type_of: ImageType, db: &tokio_postgres::Client) -> Result<Vec<ImageWithLink>> {
         let values = db.query(
-            r#"SELECT image_link.*, uploaded_images.path, uploaded_images.created_at
+            r#"SELECT image_link.*, uploaded_image.path, uploaded_image.created_at
                 FROM image_link
-                INNER JOIN uploaded_images
-                    ON uploaded_images.id = image_link.image_id
+                INNER JOIN uploaded_image
+                    ON uploaded_image.id = image_link.image_id
                 WHERE link_id = ?1 AND type_of = ?2
             "#,
             params![ id as i64, type_of.as_num() as i16 ]

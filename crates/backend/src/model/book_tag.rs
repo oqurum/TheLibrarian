@@ -80,14 +80,14 @@ impl From<BookTagWithTagModel> for BookTag {
 impl BookTagModel {
     pub async fn get_by_id(id: BookTagId, db: &Client) -> Result<Option<Self>> {
         db.query_opt(
-            "SELECT * FROM book_tags WHERE id = ?1",
+            "SELECT * FROM book_tag WHERE id = ?1",
             params![ *id as i64 ],
         ).await?.map(Self::from_row).transpose()
     }
 
     pub async fn remove(book_id: BookId, tag_id: TagId, db: &Client) -> Result<u64> {
         Ok(db.execute(
-            "DELETE FROM book_tags WHERE book_id = ?1 AND tag_id = ?2",
+            "DELETE FROM book_tag WHERE book_id = ?1 AND tag_id = ?2",
             params![ *book_id as i64, *tag_id as i64 ],
         ).await?)
     }
@@ -95,7 +95,7 @@ impl BookTagModel {
     pub async fn insert(book_id: BookId, tag_id: TagId, index: Option<usize>, db: &Client) -> Result<Self> {
         let index = if let Some(index) = index {
             db.execute(
-                "UPDATE book_tags SET windex = windex + 1 WHERE book_id = ?1 AND tag_id = ?2 AND windex >= ?3",
+                "UPDATE book_tag SET idx = idx + 1 WHERE book_id = ?1 AND tag_id = ?2 AND idx >= ?3",
                 params![ *book_id as i64, *tag_id as i64, index as i64 ],
             ).await?;
 
@@ -107,7 +107,7 @@ impl BookTagModel {
         let created_at = Utc::now();
 
         let row = db.query_one(
-            "INSERT INTO book_tags (book_id, tag_id, windex, created_at) VALUES (?1, ?2, ?3, ?4)",
+            "INSERT INTO book_tag (book_id, tag_id, idx, created_at) VALUES (?1, ?2, ?3, ?4)",
             params![
                 *book_id as i64,
                 *tag_id as i64,
@@ -127,14 +127,14 @@ impl BookTagModel {
 
     pub async fn count_book_tags_by_bid_tid(book_id: BookId, tag_id: TagId, db: &Client) -> Result<usize> {
         row_to_usize(db.query_one(
-            "SELECT COUNT(*) FROM book_tags WHERE book_id = ?1 AND tag_id = ?2",
+            "SELECT COUNT(*) FROM book_tag WHERE book_id = ?1 AND tag_id = ?2",
             params![ *book_id as i64, *tag_id as i64 ],
         ).await?)
     }
 
     pub async fn get_books_by_book_id(book_id: BookId, db: &Client) -> Result<Vec<Self>> {
         let conn = db.query(
-            "SELECT * FROM book_tags WHERE book_id = ?1",
+            "SELECT * FROM book_tag WHERE book_id = ?1",
             params![ *book_id as i64 ]
         ).await?;
 
@@ -146,9 +146,9 @@ impl BookTagModel {
 impl BookTagWithTagModel {
     pub async fn get_by_book_id(book_id: BookId, db: &Client) -> Result<Vec<Self>> {
         let conn = db.query(
-            r#"SELECT book_tags.id, book_tags.book_id, windex, book_tags.created_at, tags.*
-            FROM book_tags
-            JOIN tags ON book_tags.tag_id == tags.id
+            r#"SELECT book_tag.id, book_tag.book_id, idx, book_tag.created_at, tags.*
+            FROM book_tag
+            JOIN tags ON book_tag.tag_id == tags.id
             WHERE book_id = ?1"#,
             params![ *book_id as i64 ]
         ).await?;
@@ -158,9 +158,9 @@ impl BookTagWithTagModel {
 
     pub async fn get_by_book_id_and_tag_id(book_id: BookId, tag_id: TagId, db: &Client) -> Result<Option<Self>> {
         db.query_opt(
-            r#"SELECT book_tags.id, book_tags.book_id, windex, book_tags.created_at, tags.*
-            FROM book_tags
-            JOIN tags ON book_tags.tag_id == tags.id
+            r#"SELECT book_tag.id, book_tag.book_id, idx, book_tag.created_at, tags.*
+            FROM book_tag
+            JOIN tags ON book_tag.tag_id == tags.id
             WHERE book_id = ?1 AND tag_id = ?2"#,
             params![ *book_id as i64, *tag_id as i64 ],
         ).await?.map(Self::from_row).transpose()

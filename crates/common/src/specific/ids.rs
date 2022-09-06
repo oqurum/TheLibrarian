@@ -46,14 +46,6 @@ create_single_id!(MetadataSearchId);
 
 create_single_id!(CollectionId);
 
-// add_sql!(BookPersonId);
-// add_sql!(BookTagId);
-// add_sql!(BookId);
-// add_sql!(ImageId);
-// add_sql!(MemberId);
-// add_sql!(PersonId);
-// add_sql!(TagId);
-
 
 add_sql!(EditId);
 add_sql!(EditCommentId);
