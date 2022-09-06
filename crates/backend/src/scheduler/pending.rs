@@ -7,7 +7,7 @@ use crate::{Result, model::{NewEditCommentModel, EditModel, SYSTEM_MEMBER, Table
 
 
 pub async fn task_update_pending(client: &Client) -> Result<()> {
-    let now = Utc::now().timestamp_millis();
+    let now = Utc::now();
     let pending = u8::from(EditStatus::Pending);
 
     let sql_rejected = "UPDATE edit SET status = $1, ended_at = $2, is_applied = true WHERE expires_at < $2 AND status = $3 AND vote_count < 0";
