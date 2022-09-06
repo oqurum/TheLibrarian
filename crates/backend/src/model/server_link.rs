@@ -64,7 +64,7 @@ impl NewServerLinkModel {
     pub async fn insert(self, db: &tokio_postgres::Client) -> Result<ServerLinkModel> {
         let row = db.query_one(r#"
             INSERT INTO server_link (server_owner_name, server_name, server_id, public_id, member_id, verified, created_at, updated_at)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8) RETURNING id
         "#,
         params![
             self.server_owner_name.as_ref(), self.server_name.as_ref(), &self.server_id, &self.public_id, *self.member_id as i64, self.verified,

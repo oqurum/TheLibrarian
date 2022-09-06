@@ -71,7 +71,7 @@ impl NewEditVoteModel {
 
     pub async fn insert(self, client: &Client) -> Result<EditVoteModel> {
         let row = client.query_one(
-            "INSERT INTO edit_vote (edit_id, member_id, vote, created_at) VALUES (?1, ?2, ?3, ?4)",
+            "INSERT INTO edit_vote (edit_id, member_id, vote, created_at) VALUES (?1, ?2, ?3, ?4) RETURNING id",
             params![
                 self.edit_id,
                 *self.member_id as i64,

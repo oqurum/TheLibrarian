@@ -67,7 +67,7 @@ impl NewEditCommentModel {
                 text, deleted,
                 created_at
             )
-            VALUES (?1, ?2, ?3, ?4, ?5)"#,
+            VALUES (?1, ?2, ?3, ?4, ?5) RETURNING id"#,
             params![
                 self.edit_id, *self.member_id as i64,
                 self.text, self.deleted,

@@ -75,7 +75,7 @@ impl NewTagModel {
 
         let row = db.query_one(r#"
             INSERT INTO tag (name, type_of, data, created_at, updated_at)
-            VALUES (?1, ?2, ?3, ?4, ?5)
+            VALUES (?1, ?2, ?3, ?4, ?5) RETURNING id
         "#,
         params![
             &self.name,

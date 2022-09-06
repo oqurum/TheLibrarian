@@ -226,7 +226,7 @@ impl NewCollectionModel {
         let now = Utc::now();
 
         let row = db.query_one(
-            "INSERT INTO collection (name, description, type_of, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+            "INSERT INTO collection (name, description, type_of, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5) RETURNING id",
             params![
                 &self.name,
                 &self.description,

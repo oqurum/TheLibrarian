@@ -66,7 +66,7 @@ impl NewSearchItemServerModel {
 
     pub async fn insert(self, db: &tokio_postgres::Client) -> Result<SearchItemServerModel> {
         let row = db.query_one(
-            "INSERT INTO search_item (server_link_id, query, calls, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+            "INSERT INTO search_item (server_link_id, query, calls, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5) RETURNING id",
             params![
                 &self.server_link_id, &self.query, self.calls as i64,
                 self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()

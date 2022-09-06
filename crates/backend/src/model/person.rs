@@ -79,7 +79,7 @@ impl From<PersonModel> for Person {
 impl NewPersonModel {
     pub async fn insert(self, db: &tokio_postgres::Client) -> Result<PersonModel> {
         let row = db.query_one(
-            "INSERT INTO person (source, name, description, birth_date, thumb_url, updated_at, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            "INSERT INTO person (source, name, description, birth_date, thumb_url, updated_at, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7) RETURNING id",
             params![
                 self.source.to_string(), &self.name, &self.description, &self.birth_date, self.thumb_url.as_value(),
                 self.updated_at.timestamp_millis(), self.created_at.timestamp_millis()

@@ -107,7 +107,7 @@ impl BookTagModel {
         let created_at = Utc::now();
 
         let row = db.query_one(
-            "INSERT INTO book_tag (book_id, tag_id, idx, created_at) VALUES (?1, ?2, ?3, ?4)",
+            "INSERT INTO book_tag (book_id, tag_id, idx, created_at) VALUES (?1, ?2, ?3, ?4) RETURNING id",
             params![
                 *book_id as i64,
                 *tag_id as i64,

@@ -82,7 +82,7 @@ impl From<MemberModel> for common_local::Member {
 impl NewMemberModel {
     pub async fn insert(self, db: &Client) -> Result<MemberModel> {
         let row = db.query_one(
-            "INSERT INTO member (name, email, password, permissions, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            "INSERT INTO member (name, email, password, permissions, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6) RETURNING id",
             params![
                 &self.name, self.email.as_ref(), self.password.as_ref(), self.permissions,
                 self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
