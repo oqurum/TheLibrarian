@@ -26,7 +26,7 @@ impl TableRow for PersonAltModel {
 impl PersonAltModel {
     pub async fn insert(&self, db: &Client) -> Result<()> {
         db.execute(
-            "INSERT INTO person_alt (name, person_id) VALUES (?1, ?2)",
+            "INSERT INTO person_alt (name, person_id) VALUES ($1, $2)",
             params![ &self.name, *self.person_id as i64 ]
         ).await?;
 
@@ -35,7 +35,7 @@ impl PersonAltModel {
 
     pub async fn remove(&self, db: &Client) -> Result<u64> {
         Ok(db.execute(
-            "DELETE FROM person_alt WHERE name = ?1 AND person_id = ?2",
+            "DELETE FROM person_alt WHERE name = $1 AND person_id = $2",
             params![ &self.name, *self.person_id as i64 ]
         ).await?)
     }
@@ -43,21 +43,21 @@ impl PersonAltModel {
 
     pub async fn get_by_name(value: &str, db: &Client) -> Result<Option<PersonAltModel>> {
         db.query_opt(
-            "SELECT * FROM person_alt WHERE name = ?1",
+            "SELECT * FROM person_alt WHERE name = $1",
             params![ value ],
         ).await?.map(Self::from_row).transpose()
     }
 
     pub async fn remove_by_person_id(id: PersonId, db: &Client) -> Result<u64> {
         Ok(db.execute(
-            "DELETE FROM person_alt WHERE person_id = ?1",
+            "DELETE FROM person_alt WHERE person_id = $1",
             params![ *id as i64 ]
         ).await?)
     }
 
     pub async fn transfer_by_person_id(&self, from_id: PersonId, to_id: PersonId, db: &Client) -> Result<u64> {
         Ok(db.execute(
-            "UPDATE OR IGNORE person_alt SET person_id = ?2 WHERE person_id = ?1",
+            "UPDATE OR IGNORE person_alt SET person_id = $2 WHERE person_id = $1",
             params![ *from_id as i64, *to_id as i64 ]
         ).await?)
     }

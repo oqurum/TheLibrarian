@@ -78,7 +78,7 @@ impl NewSearchGroupModel {
         let conn = db;
 
         let row = conn.query_one(
-            "INSERT INTO search_group (query, calls, last_found_amount, timeframe, found_id, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7) RETURNING id",
+            "INSERT INTO search_group (query, calls, last_found_amount, timeframe, found_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
             params![
                 &self.query, self.calls as i64, self.last_found_amount as i64, self.timeframe, self.found_id.as_ref().map(|v| v.to_string()),
                 self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
@@ -118,28 +118,28 @@ impl NewSearchGroupModel {
 impl SearchGroupModel {
     pub async fn find_one_by_id(id: SearchGroupId, db: &Client) -> Result<Option<Self>> {
         db.query_opt(
-            "SELECT * FROM search_group WHERE id = ?1",
+            "SELECT * FROM search_group WHERE id = $1",
             params![ id ],
         ).await?.map(Self::from_row).transpose()
     }
 
     pub async fn find_one_by_query_and_timeframe(query: &str, timeframe: SearchTimeFrame, db: &Client) -> Result<Option<Self>> {
         db.query_opt(
-            "SELECT * FROM search_group WHERE query = ?1 AND timeframe = ?2",
+            "SELECT * FROM search_group WHERE query = $1 AND timeframe = $2",
             params![ query, timeframe ],
         ).await?.map(Self::from_row).transpose()
     }
 
     pub async fn increment_one_by_id(id: SearchGroupId, last_found_amount: usize, db: &Client) -> Result<u64> {
         Ok(db.execute(
-            "UPDATE search_group SET calls = calls + 1, updated_at = ?2, last_found_amount = ?3 WHERE id = ?1",
+            "UPDATE search_group SET calls = calls + 1, updated_at = $2, last_found_amount = $3 WHERE id = $1",
             params![ id, Utc::now().timestamp_millis(), last_found_amount as i64 ],
         ).await?)
     }
 
     pub async fn update_found_id(id: SearchGroupId, value: Option<ImageIdType>, db: &Client) -> Result<u64> {
         Ok(db.execute(
-            "UPDATE search_group SET updated_at = ?2, found_id = ?3 WHERE id = ?1",
+            "UPDATE search_group SET updated_at = $2, found_id = $3 WHERE id = $1",
             params![ id, Utc::now().timestamp_millis(), value.map(|v| v.to_string()) ],
         ).await?)
     }
@@ -150,7 +150,7 @@ impl SearchGroupModel {
 
     pub async fn find_all(offset: usize, limit: usize, db: &Client) -> Result<Vec<Self>> {
         let values = db.query(
-            "SELECT * FROM search_group ORDER BY calls DESC LIMIT ?1 OFFSET ?2",
+            "SELECT * FROM search_group ORDER BY calls DESC LIMIT $1 OFFSET $2",
             params![ limit as i64, offset as i64 ]
         ).await?;
 
@@ -160,14 +160,14 @@ impl SearchGroupModel {
     pub async fn update(&self, db: &Client) -> Result<u64> {
         Ok(db.execute(r#"
             UPDATE search_group SET
-                query = ?2,
-                calls = ?3,
-                last_found_amount = ?4,
-                timeframe = ?5,
-                found_id = ?6,
-                created_at = ?7,
-                updated_at = ?8
-            WHERE id = ?1"#,
+                query = $2,
+                calls = $3,
+                last_found_amount = $4,
+                timeframe = $5,
+                found_id = $6,
+                created_at = $7,
+                updated_at = $8
+            WHERE id = $1"#,
             params![
                 self.id,
                 &self.query, self.calls as i64, self.last_found_amount as i64, self.timeframe, self.found_id.as_ref().map(|v| v.to_string()),

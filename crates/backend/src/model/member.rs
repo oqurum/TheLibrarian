@@ -82,7 +82,7 @@ impl From<MemberModel> for common_local::Member {
 impl NewMemberModel {
     pub async fn insert(self, db: &Client) -> Result<MemberModel> {
         let row = db.query_one(
-            "INSERT INTO member (name, email, password, permissions, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6) RETURNING id",
+            "INSERT INTO member (name, email, password, permissions, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
             params![
                 &self.name, self.email.as_ref(), self.password.as_ref(), self.permissions,
                 self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
@@ -104,7 +104,7 @@ impl NewMemberModel {
 impl MemberModel {
     pub async fn get_by_email(value: &str, db: &Client) -> Result<Option<Self>> {
         db.query_opt(
-            "SELECT * FROM member WHERE email = ?1",
+            "SELECT * FROM member WHERE email = $1",
             params![ value ],
         ).await?.map(Self::from_row).transpose()
     }
@@ -114,7 +114,7 @@ impl MemberModel {
             Ok(Some(SYSTEM_MEMBER.clone()))
         } else {
             db.query_opt(
-                "SELECT * FROM member WHERE id = ?1",
+                "SELECT * FROM member WHERE id = $1",
                 params![ *id as i64 ],
             ).await?.map(Self::from_row).transpose()
         }
@@ -126,7 +126,7 @@ impl MemberModel {
 
     pub async fn find_all(offset: usize, limit: usize, db: &Client) -> Result<Vec<Self>> {
         let values = db.query(
-            "SELECT * FROM member LIMIT ?1 OFFSET ?2",
+            "SELECT * FROM member LIMIT $1 OFFSET $2",
             params![ limit as i64, offset as i64 ]
         ).await?;
 

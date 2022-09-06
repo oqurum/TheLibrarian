@@ -101,7 +101,7 @@ impl NewUploadedImageModel {
 
     pub async fn insert(self, db: &tokio_postgres::Client) -> Result<UploadedImageModel> {
         let row = db.query_one(
-            "INSERT OR IGNORE INTO uploaded_image (path, created_at) VALUES (?1, ?2)",
+            "INSERT OR IGNORE INTO uploaded_image (path, created_at) VALUES ($1, $2)",
             params![
                 self.path.as_value(),
                 self.created_at.timestamp_millis()
@@ -117,7 +117,7 @@ impl NewUploadedImageModel {
 
     pub async fn path_exists(path: &str, db: &tokio_postgres::Client) -> Result<bool> {
         Ok(row_to_usize(db.query_one(
-            "SELECT COUNT(*) FROM uploaded_image WHERE path = ?1",
+            "SELECT COUNT(*) FROM uploaded_image WHERE path = $1",
             params![ path ],
         ).await?)? != 0)
     }
@@ -127,14 +127,14 @@ impl NewUploadedImageModel {
 impl UploadedImageModel {
     pub async fn get_by_path(value: &str, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         db.query_opt(
-            r#"SELECT * FROM uploaded_image WHERE path = ?1"#,
+            r#"SELECT * FROM uploaded_image WHERE path = $1"#,
             params![ value ],
         ).await?.map(Self::from_row).transpose()
     }
 
     pub async fn get_by_id(value: ImageId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         db.query_opt(
-            r#"SELECT * FROM uploaded_image WHERE id = ?1"#,
+            r#"SELECT * FROM uploaded_image WHERE id = $1"#,
             params![ *value as i64 ],
         ).await?.map(Self::from_row).transpose()
     }
@@ -142,7 +142,7 @@ impl UploadedImageModel {
     pub async fn remove(link_id: BookId, path: ThumbnailStore, db: &tokio_postgres::Client) -> Result<()> {
         // TODO: Check for currently set images
         // TODO: Remove image links.
-        db.execute("DELETE FROM uploaded_image WHERE link_id = ?1 AND path = ?2",
+        db.execute("DELETE FROM uploaded_image WHERE link_id = $1 AND path = $2",
             params![ *link_id as i64, path.as_value() ]
         ).await?;
 
@@ -170,7 +170,7 @@ impl ImageLinkModel {
 
 
     pub async fn insert(&self, db: &tokio_postgres::Client) -> Result<()> {
-        db.execute("INSERT OR IGNORE INTO image_link (image_id, link_id, type_of) VALUES (?1, ?2, ?3)",
+        db.execute("INSERT OR IGNORE INTO image_link (image_id, link_id, type_of) VALUES ($1, $2, $3)",
         params![
             *self.image_id as i64,
             self.link_id as i64,
@@ -181,7 +181,7 @@ impl ImageLinkModel {
     }
 
     pub async fn remove(self, db: &tokio_postgres::Client) -> Result<()> {
-        db.execute("DELETE FROM image_link WHERE image_id = ?1 AND link_id = ?2 AND type_of = ?3",
+        db.execute("DELETE FROM image_link WHERE image_id = $1 AND link_id = $2 AND type_of = $3",
             params![
                 *self.image_id as i64,
                 self.link_id as i64,
@@ -199,7 +199,7 @@ impl ImageLinkModel {
                 FROM image_link
                 INNER JOIN uploaded_image
                     ON uploaded_image.id = image_link.image_id
-                WHERE link_id = ?1 AND type_of = ?2
+                WHERE link_id = $1 AND type_of = $2
             "#,
             params![ id as i64, type_of.as_num() as i16 ]
         ).await?;

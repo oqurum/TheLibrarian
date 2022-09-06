@@ -10,7 +10,7 @@ pub async fn task_update_pending(client: &Client) -> Result<()> {
     let now = Utc::now().timestamp_millis();
     let pending = u8::from(EditStatus::Pending);
 
-    let sql_rejected = "UPDATE edit SET status = ?1, ended_at = ?2, is_applied = 1 WHERE expires_at < ?2 AND status = ?3 AND vote_count < 0";
+    let sql_rejected = "UPDATE edit SET status = $1, ended_at = $2, is_applied = 1 WHERE expires_at < $2 AND status = $3 AND vote_count < 0";
 
     { // Get all rejected
         let items = {
@@ -38,7 +38,7 @@ pub async fn task_update_pending(client: &Client) -> Result<()> {
     { // Get all approved
         let items = {
             let conn = client.query(
-                "SELECT * FROM edit WHERE expires_at < ?1 AND status = ?2 AND vote_count >= 0",
+                "SELECT * FROM edit WHERE expires_at < $1 AND status = $2 AND vote_count >= 0",
                 params![ now, pending as i16 ],
             ).await?;
 

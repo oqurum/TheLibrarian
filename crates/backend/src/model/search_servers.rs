@@ -66,7 +66,7 @@ impl NewSearchItemServerModel {
 
     pub async fn insert(self, db: &tokio_postgres::Client) -> Result<SearchItemServerModel> {
         let row = db.query_one(
-            "INSERT INTO search_item (server_link_id, query, calls, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5) RETURNING id",
+            "INSERT INTO search_item (server_link_id, query, calls, created_at, updated_at) VALUES ($1, $2, $3, $4, $5) RETURNING id",
             params![
                 &self.server_link_id, &self.query, self.calls as i64,
                 self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
@@ -106,14 +106,14 @@ impl NewSearchItemServerModel {
 impl SearchItemServerModel {
     pub async fn find_one_by_server_link_id_and_query(server_link_id: ServerLinkId, query: &str, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         db.query_opt(
-            r#"SELECT * FROM search_item WHERE server_link_id = ?1 AND query = ?2"#,
+            r#"SELECT * FROM search_item WHERE server_link_id = $1 AND query = $2"#,
             params![ server_link_id, query ],
         ).await?.map(Self::from_row).transpose()
     }
 
     pub async fn increment_one_by_id(id: SearchItemId, db: &tokio_postgres::Client) -> Result<u64> {
         Ok(db.execute(
-            r#"UPDATE search_item SET calls = calls + 1, updated_at = ?2 WHERE id = ?1"#,
+            r#"UPDATE search_item SET calls = calls + 1, updated_at = $2 WHERE id = $1"#,
             params![ id, Utc::now().timestamp_millis() ],
         ).await?)
     }
@@ -121,12 +121,12 @@ impl SearchItemServerModel {
     pub async fn update(&self, db: &tokio_postgres::Client) -> Result<u64> {
         Ok(db.execute(r#"
             UPDATE search_item SET
-                server_link_id = ?2,
-                query = ?3,
-                calls = ?4,
-                created_at = ?5,
-                updated_at = ?6
-            WHERE id = ?1"#,
+                server_link_id = $2,
+                query = $3,
+                calls = $4,
+                created_at = $5,
+                updated_at = $6
+            WHERE id = $1"#,
             params![
                 self.id,
                 &self.server_link_id, &self.query, self.calls as i64,

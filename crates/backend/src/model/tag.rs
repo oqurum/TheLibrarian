@@ -51,7 +51,7 @@ impl From<TagModel> for TagFE {
 impl TagModel {
     pub async fn get_by_id(id: TagId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         db.query_opt(
-            "SELECT * FROM tag WHERE id = ?1",
+            "SELECT * FROM tag WHERE id = $1",
             params![ *id as i64 ],
         ).await?.map(Self::from_row).transpose()
     }
@@ -75,7 +75,7 @@ impl NewTagModel {
 
         let row = db.query_one(r#"
             INSERT INTO tag (name, type_of, data, created_at, updated_at)
-            VALUES (?1, ?2, ?3, ?4, ?5) RETURNING id
+            VALUES ($1, $2, $3, $4, $5) RETURNING id
         "#,
         params![
             &self.name,

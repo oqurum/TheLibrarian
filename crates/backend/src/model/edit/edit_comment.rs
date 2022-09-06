@@ -67,7 +67,7 @@ impl NewEditCommentModel {
                 text, deleted,
                 created_at
             )
-            VALUES (?1, ?2, ?3, ?4, ?5) RETURNING id"#,
+            VALUES ($1, $2, $3, $4, $5) RETURNING id"#,
             params![
                 self.edit_id, *self.member_id as i64,
                 self.text, self.deleted,
@@ -100,14 +100,14 @@ impl EditCommentModel {
     ) -> Result<Vec<Self>> {
         if let Some(deleted) = deleted {
             let conn = client.query(
-                "SELECT * FROM edit_comment WHERE edit_id = ?1 AND deleted = ?2 LIMIT ?3 OFFSET ?4",
+                "SELECT * FROM edit_comment WHERE edit_id = $1 AND deleted = $2 LIMIT $3 OFFSET $4",
                 params![ edit_id, deleted, limit as i64, offset as i64 ]
             ).await?;
 
             Ok(conn.into_iter().map(Self::from_row).collect::<std::result::Result<Vec<_>, _>>()?)
         } else {
             let conn = client.query(
-                "SELECT * FROM edit_comment WHERE edit_id = ?1 LIMIT ?2 OFFSET ?3",
+                "SELECT * FROM edit_comment WHERE edit_id = $1 LIMIT $2 OFFSET $3",
                 params![ edit_id, limit as i64, offset as i64 ]
             ).await?;
 
@@ -116,6 +116,6 @@ impl EditCommentModel {
     }
 
     pub async fn get_count(edit_id: EditId, client: &Client) -> Result<usize> {
-        row_to_usize(client.query_one(r#"SELECT COUNT(*) FROM edit_comment WHERE edit_id = ?1"#, params![ edit_id ]).await?)
+        row_to_usize(client.query_one(r#"SELECT COUNT(*) FROM edit_comment WHERE edit_id = $1"#, params![ edit_id ]).await?)
     }
 }

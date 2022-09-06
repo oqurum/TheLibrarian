@@ -56,14 +56,14 @@ impl TableRow for CollectionModel {
 impl CollectionModel {
     pub async fn find_by_id(id: CollectionId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         db.query_opt(
-            "SELECT * FROM collection WHERE id = ?1",
+            "SELECT * FROM collection WHERE id = $1",
             params![ id ],
         ).await?.map(Self::from_row).transpose()
     }
 
     pub async fn find_books_by_id(id: CollectionId, db: &tokio_postgres::Client) -> Result<Vec<BookModel>> {
         let values = db.query(
-            "SELECT * FROM book WHERE id IN (SELECT book_id FROM collection_item WHERE collection_id = ?1)",
+            "SELECT * FROM book WHERE id IN (SELECT book_id FROM collection_item WHERE collection_id = $1)",
             params![ id ]
         ).await?;
 
@@ -115,7 +115,7 @@ impl CollectionModel {
 
         Ok(db.execute(
             &format!(
-                "UPDATE collection SET {} WHERE id = ?1",
+                "UPDATE collection SET {} WHERE id = $1",
                 items.into_iter()
                     .enumerate()
                     .map(|(i, v)| format!("{v} = ?{}", 2 + i))
@@ -196,7 +196,7 @@ impl CollectionModel {
 
         let mut sql = Self::gen_search_query(query, book_id, &mut parameters);
 
-        sql += " LIMIT ?1 OFFSET ?2";
+        sql += " LIMIT $1 OFFSET $2";
 
 
         let values = db.query(
@@ -226,7 +226,7 @@ impl NewCollectionModel {
         let now = Utc::now();
 
         let row = db.query_one(
-            "INSERT INTO collection (name, description, type_of, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5) RETURNING id",
+            "INSERT INTO collection (name, description, type_of, created_at, updated_at) VALUES ($1, $2, $3, $4, $5) RETURNING id",
             params![
                 &self.name,
                 &self.description,

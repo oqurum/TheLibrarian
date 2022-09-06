@@ -79,7 +79,7 @@ impl From<PersonModel> for Person {
 impl NewPersonModel {
     pub async fn insert(self, db: &tokio_postgres::Client) -> Result<PersonModel> {
         let row = db.query_one(
-            "INSERT INTO person (source, name, description, birth_date, thumb_url, updated_at, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7) RETURNING id",
+            "INSERT INTO person (source, name, description, birth_date, thumb_url, updated_at, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
             params![
                 self.source.to_string(), &self.name, &self.description, &self.birth_date, self.thumb_url.as_value(),
                 self.updated_at.timestamp_millis(), self.created_at.timestamp_millis()
@@ -107,7 +107,7 @@ impl PersonModel {
                 SELECT person.* FROM book_person
                 LEFT JOIN
                     person ON person.id = book_person.person_id
-                WHERE book_id = ?1
+                WHERE book_id = $1
             "#,
             params![ limit as i64, offset as i64 ]
         ).await?;
@@ -117,7 +117,7 @@ impl PersonModel {
 
     pub async fn get_all_by_book_id(book_id: BookId, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
         let values = db.query(
-            "SELECT * FROM person LIMIT ?1 OFFSET ?2",
+            "SELECT * FROM person LIMIT $1 OFFSET $2",
             params![ *book_id as i64 ]
         ).await?;
 
@@ -138,7 +138,7 @@ impl PersonModel {
         }
 
         let sql = format!(
-            r#"SELECT * FROM person WHERE name LIKE '%{}%' ESCAPE '{}' LIMIT ?1 OFFSET ?2"#,
+            r#"SELECT * FROM person WHERE name LIKE '%{}%' ESCAPE '{}' LIMIT $1 OFFSET $2"#,
             query.replace('%', &format!("{}%", escape_char)).replace('_', &format!("{}_", escape_char)),
             escape_char
         );
@@ -154,7 +154,7 @@ impl PersonModel {
 
     pub async fn get_by_name(value: &str, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         let person = db.query_opt(
-            r#"SELECT * FROM person WHERE name = ?1"#,
+            r#"SELECT * FROM person WHERE name = $1"#,
             params![ value ],
         ).await?;
 
@@ -169,14 +169,14 @@ impl PersonModel {
 
     pub async fn get_by_id(id: PersonId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         db.query_opt(
-            r#"SELECT * FROM person WHERE id = ?1"#,
+            r#"SELECT * FROM person WHERE id = $1"#,
             params![ *id as i64 ],
         ).await?.map(Self::from_row).transpose()
     }
 
     pub async fn get_by_source(value: &str, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         db.query_opt(
-            "SELECT * FROM person WHERE source = ?1",
+            "SELECT * FROM person WHERE source = $1",
             params![ value ],
         ).await?.map(Self::from_row).transpose()
     }
@@ -188,14 +188,14 @@ impl PersonModel {
     pub async fn update(&self, db: &tokio_postgres::Client) -> Result<()> {
         db.execute(r#"
             UPDATE person SET
-                source = ?2,
-                name = ?3,
-                description = ?4,
-                birth_date = ?5,
-                thumb_url = ?6,
-                updated_at = ?7,
-                created_at = ?8
-            WHERE id = ?1"#,
+                source = $2,
+                name = $3,
+                description = $4,
+                birth_date = $5,
+                thumb_url = $6,
+                updated_at = $7,
+                created_at = $8
+            WHERE id = $1"#,
             params![
                 *self.id as i64,
                 self.source.to_string(), &self.name, &self.description, &self.birth_date, self.thumb_url.as_value(),
@@ -208,7 +208,7 @@ impl PersonModel {
 
     pub async fn remove_by_id(id: usize, db: &tokio_postgres::Client) -> Result<u64> {
         Ok(db.execute(
-            "DELETE FROM person WHERE id = ?1",
+            "DELETE FROM person WHERE id = $1",
             params![ id as i64 ]
         ).await?)
     }

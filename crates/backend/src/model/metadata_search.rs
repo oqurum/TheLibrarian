@@ -76,7 +76,7 @@ impl NewMetadataSearchModel {
 
         let row = client.query_one(
             r#"INSERT INTO metadata_search (query, agent, type_of, last_found_amount, data, created_at, updated_at)
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7) RETURNING id"#,
+                VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"#,
             params![
                 &self.query, self.agent, u8::from(self.type_of) as i64, self.last_found_amount as i64, &data,
                 self.created_at.timestamp_millis(), self.updated_at.timestamp_millis()
@@ -114,7 +114,7 @@ impl MetadataSearchModel {
 
     pub async fn find_one_by_query_and_agent(type_of: MetadataSearchType, query: &str, agent: &str, client: &Client) -> Result<Option<Self>> {
         client.query_opt(
-            "SELECT * FROM metadata_search WHERE type_of = ?1 AND query = ?2 AND agent = ?3",
+            "SELECT * FROM metadata_search WHERE type_of = $1 AND query = $2 AND agent = $3",
             params![ u8::from(type_of) as i16, query, agent ],
         ).await?.map(Self::from_row).transpose()
     }
@@ -122,14 +122,14 @@ impl MetadataSearchModel {
     pub async fn update(&self, client: &Client) -> Result<u64> {
         Ok(client.execute(r#"
             UPDATE metadata_search SET
-                query = ?2,
-                agent = ?3,
-                type_of = ?4
-                last_found_amount = ?5,
-                data = ?6,
-                created_at = ?7,
-                updated_at = ?8
-            WHERE id = ?1"#,
+                query = $2,
+                agent = $3,
+                type_of = $4
+                last_found_amount = $5,
+                data = $6,
+                created_at = $7,
+                updated_at = $8
+            WHERE id = $1"#,
             params![
                 self.id,
                 &self.query, self.agent, u8::from(self.type_of) as i16, self.last_found_amount as i64, self.data,

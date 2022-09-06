@@ -165,7 +165,7 @@ impl BookModel {
                     available_at, language,
                     created_at, updated_at, deleted_at
                 )
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14) RETURNING id"#,
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id"#,
                 params![
                     &self.title, &self.clean_title, &self.description, self.rating, self.thumb_path.as_value(),
                     &self.cached.as_string_optional(), self.is_public, self.edition_count as i64,
@@ -187,12 +187,12 @@ impl BookModel {
 
         db.execute(r#"
             UPDATE book SET
-                title = ?2, clean_title = ?3, description = ?4, rating = ?5, thumb_url = ?6,
-                cached = ?7, is_public = ?8,
-                isbn_10 = ?9, isbn_13 = ?10,
-                available_at = ?11, language = ?12,
-                updated_at = ?13, deleted_at = ?14
-            WHERE id = ?1"#,
+                title = $2, clean_title = $3, description = $4, rating = $5, thumb_url = $6,
+                cached = $7, is_public = $8,
+                isbn_10 = $9, isbn_13 = $10,
+                available_at = $11, language = $12,
+                updated_at = $13, deleted_at = $14
+            WHERE id = $1"#,
             params![
                 *self.id as i64,
                 &self.title, &self.clean_title, &self.description, &self.rating, self.thumb_path.as_value(),
@@ -208,21 +208,21 @@ impl BookModel {
 
     pub async fn get_by_id(id: BookId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         db.query_opt(
-            "SELECT * FROM book WHERE id = ?1",
+            "SELECT * FROM book WHERE id = $1",
             params![ *id as i64 ],
         ).await?.map(Self::from_row).transpose()
     }
 
     pub async fn exists_by_isbn(value: &str, db: &tokio_postgres::Client) -> Result<bool> {
         Ok(row_to_usize(db.query_one(
-            "SELECT EXISTS(SELECT id FROM book WHERE isbn_10 = ?1 OR isbn_13 = ?1)",
+            "SELECT EXISTS(SELECT id FROM book WHERE isbn_10 = $1 OR isbn_13 = $1)",
             params![ value ],
         ).await?)? != 0)
     }
 
     pub async fn remove_by_id(id: BookId, db: &tokio_postgres::Client) -> Result<u64> {
         Ok(db.execute(
-            "DELETE FROM book WHERE id = ?1",
+            "DELETE FROM book WHERE id = $1",
             params![ *id as i64 ]
         ).await?)
     }
@@ -238,7 +238,7 @@ impl BookModel {
         };
 
         let values = db.query(
-            &format!("SELECT * FROM book {} LIMIT ?1 OFFSET ?2", inner_query),
+            &format!("SELECT * FROM book {} LIMIT $1 OFFSET $2", inner_query),
             params![ limit as i64, offset as i64 ]
         ).await?;
 
@@ -335,7 +335,7 @@ impl BookModel {
             None => return Ok(Vec::new())
         };
 
-        sql += " LIMIT ?1 OFFSET ?2";
+        sql += " LIMIT $1 OFFSET $2";
 
         let values = db.query(
             &sql,

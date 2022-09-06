@@ -118,7 +118,7 @@ impl NewEditModel {
                 member_id, model_id, is_applied, vote_count, data,
                 ended_at, expires_at, created_at, updated_at
             )
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12) RETURNING id"#,
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id"#,
             params![
                 self.type_of, self.operation, self.status,
                 *self.member_id as i64, self.model_id.map(|v| v as i64), self.is_applied, self.vote_count as i64, &self.data,
@@ -154,7 +154,7 @@ impl NewEditModel {
 impl EditModel {
     pub async fn get_all(offset: usize, limit: usize, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
         let values = db.query(
-            "SELECT * FROM edit LIMIT ?1 OFFSET ?2",
+            "SELECT * FROM edit LIMIT $1 OFFSET $2",
             params![ limit as i64, offset as i64 ]
         ).await?;
 
@@ -163,7 +163,7 @@ impl EditModel {
 
     pub async fn get_by_id(id: EditId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         db.query_opt(
-            "SELECT * FROM edit WHERE id = ?1",
+            "SELECT * FROM edit WHERE id = $1",
             params![ id ],
         ).await?.map(Self::from_row).transpose()
     }
@@ -183,7 +183,7 @@ impl EditModel {
 
         if let Some(status) = status {
             let values = db.query(
-                &format!("SELECT * FROM edit WHERE status = ?1 {expired_str} ORDER BY id DESC LIMIT ?2 OFFSET ?3"),
+                &format!("SELECT * FROM edit WHERE status = $1 {expired_str} ORDER BY id DESC LIMIT $2 OFFSET $3"),
                 params![ status, limit as i64, offset as i64 ]
             ).await?;
 
@@ -194,7 +194,7 @@ impl EditModel {
             }
 
             let values = db.query(
-                &format!("SELECT * FROM edit {expired_str} ORDER BY id DESC LIMIT ?1 OFFSET ?2"),
+                &format!("SELECT * FROM edit {expired_str} ORDER BY id DESC LIMIT $1 OFFSET $2"),
                 params![ limit as i64, offset as i64 ]
             ).await?;
 
@@ -245,7 +245,7 @@ impl EditModel {
 
         Ok(db.execute(
             &format!(
-                "UPDATE edit SET {} WHERE id = ?1",
+                "UPDATE edit SET {} WHERE id = $1",
                 items.iter()
                     .enumerate()
                     .map(|(i, v)| if v.contains('=') { format!("{v} ?{}", 2 + i) } else { format!("{v} = ?{}", 2 + i) })
@@ -286,12 +286,12 @@ impl EditModel {
             }
 
             db.execute(
-                "UPDATE edit SET data = ?2, status = ?3, ended_at = ?4 WHERE id = ?1",
+                "UPDATE edit SET data = $2, status = $3, ended_at = $4 WHERE id = $1",
                 params![ self.id, &self.data, self.status, self.ended_at.map(|v| v.timestamp_millis()) ]
             ).await?;
         } else {
             db.execute(
-                "UPDATE edit SET status = ?2, ended_at = ?3 WHERE id = ?1",
+                "UPDATE edit SET status = $2, ended_at = $3 WHERE id = $1",
                 params![ self.id, self.status, self.ended_at.map(|v| v.timestamp_millis()) ]
             ).await?;
         }

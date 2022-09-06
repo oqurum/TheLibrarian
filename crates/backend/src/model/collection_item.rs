@@ -26,7 +26,7 @@ impl TableRow for CollectionItemModel {
 impl CollectionItemModel {
     pub async fn find_by_collection_id(id: CollectionId, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
         let values = db.query(
-            "SELECT * FROM collection_item WHERE collection_id = ?1",
+            "SELECT * FROM collection_item WHERE collection_id = $1",
             params![ id ]
         ).await?;
 
@@ -35,7 +35,7 @@ impl CollectionItemModel {
 
     pub async fn find_by_book_id(id: BookId, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
         let values = db.query(
-            "SELECT * FROM collection_item WHERE book_id = ?1",
+            "SELECT * FROM collection_item WHERE book_id = $1",
             params![ *id as i64 ]
         ).await?;
 
@@ -44,14 +44,14 @@ impl CollectionItemModel {
 
     pub async fn count_by_collection_id(id: CollectionId, db: &tokio_postgres::Client) -> Result<usize> {
         row_to_usize(db.query_one(
-            "SELECT COUNT(*) FROM collection_item WHERE collection_id = ?1",
+            "SELECT COUNT(*) FROM collection_item WHERE collection_id = $1",
             params![ id ],
         ).await?)
     }
 
     pub async fn insert(&self, db: &tokio_postgres::Client) -> Result<u64> {
         Ok(db.execute(
-            "INSERT INTO collection_item (collection_id, book_id, idx) VALUES (?1, ?2, ?3)",
+            "INSERT INTO collection_item (collection_id, book_id, idx) VALUES ($1, $2, $3)",
             params![
                 self.collection_id,
                 *self.book_id as i64,
