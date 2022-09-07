@@ -180,14 +180,14 @@ pub async fn get_posters_for_meta(img_id_type: ImageIdType, query: Option<GetPos
     ).await.unwrap_or_else(def)
 }
 
-pub async fn change_poster_for_meta(img_id_type: ImageIdType, url_or_id: Either<String, ImageId>) {
-    let _: Option<String> = fetch(
+pub async fn change_poster_for_meta(img_id_type: ImageIdType, url_or_id: Either<String, ImageId>) -> WrappingResponse<String> {
+    fetch(
         "POST",
         &format!("/api/v1/posters/{}", img_id_type),
         Some(&ChangePosterBody {
             url_or_id
         })
-    ).await.ok();
+    ).await.unwrap_or_else(def)
 }
 
 
