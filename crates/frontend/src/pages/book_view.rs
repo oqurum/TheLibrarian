@@ -5,7 +5,7 @@ use common::{
         multi_select::{MultiSelectEvent, MultiSelectModule, MultiSelectItem, MultiSelectNewItem},
         popup::{Popup, PopupType, compare::{PopupComparison, Comparable}},
     },
-    Either, LANGUAGES, ImageIdType, BookId, TagId, api::WrappingResponse, util::upper_case_first_char
+    Either, LANGUAGES, ImageIdType, BookId, TagId, api::WrappingResponse, util::upper_case_first_char, ImageId, ThumbnailStore
 };
 use common_local::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse, GetPostersQuery}, TagType, item::edit::BookEdit, TagFE, SearchType};
 
@@ -34,6 +34,7 @@ pub enum Msg {
 
     ReloadPosters,
     TogglePosterMetaSearch,
+    UpdatePoster(BookId, Either<String, ImageId>),
 
     // Events
     ToggleEdit,
@@ -172,6 +173,16 @@ impl Component for BookView {
             }
 
 
+            Msg::UpdatePoster(book_id, url_or_id) => {
+                ctx.link().send_future(async move {
+                    request::change_poster_for_meta(ImageIdType::new_book(book_id), url_or_id).await;
+
+                    Msg::ReloadPosters
+                });
+
+                return false;
+            }
+
             Msg::ReloadPosters => if let Some(curr_book) = self.media.as_ref().and_then(|v| v.as_ok().ok()) {
                 let book_id = curr_book.metadata.id;
 
@@ -260,6 +271,15 @@ impl Component for BookView {
 
 
             Msg::RetrievePosters(value) => {
+                // TODO: Simplify
+                if let Some(WrappingResponse::Resp(book)) = self.media.as_mut() {
+                    if let Ok(posters) = value.as_ok() {
+                        if let Some(poster) = posters.items.iter().find(|v| v.selected) {
+                            book.metadata.thumb_path = ThumbnailStore::Path(poster.path.rsplit_once('/').unwrap().1.to_string());
+                        }
+                    }
+                }
+
                 self.cached_posters = Some(value);
             }
 
@@ -568,19 +588,17 @@ impl BookView {
                                                         html! {
                                                             <div
                                                                 class={ classes!("poster", { if is_selected { "selected" } else { "" } }) }
-                                                                onclick={ctx.link().callback_future(move |_| {
+                                                                onclick={ ctx.link().callback_future(move |_| {
                                                                     let url_or_id = url_or_id.clone();
 
                                                                     async move {
                                                                         if is_selected {
                                                                             Msg::Ignore
                                                                         } else {
-                                                                            request::change_poster_for_meta(ImageIdType::new_book(book_id), url_or_id).await;
-
-                                                                            Msg::ReloadPosters
+                                                                            Msg::UpdatePoster(book_id, url_or_id)
                                                                         }
                                                                     }
-                                                                })}
+                                                                }) }
                                                             >
                                                                 <div class="top-right">
                                                                     <span
