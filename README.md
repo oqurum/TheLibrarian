@@ -1,9 +1,9 @@
-# Welcome
-This repo will ultimately be for the main metadata website we use for the client application. It will be hosted on the official website. I hope this can be one day used to aggregate the other metadata agents into here.
-
-
 # IMPORTANT
 **Recently ported from sqlite to postgres. Will probably contain invalid SQL queries**
+
+
+# Welcome
+This repo will ultimately be for the main metadata website we use for the client application. It will be hosted on the official website. I hope this can be one day used to aggregate the other metadata agents into here.
 
 
 You can view the public website below:
