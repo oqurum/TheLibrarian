@@ -27,7 +27,7 @@ impl PersonAltModel {
     pub async fn insert(&self, db: &Client) -> Result<()> {
         db.execute(
             "INSERT INTO person_alt (name, person_id) VALUES ($1, $2)",
-            params![ &self.name, *self.person_id as i64 ]
+            params![ &self.name, *self.person_id as i32 ]
         ).await?;
 
         Ok(())
@@ -36,7 +36,7 @@ impl PersonAltModel {
     pub async fn remove(&self, db: &Client) -> Result<u64> {
         Ok(db.execute(
             "DELETE FROM person_alt WHERE name = $1 AND person_id = $2",
-            params![ &self.name, *self.person_id as i64 ]
+            params![ &self.name, *self.person_id as i32 ]
         ).await?)
     }
 
@@ -58,7 +58,7 @@ impl PersonAltModel {
     pub async fn transfer_by_person_id(&self, from_id: PersonId, to_id: PersonId, db: &Client) -> Result<u64> {
         Ok(db.execute(
             "UPDATE OR IGNORE person_alt SET person_id = $2 WHERE person_id = $1",
-            params![ *from_id as i64, *to_id as i64 ]
+            params![ *from_id as i32, *to_id as i32 ]
         ).await?)
     }
 }

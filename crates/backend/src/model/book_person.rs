@@ -30,8 +30,8 @@ impl BookPersonModel {
         db.execute(
             "INSERT OR IGNORE INTO book_person (book_id, person_id) VALUES ($1, $2)",
             params![
-                *self.book_id as i64,
-                *self.person_id as i64
+                *self.book_id as i32,
+                *self.person_id as i32
             ]
         ).await?;
 
@@ -42,8 +42,8 @@ impl BookPersonModel {
         db.execute(
             "DELETE FROM book_person WHERE book_id = $1 AND person_id = $2",
             params![
-                *self.book_id as i64,
-                *self.person_id as i64
+                *self.book_id as i32,
+                *self.person_id as i32
             ]
         ).await?;
 
@@ -69,14 +69,14 @@ impl BookPersonModel {
 
     pub async fn transfer(from_id: PersonId, to_id: PersonId, db: &tokio_postgres::Client) -> Result<u64> {
         Ok(db.execute("UPDATE book_person SET person_id = $2 WHERE person_id = $1",
-            params![ *from_id as i64, *to_id as i64 ]
+            params![ *from_id as i32, *to_id as i32 ]
         ).await?)
     }
 
     pub async fn get_all_by_book_id(book_id: BookId, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
         let conn = db.query(
             "SELECT * FROM book_person WHERE book_id = $1",
-            params![ *book_id as i64 ]
+            params![ *book_id as i32 ]
         ).await?;
 
         conn.into_iter().map(Self::from_row).collect()

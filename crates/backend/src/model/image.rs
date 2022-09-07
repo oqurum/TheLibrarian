@@ -54,7 +54,7 @@ impl TableRow for ImageWithLink {
     fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
             image_id: ImageId::from(row.next::<i32>()? as usize),
-            link_id: row.next::<i64>()? as usize,
+            link_id: row.next::<i32>()? as usize,
             type_of: ImageType::from_number(row.next::<i16>()? as u8).unwrap(),
             path: ThumbnailStore::from(row.next::<String>()?),
             created_at: row.next()?,
@@ -78,7 +78,7 @@ impl TableRow for ImageLinkModel {
     fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
             image_id: ImageId::from(row.next::<i32>()? as usize),
-            link_id: row.next::<i64>()? as usize,
+            link_id: row.next::<i32>()? as usize,
             type_of: ImageType::from_number(row.next::<i16>()? as u8).unwrap(),
         })
     }
@@ -135,7 +135,7 @@ impl UploadedImageModel {
     pub async fn get_by_id(value: ImageId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         db.query_opt(
             r#"SELECT * FROM uploaded_image WHERE id = $1"#,
-            params![ *value as i64 ],
+            params![ *value as i32 ],
         ).await?.map(Self::from_row).transpose()
     }
 
@@ -143,7 +143,7 @@ impl UploadedImageModel {
         // TODO: Check for currently set images
         // TODO: Remove image links.
         db.execute("DELETE FROM uploaded_image WHERE link_id = $1 AND path = $2",
-            params![ *link_id as i64, path.as_value() ]
+            params![ *link_id as i32, path.as_value() ]
         ).await?;
 
         Ok(())
@@ -172,8 +172,8 @@ impl ImageLinkModel {
     pub async fn insert(&self, db: &tokio_postgres::Client) -> Result<()> {
         db.execute("INSERT OR IGNORE INTO image_link (image_id, link_id, type_of) VALUES ($1, $2, $3)",
         params![
-            *self.image_id as i64,
-            self.link_id as i64,
+            *self.image_id as i32,
+            self.link_id as i32,
             self.type_of.as_num() as i16
         ]).await?;
 
@@ -183,8 +183,8 @@ impl ImageLinkModel {
     pub async fn remove(self, db: &tokio_postgres::Client) -> Result<()> {
         db.execute("DELETE FROM image_link WHERE image_id = $1 AND link_id = $2 AND type_of = $3",
             params![
-                *self.image_id as i64,
-                self.link_id as i64,
+                *self.image_id as i32,
+                self.link_id as i32,
                 self.type_of.as_num() as i16,
             ]
         ).await?;
@@ -201,7 +201,7 @@ impl ImageLinkModel {
                     ON uploaded_image.id = image_link.image_id
                 WHERE link_id = $1 AND type_of = $2
             "#,
-            params![ id as i64, type_of.as_num() as i16 ]
+            params![ id as i32, type_of.as_num() as i16 ]
         ).await?;
 
         values.into_iter().map(ImageWithLink::from_row).collect()

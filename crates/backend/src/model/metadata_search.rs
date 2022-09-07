@@ -46,7 +46,7 @@ impl TableRow for MetadataSearchModel {
             query: row.next()?,
             agent: row.next()?,
             type_of: MetadataSearchType::from(row.next::<i16>()? as u8),
-            last_found_amount: row.next::<i64>()? as usize,
+            last_found_amount: row.next::<i32>()? as usize,
             data: row.next()?,
 
             created_at: row.next()?,
@@ -78,7 +78,7 @@ impl NewMetadataSearchModel {
             r#"INSERT INTO metadata_search (query, agent, type_of, last_found_amount, data, created_at, updated_at)
                 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"#,
             params![
-                &self.query, self.agent, u8::from(self.type_of) as i64, self.last_found_amount as i64, &data,
+                &self.query, self.agent, u8::from(self.type_of) as i16, self.last_found_amount as i32, &data,
                 self.created_at, self.updated_at
             ]
         ).await?;
@@ -132,7 +132,7 @@ impl MetadataSearchModel {
             WHERE id = $1"#,
             params![
                 self.id,
-                &self.query, self.agent, u8::from(self.type_of) as i16, self.last_found_amount as i64, self.data,
+                &self.query, self.agent, u8::from(self.type_of) as i16, self.last_found_amount as i32, self.data,
                 self.created_at, self.updated_at
             ]
         ).await?)

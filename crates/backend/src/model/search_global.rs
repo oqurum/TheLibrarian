@@ -46,8 +46,8 @@ impl TableRow for SearchGroupModel {
             id: row.next()?,
 
             query: row.next()?,
-            calls: row.next::<i64>()? as usize,
-            last_found_amount: row.next::<i64>()? as usize,
+            calls: row.next::<i32>()? as usize,
+            last_found_amount: row.next::<i16>()? as usize,
             timeframe: row.next()?,
 
             found_id: row.next::<Option<String>>()?.map(|v| ImageIdType::from_str(&v)).transpose()?,
@@ -80,7 +80,7 @@ impl NewSearchGroupModel {
         let row = conn.query_one(
             "INSERT INTO search_group (query, calls, last_found_amount, timeframe, found_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
             params![
-                &self.query, self.calls as i64, self.last_found_amount as i64, self.timeframe, self.found_id.as_ref().map(|v| v.to_string()),
+                &self.query, self.calls as i32, self.last_found_amount as i16, self.timeframe, self.found_id.as_ref().map(|v| v.to_string()),
                 self.created_at, self.updated_at
             ]
         ).await?;
@@ -133,7 +133,7 @@ impl SearchGroupModel {
     pub async fn increment_one_by_id(id: SearchGroupId, last_found_amount: usize, db: &Client) -> Result<u64> {
         Ok(db.execute(
             "UPDATE search_group SET calls = calls + 1, updated_at = $2, last_found_amount = $3 WHERE id = $1",
-            params![ id, Utc::now(), last_found_amount as i64 ],
+            params![ id, Utc::now(), last_found_amount as i16 ],
         ).await?)
     }
 
@@ -170,7 +170,7 @@ impl SearchGroupModel {
             WHERE id = $1"#,
             params![
                 self.id,
-                &self.query, self.calls as i64, self.last_found_amount as i64, self.timeframe, self.found_id.as_ref().map(|v| v.to_string()),
+                &self.query, self.calls as i32, self.last_found_amount as i16, self.timeframe, self.found_id.as_ref().map(|v| v.to_string()),
                 self.created_at, self.updated_at
             ]
         ).await?)
@@ -186,7 +186,7 @@ impl From<SearchGroupModel> for SearchGroup {
             calls: model.calls,
             last_found_amount: model.last_found_amount,
             found_id: model.found_id,
-            timeframe: Utc.ymd(model.timeframe.year as i32, model.timeframe.month, 1),
+            timeframe: Utc.ymd(model.timeframe.year as i32, model.timeframe.month as u32, 1),
             created_at: model.created_at,
             updated_at: model.updated_at,
         }
@@ -197,8 +197,8 @@ impl From<SearchGroupModel> for SearchGroup {
 
 #[derive(Debug, Clone, Copy, Serialize)]
 pub struct SearchTimeFrame {
-    pub year: u32,
-    pub month: u32,
+    pub year: u16,
+    pub month: u16,
 }
 
 impl SearchTimeFrame {
@@ -206,34 +206,34 @@ impl SearchTimeFrame {
         let now = Utc::now();
 
         Self {
-            year: now.date().year() as u32,
-            month: now.date().month() as u32,
+            year: now.date().year() as u16,
+            month: now.date().month() as u16,
         }
     }
 }
 
 impl<'a> FromSql<'a> for SearchTimeFrame {
     fn from_sql(ty: &Type, raw: &'a [u8]) -> std::result::Result<Self, Box<dyn std::error::Error + Sync + Send>> {
-        let value = i64::from_sql(ty, raw)?;
+        let value = i32::from_sql(ty, raw)?;
 
         Ok(Self {
-            year: (value >> 4) as u32,
-            month: (value & 0xF) as u32,
+            year: (value >> 4) as u16,
+            month: (value & 0xF) as u16,
         })
     }
 
     fn accepts(ty: &Type) -> bool {
-        <i64 as FromSql>::accepts(ty)
+        <i32 as FromSql>::accepts(ty)
     }
 }
 
 impl ToSql for SearchTimeFrame {
     fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> std::result::Result<IsNull, Box<dyn std::error::Error + Sync + Send>> {
-        i64::from((self.year << 4) | self.month).to_sql(ty, out)
+        i32::from((self.year << 4) | self.month).to_sql(ty, out)
     }
 
     fn accepts(ty: &Type) -> bool {
-        <i64 as ToSql>::accepts(ty)
+        <i32 as ToSql>::accepts(ty)
     }
 
     to_sql_checked!();

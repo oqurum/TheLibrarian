@@ -3,7 +3,7 @@ use common_local::CollectionId;
 
 
 use crate::Result;
-use super::{AdvRow, TableRow, row_int_to_usize, row_bigint_to_usize};
+use super::{AdvRow, TableRow, row_bigint_to_usize};
 
 
 pub struct CollectionItemModel {
@@ -18,7 +18,7 @@ impl TableRow for CollectionItemModel {
         Ok(Self {
             collection_id: row.next()?,
             book_id: BookId::from(row.next::<i32>()? as usize),
-            index: row.next::<i64>()? as usize,
+            index: row.next::<i16>()? as usize,
         })
     }
 }
@@ -54,8 +54,8 @@ impl CollectionItemModel {
             "INSERT INTO collection_item (collection_id, book_id, idx) VALUES ($1, $2, $3)",
             params![
                 self.collection_id,
-                *self.book_id as i64,
-                self.index as i64,
+                *self.book_id as i32,
+                self.index as i16,
             ]
         ).await?)
     }

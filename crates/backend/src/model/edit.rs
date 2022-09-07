@@ -121,7 +121,7 @@ impl NewEditModel {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id"#,
             params![
                 self.type_of, self.operation, self.status,
-                *self.member_id as i64, self.model_id.map(|v| v as i64), self.is_applied, self.vote_count as i64, &self.data,
+                *self.member_id as i32, self.model_id.map(|v| v as i32), self.is_applied, self.vote_count as i16, &self.data,
                 self.ended_at, self.expires_at,
                 self.created_at, self.updated_at,
             ]

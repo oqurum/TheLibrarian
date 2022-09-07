@@ -67,7 +67,7 @@ impl NewServerLinkModel {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id
         "#,
         params![
-            self.server_owner_name.as_ref(), self.server_name.as_ref(), &self.server_id, &self.public_id, *self.member_id as i64, self.verified,
+            self.server_owner_name.as_ref(), self.server_name.as_ref(), &self.server_id, &self.public_id, *self.member_id as i32, self.verified,
             self.created_at, self.updated_at
         ]).await?;
 
@@ -132,7 +132,7 @@ impl ServerLinkModel {
             WHERE id = $1"#,
             params![
                 self.id,
-                self.server_owner_name.as_ref(), self.server_name.as_ref(), &self.server_id, &self.public_id, *self.member_id as i64, self.verified,
+                self.server_owner_name.as_ref(), self.server_name.as_ref(), &self.server_id, &self.public_id, *self.member_id as i32, self.verified,
                 self.created_at, self.updated_at
             ]
         ).await?)

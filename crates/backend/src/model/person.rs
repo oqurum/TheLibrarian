@@ -119,7 +119,7 @@ impl PersonModel {
                     person ON person.id = book_person.person_id
                 WHERE book_id = $1
             "#,
-            params![ *book_id as i64 ]
+            params![ *book_id as i32 ]
         ).await?;
 
         values.into_iter().map(Self::from_row).collect()
@@ -198,7 +198,7 @@ impl PersonModel {
                 created_at = $8
             WHERE id = $1"#,
             params![
-                *self.id as i64,
+                *self.id as i32,
                 self.source.to_string(), &self.name, &self.description, &self.birth_date, self.thumb_url.as_value(),
                 self.updated_at, self.created_at
             ]
@@ -210,7 +210,7 @@ impl PersonModel {
     pub async fn remove_by_id(id: usize, db: &tokio_postgres::Client) -> Result<u64> {
         Ok(db.execute(
             "DELETE FROM person WHERE id = $1",
-            params![ id as i64 ]
+            params![ id as i32 ]
         ).await?)
     }
 }

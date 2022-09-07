@@ -69,7 +69,7 @@ impl NewEditCommentModel {
             )
             VALUES ($1, $2, $3, $4, $5) RETURNING id"#,
             params![
-                self.edit_id, *self.member_id as i64,
+                self.edit_id, *self.member_id as i32,
                 self.text, self.deleted,
                 self.created_at,
             ]

@@ -163,7 +163,7 @@ impl CollectionModel {
 
         if let Some(bid) = book_id {
             sql_queries.push("id IN (SELECT collection_id FROM collection_item WHERE book_id = ??)".to_string());
-            parameters.push(Box::new(*bid as i64) as Box<dyn ToSql + Sync>);
+            parameters.push(Box::new(*bid as i32) as Box<dyn ToSql + Sync>);
         }
 
         let sql_query = sql_queries.into_iter()

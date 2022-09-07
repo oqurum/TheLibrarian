@@ -42,7 +42,7 @@ impl TableRow for SearchItemServerModel {
 
             server_link_id: row.next()?,
             query: row.next()?,
-            calls: row.next::<i64>()? as usize,
+            calls: row.next::<i32>()? as usize,
 
             created_at: row.next()?,
             updated_at: row.next()?,
@@ -68,7 +68,7 @@ impl NewSearchItemServerModel {
         let row = db.query_one(
             "INSERT INTO search_item (server_link_id, query, calls, created_at, updated_at) VALUES ($1, $2, $3, $4, $5) RETURNING id",
             params![
-                &self.server_link_id, &self.query, self.calls as i64,
+                &self.server_link_id, &self.query, self.calls as i32,
                 self.created_at, self.updated_at
             ]
         ).await?;
@@ -129,7 +129,7 @@ impl SearchItemServerModel {
             WHERE id = $1"#,
             params![
                 self.id,
-                &self.server_link_id, &self.query, self.calls as i64,
+                &self.server_link_id, &self.query, self.calls as i32,
                 self.created_at, self.updated_at
             ]
         ).await?)
