@@ -303,7 +303,7 @@ impl BookModel {
 
         let sql_query = sql_queries.into_iter()
             .enumerate()
-            .map(|(i, v)| v.replace("??", &format!("?{}", base_param_len + 1 + i)))
+            .map(|(i, v)| v.replace("??", &format!("${}", base_param_len + 1 + i)))
             .collect::<Vec<_>>()
             .join(" AND ");
 

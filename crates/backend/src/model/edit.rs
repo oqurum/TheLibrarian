@@ -248,7 +248,7 @@ impl EditModel {
                 "UPDATE edit SET {} WHERE id = $1",
                 items.iter()
                     .enumerate()
-                    .map(|(i, v)| if v.contains('=') { format!("{v} ?{}", 2 + i) } else { format!("{v} = ?{}", 2 + i) })
+                    .map(|(i, v)| if v.contains('=') { format!("{v} ${}", 2 + i) } else { format!("{v} = ${}", 2 + i) })
                     .collect::<Vec<_>>()
                     .join(", ")
             ),

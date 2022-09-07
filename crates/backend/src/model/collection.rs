@@ -118,7 +118,7 @@ impl CollectionModel {
                 "UPDATE collection SET {} WHERE id = $1",
                 items.into_iter()
                     .enumerate()
-                    .map(|(i, v)| format!("{v} = ?{}", 2 + i))
+                    .map(|(i, v)| format!("{v} = ${}", 2 + i))
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
@@ -168,7 +168,7 @@ impl CollectionModel {
 
         let sql_query = sql_queries.into_iter()
             .enumerate()
-            .map(|(i, v)| v.replace("??", &format!("?{}", base_param_len + 1 + i)))
+            .map(|(i, v)| v.replace("??", &format!("${}", base_param_len + 1 + i)))
             .collect::<Vec<_>>()
             .join(" AND ");
 
