@@ -146,9 +146,9 @@ impl BookTagModel {
 impl BookTagWithTagModel {
     pub async fn get_by_book_id(book_id: BookId, db: &Client) -> Result<Vec<Self>> {
         let conn = db.query(
-            r#"SELECT book_tag.id, book_tag.book_id, idx, book_tag.created_at, tags.*
+            r#"SELECT book_tag.id, book_tag.book_id, idx, book_tag.created_at, tag.*
             FROM book_tag
-            JOIN tags ON book_tag.tag_id == tags.id
+            JOIN tag ON book_tag.tag_id = tag.id
             WHERE book_id = $1"#,
             params![ *book_id as i32 ]
         ).await?;
@@ -158,9 +158,9 @@ impl BookTagWithTagModel {
 
     pub async fn get_by_book_id_and_tag_id(book_id: BookId, tag_id: TagId, db: &Client) -> Result<Option<Self>> {
         db.query_opt(
-            r#"SELECT book_tag.id, book_tag.book_id, idx, book_tag.created_at, tags.*
+            r#"SELECT book_tag.id, book_tag.book_id, idx, book_tag.created_at, tag.*
             FROM book_tag
-            JOIN tags ON book_tag.tag_id == tags.id
+            JOIN tag ON book_tag.tag_id = tag.id
             WHERE book_id = $1 AND tag_id = $2"#,
             params![ *book_id as i32, *tag_id as i32 ],
         ).await?.map(Self::from_row).transpose()

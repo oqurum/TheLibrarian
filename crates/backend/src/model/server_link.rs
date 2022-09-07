@@ -5,7 +5,7 @@ use serde::Serialize;
 
 use crate::Result;
 
-use super::{TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize};
+use super::{TableRow, AdvRow, row_int_to_usize};
 
 
 #[derive(Debug)]
@@ -97,10 +97,10 @@ impl ServerLinkModel {
     }
 
     pub async fn does_exist_by_server_id(value: &str, db: &tokio_postgres::Client) -> Result<bool> {
-        Ok(row_bigint_to_usize(db.query_one(
+        Ok(db.query_one(
             "SELECT EXISTS(SELECT id FROM server_link WHERE server_id = $1)",
             params![ value ],
-        ).await?)? != 0)
+        ).await?.try_get(0)?)
     }
 
     pub async fn get_by_public_id(value: &str, db: &tokio_postgres::Client) -> Result<Option<Self>> {

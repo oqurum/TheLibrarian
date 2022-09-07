@@ -166,14 +166,13 @@ impl BookModel {
                     available_at, language,
                     created_at, updated_at, deleted_at
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id"#,
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id"#,
                 params![
                     &self.title, &self.clean_title, &self.description, self.rating, self.thumb_path.as_value(),
                     &self.cached.as_string_optional(), self.is_public, self.edition_count as i64,
                     &self.isbn_10, &self.isbn_13,
-                    &self.available_at, self.language.map(|v| v as i32),
-                    self.created_at, self.updated_at,
-                    self.deleted_at,
+                    &self.available_at, self.language.map(|v| v as i16),
+                    self.created_at, self.updated_at, self.deleted_at,
                 ]
             ).await?;
 
@@ -199,7 +198,7 @@ impl BookModel {
                 &self.title, &self.clean_title, &self.description, &self.rating, self.thumb_path.as_value(),
                 &self.cached.as_string_optional(), self.is_public,
                 &self.isbn_10, &self.isbn_13,
-                &self.available_at, &self.language.map(|v| v as i32),
+                &self.available_at, &self.language.map(|v| v as i16),
                 &self.updated_at, self.deleted_at,
             ]
         ).await?;
@@ -215,10 +214,10 @@ impl BookModel {
     }
 
     pub async fn exists_by_isbn(value: &str, db: &tokio_postgres::Client) -> Result<bool> {
-        Ok(row_bigint_to_usize(db.query_one(
+        Ok(db.query_one(
             "SELECT EXISTS(SELECT id FROM book WHERE isbn_10 = $1 OR isbn_13 = $1)",
             params![ value ],
-        ).await?)? != 0)
+        ).await?.try_get(0)?)
     }
 
     pub async fn remove_by_id(id: BookId, db: &tokio_postgres::Client) -> Result<u64> {

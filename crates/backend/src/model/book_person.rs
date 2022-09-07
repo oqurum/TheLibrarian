@@ -28,7 +28,7 @@ impl BookPersonModel {
 
     pub async fn insert(&self, db: &tokio_postgres::Client) -> Result<()> {
         db.execute(
-            "INSERT OR IGNORE INTO book_person (book_id, person_id) VALUES ($1, $2)",
+            "INSERT INTO book_person (book_id, person_id) VALUES ($1, $2) ON CONFLICT (book_id, person_id) DO NOTHING",
             params![
                 *self.book_id as i32,
                 *self.person_id as i32

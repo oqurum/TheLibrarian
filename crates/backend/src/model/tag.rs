@@ -28,7 +28,7 @@ impl TableRow for TagModel {
         Ok(Self {
             id: TagId::from(row.next::<i32>()? as usize),
             name: row.next()?,
-            type_of: TagType::from_u8(row.next::<i8>()? as u8, row.next()?),
+            type_of: TagType::from_u8(row.next::<i16>()? as u8, row.next()?),
             created_at: row.next()?,
             updated_at: row.next()?,
         })

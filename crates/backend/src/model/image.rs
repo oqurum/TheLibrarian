@@ -55,7 +55,7 @@ impl TableRow for ImageWithLink {
         Ok(Self {
             image_id: ImageId::from(row.next::<i32>()? as usize),
             link_id: row.next::<i32>()? as usize,
-            type_of: ImageType::from_number(row.next::<i16>()? as u8).unwrap(),
+            type_of: ImageType::from_number(row.next::<i32>()? as u8).unwrap(),
             path: ThumbnailStore::from(row.next::<String>()?),
             created_at: row.next()?,
         })
@@ -79,7 +79,7 @@ impl TableRow for ImageLinkModel {
         Ok(Self {
             image_id: ImageId::from(row.next::<i32>()? as usize),
             link_id: row.next::<i32>()? as usize,
-            type_of: ImageType::from_number(row.next::<i16>()? as u8).unwrap(),
+            type_of: ImageType::from_number(row.next::<i32>()? as u8).unwrap(),
         })
     }
 }
@@ -101,7 +101,7 @@ impl NewUploadedImageModel {
 
     pub async fn insert(self, db: &tokio_postgres::Client) -> Result<UploadedImageModel> {
         let row = db.query_one(
-            "INSERT OR IGNORE INTO uploaded_image (path, created_at) VALUES ($1, $2)",
+            "INSERT INTO uploaded_image (path, created_at) VALUES ($1, $2) RETURNING id",
             params![
                 self.path.as_value(),
                 self.created_at
@@ -170,11 +170,11 @@ impl ImageLinkModel {
 
 
     pub async fn insert(&self, db: &tokio_postgres::Client) -> Result<()> {
-        db.execute("INSERT OR IGNORE INTO image_link (image_id, link_id, type_of) VALUES ($1, $2, $3)",
+        db.execute("INSERT INTO image_link (image_id, link_id, type_of) VALUES ($1, $2, $3) ON CONFLICT (image_id, link_id, type_of) DO NOTHING",
         params![
             *self.image_id as i32,
             self.link_id as i32,
-            self.type_of.as_num() as i16
+            self.type_of.as_num() as i32
         ]).await?;
 
         Ok(())
@@ -185,7 +185,7 @@ impl ImageLinkModel {
             params![
                 *self.image_id as i32,
                 self.link_id as i32,
-                self.type_of.as_num() as i16,
+                self.type_of.as_num() as i32,
             ]
         ).await?;
 
@@ -201,7 +201,7 @@ impl ImageLinkModel {
                     ON uploaded_image.id = image_link.image_id
                 WHERE link_id = $1 AND type_of = $2
             "#,
-            params![ id as i32, type_of.as_num() as i16 ]
+            params![ id as i32, type_of.as_num() as i32 ]
         ).await?;
 
         values.into_iter().map(ImageWithLink::from_row).collect()
