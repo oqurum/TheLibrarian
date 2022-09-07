@@ -32,9 +32,10 @@ impl Component for NavbarModule {
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
             left_items: vec![
-                (false, Route::Home, DisplayType::Icon("home", "Home")),
+                (false, Route::Home, DisplayType::Icon("library_books", "Books")),
                 (false, Route::People, DisplayType::Icon("person", "Authors")),
                 (false, Route::EditList, DisplayType::Icon("fact_check", "Edits")),
+                (false, Route::Collections, DisplayType::Icon("collections_bookmark", "Collections")),
             ],
             right_items: vec![
                 (true, Route::Options, DisplayType::Icon("settings", "Settings")),
