@@ -154,7 +154,7 @@ impl CollectionModel {
                 .replace('_', &format!("{}_", escape_char));
 
             // TODO: Utilize title > description and sort
-            sql_queries.push(format!("name LIKE ?? ESCAPE '{escape_char}'"));
+            sql_queries.push(format!("name ILIKE ?? ESCAPE '{escape_char}'"));
             parameters.push(Box::new(format!("%{}%", &query)) as Box<dyn ToSql + Sync>);
         }
 

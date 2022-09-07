@@ -139,7 +139,7 @@ impl PersonModel {
         }
 
         let sql = format!(
-            r#"SELECT * FROM person WHERE name LIKE '%{}%' ESCAPE '{}' LIMIT $1 OFFSET $2"#,
+            r#"SELECT * FROM person WHERE name ILIKE '%{}%' ESCAPE '{}' LIMIT $1 OFFSET $2"#,
             query.replace('%', &format!("{}%", escape_char)).replace('_', &format!("{}_", escape_char)),
             escape_char
         );

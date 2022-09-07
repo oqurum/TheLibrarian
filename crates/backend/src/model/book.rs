@@ -289,7 +289,7 @@ impl BookModel {
             };
 
             // TODO: Utilize title > clean_title > description, and sort
-            sql_queries.push(format!("title LIKE ?? ESCAPE '{escape_char}'{isbn}"));
+            sql_queries.push(format!("title ILIKE ?? ESCAPE '{escape_char}'{isbn}"));
             parameters.push(Box::new(format!("%{}%", &query)) as Box<dyn ToSql + Sync>);
         }
 
