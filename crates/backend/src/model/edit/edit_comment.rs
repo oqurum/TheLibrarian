@@ -4,7 +4,7 @@ use common_local::{EditId, EditCommentId};
 use tokio_postgres::Client;
 
 
-use crate::{Result, model::{TableRow, AdvRow, row_to_usize}};
+use crate::{Result, model::{TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize}};
 
 
 
@@ -38,7 +38,7 @@ impl TableRow for EditCommentModel {
             id: row.next()?,
 
             edit_id: row.next()?,
-            member_id: MemberId::from(row.next::<i64>()? as usize),
+            member_id: MemberId::from(row.next::<i32>()? as usize),
 
             text: row.next()?,
             deleted: row.next()?,
@@ -76,7 +76,7 @@ impl NewEditCommentModel {
         ).await?;
 
         Ok(EditCommentModel {
-            id: EditCommentId::from(row_to_usize(row)?),
+            id: EditCommentId::from(row_int_to_usize(row)?),
 
             edit_id: self.edit_id,
             member_id: self.member_id,
@@ -116,6 +116,6 @@ impl EditCommentModel {
     }
 
     pub async fn get_count(edit_id: EditId, client: &Client) -> Result<usize> {
-        row_to_usize(client.query_one(r#"SELECT COUNT(*) FROM edit_comment WHERE edit_id = $1"#, params![ edit_id ]).await?)
+        row_bigint_to_usize(client.query_one(r#"SELECT COUNT(*) FROM edit_comment WHERE edit_id = $1"#, params![ edit_id ]).await?)
     }
 }

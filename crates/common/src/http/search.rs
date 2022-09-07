@@ -48,7 +48,8 @@ pub struct PublicBook {
     pub is_public: bool,
     pub edition_count: usize,
 
-    pub available_at: Option<String>,
+    #[serde(serialize_with = "serialize_datetime_opt", deserialize_with = "deserialize_datetime_opt")]
+    pub available_at: Option<DateTime<Utc>>,
     pub language: Option<u16>,
 
     #[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]

@@ -1,3 +1,4 @@
+use chrono::{Utc, TimeZone};
 use common::{
     component::{
         upload::UploadModule,
@@ -216,7 +217,7 @@ impl Component for BookView {
                     // ChangingType::ThumbPath => todo!(),
                     ChangingType::AvailableAt => updating.available_at = value.map(|v| {
                         let date = Date::new(&JsValue::from_str(&v));
-                        format!("{}-{}-{}", date.get_full_year(), date.get_month() + 1, date.get_date())
+                        date.get_seconds() as i64
                     }),
                     ChangingType::Language => updating.language = value.and_then(|v| v.parse().ok()),
                     ChangingType::Isbn10 => updating.isbn_10 = value,
@@ -375,7 +376,7 @@ impl BookView {
                                     <input class="title" type="text"
                                         placeholder="YYYY-MM-DD"
                                         onchange={Self::on_change_input(ctx.link(), ChangingType::AvailableAt)}
-                                        value={ editing.available_at.clone().or_else(|| book_model.available_at.clone()).unwrap_or_default() }
+                                        value={ editing.available_at.map(|v| Utc.timestamp_millis(v)).or(book_model.available_at).map(|v| v.format("%Y-%m-%d").to_string()).unwrap_or_default() }
                                     />
 
                                     <span class="sub-title">{"ISBN 10"}</span>

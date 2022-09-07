@@ -16,7 +16,7 @@ pub struct PersonAltModel {
 impl TableRow for PersonAltModel {
     fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
-            person_id: PersonId::from(row.next::<i64>()? as usize),
+            person_id: PersonId::from(row.next::<i32>()? as usize),
             name: row.next()?,
         })
     }
@@ -51,7 +51,7 @@ impl PersonAltModel {
     pub async fn remove_by_person_id(id: PersonId, db: &Client) -> Result<u64> {
         Ok(db.execute(
             "DELETE FROM person_alt WHERE person_id = $1",
-            params![ *id as i64 ]
+            params![ *id as i32 ]
         ).await?)
     }
 

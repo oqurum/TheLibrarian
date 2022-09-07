@@ -3,7 +3,7 @@
 
 use std::path::PathBuf;
 
-use chrono::{DateTime, Utc, Date};
+use chrono::{DateTime, Utc, Date, NaiveDate};
 use common::{TagId, BookTagId, BookId, MemberId, PersonId, Source, ThumbnailStore, ImageId, ImageIdType};
 use item::edit::BookEdit;
 use num_enum::{FromPrimitive, IntoPrimitive};
@@ -216,7 +216,8 @@ pub struct Person {
 
     pub name: String,
     pub description: Option<String>,
-    pub birth_date: Option<String>,
+    #[serde(serialize_with = "serialize_naivedate_opt", deserialize_with = "deserialize_naivedate_opt")]
+    pub birth_date: Option<NaiveDate>,
 
     pub thumb_url: ThumbnailStore,
 
@@ -305,7 +306,8 @@ pub struct DisplayMetaItem {
     pub is_public: bool,
     pub edition_count: usize,
 
-    pub available_at: Option<String>,
+    #[serde(serialize_with = "serialize_datetime_opt", deserialize_with = "deserialize_datetime_opt")]
+    pub available_at: Option<DateTime<Utc>>,
     pub language: Option<u16>,
 
     #[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]
@@ -361,7 +363,7 @@ impl From<DisplayMetaItem> for BookEdit {
             rating: Some(value.rating),
             isbn_10: value.isbn_10,
             isbn_13: value.isbn_13,
-            available_at: value.available_at,
+            available_at: value.available_at.map(|v| v.timestamp_millis()),
             language: value.language,
 
             .. Self::default()

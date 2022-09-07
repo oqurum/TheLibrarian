@@ -6,7 +6,7 @@ use tokio_postgres::Client;
 
 use crate::Result;
 
-use super::{TagModel, AdvRow, TableRow, row_to_usize};
+use super::{TagModel, AdvRow, TableRow, row_int_to_usize, row_bigint_to_usize};
 
 pub struct BookTagModel {
     pub id: BookTagId,
@@ -22,10 +22,10 @@ pub struct BookTagModel {
 impl TableRow for BookTagModel {
     fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
-            id: BookTagId::from(row.next::<i64>()? as usize),
+            id: BookTagId::from(row.next::<i32>()? as usize),
 
-            book_id: BookId::from(row.next::<i64>()? as usize),
-            tag_id: TagId::from(row.next::<i64>()? as usize),
+            book_id: BookId::from(row.next::<i32>()? as usize),
+            tag_id: TagId::from(row.next::<i32>()? as usize),
 
             index: row.next::<i64>()? as usize,
 
@@ -51,9 +51,9 @@ pub struct BookTagWithTagModel {
 impl TableRow for BookTagWithTagModel {
     fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
-            id: BookTagId::from(row.next::<i64>()? as usize),
+            id: BookTagId::from(row.next::<i32>()? as usize),
 
-            book_id: BookId::from(row.next::<i64>()? as usize),
+            book_id: BookId::from(row.next::<i32>()? as usize),
             index: row.next::<i64>()? as usize,
 
             created_at: row.next()?,
@@ -81,7 +81,7 @@ impl BookTagModel {
     pub async fn get_by_id(id: BookTagId, db: &Client) -> Result<Option<Self>> {
         db.query_opt(
             "SELECT * FROM book_tag WHERE id = $1",
-            params![ *id as i64 ],
+            params![ *id as i32 ],
         ).await?.map(Self::from_row).transpose()
     }
 
@@ -117,7 +117,7 @@ impl BookTagModel {
         ).await?;
 
         Ok(Self {
-            id: BookTagId::from(row_to_usize(row)?),
+            id: BookTagId::from(row_int_to_usize(row)?),
             book_id,
             tag_id,
             index,
@@ -126,7 +126,7 @@ impl BookTagModel {
     }
 
     pub async fn count_book_tags_by_bid_tid(book_id: BookId, tag_id: TagId, db: &Client) -> Result<usize> {
-        row_to_usize(db.query_one(
+        row_bigint_to_usize(db.query_one(
             "SELECT COUNT(*) FROM book_tag WHERE book_id = $1 AND tag_id = $2",
             params![ *book_id as i64, *tag_id as i64 ],
         ).await?)

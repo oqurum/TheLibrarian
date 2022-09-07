@@ -4,7 +4,7 @@ use common::TagId;
 
 use crate::Result;
 
-use super::{AdvRow, TableRow, row_to_usize};
+use super::{AdvRow, TableRow, row_int_to_usize};
 
 pub struct NewTagModel {
     pub name: String,
@@ -26,7 +26,7 @@ pub struct TagModel {
 impl TableRow for TagModel {
     fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
-            id: TagId::from(row.next::<i64>()? as usize),
+            id: TagId::from(row.next::<i32>()? as usize),
             name: row.next()?,
             type_of: TagType::from_u8(row.next::<i8>()? as u8, row.next()?),
             created_at: row.next()?,
@@ -52,7 +52,7 @@ impl TagModel {
     pub async fn get_by_id(id: TagId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         db.query_opt(
             "SELECT * FROM tag WHERE id = $1",
-            params![ *id as i64 ],
+            params![ *id as i32 ],
         ).await?.map(Self::from_row).transpose()
     }
 
@@ -86,7 +86,7 @@ impl NewTagModel {
         ]).await?;
 
         Ok(TagModel {
-            id: TagId::from(row_to_usize(row)?),
+            id: TagId::from(row_int_to_usize(row)?),
 
             name: self.name,
             type_of: self.type_of,

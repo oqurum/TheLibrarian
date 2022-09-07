@@ -8,7 +8,7 @@ use tokio_postgres::Client;
 
 use crate::{Result, metadata::{MetadataReturned, SearchItem, AuthorInfo}};
 
-use super::{TableRow, AdvRow, row_to_usize};
+use super::{TableRow, AdvRow, row_int_to_usize};
 
 
 pub struct NewMetadataSearchModel {
@@ -84,7 +84,7 @@ impl NewMetadataSearchModel {
         ).await?;
 
         Ok(MetadataSearchModel {
-            id: MetadataSearchId::from(row_to_usize(row)?),
+            id: MetadataSearchId::from(row_int_to_usize(row)?),
 
             query: self.query,
             agent: self.agent,

@@ -3,7 +3,7 @@ use common::MemberId;
 use common_local::{EditId, item::edit::SharedEditVoteModel, EditVoteId};
 use tokio_postgres::Client;
 
-use crate::{Result, model::{TableRow, AdvRow, row_to_usize}};
+use crate::{Result, model::{TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize}};
 
 
 
@@ -36,7 +36,7 @@ impl TableRow for EditVoteModel {
         Ok(Self {
             id: row.next()?,
             edit_id: row.next()?,
-            member_id: MemberId::from(row.next::<i64>()? as usize),
+            member_id: MemberId::from(row.next::<i32>()? as usize),
 
             vote: row.next()?,
 
@@ -74,14 +74,14 @@ impl NewEditVoteModel {
             "INSERT INTO edit_vote (edit_id, member_id, vote, created_at) VALUES ($1, $2, $3, $4) RETURNING id",
             params![
                 self.edit_id,
-                *self.member_id as i64,
+                *self.member_id as i32,
                 self.vote,
                 self.created_at,
             ]
         ).await?;
 
         Ok(EditVoteModel {
-            id: EditVoteId::from(row_to_usize(row)?),
+            id: EditVoteId::from(row_int_to_usize(row)?),
             edit_id: self.edit_id,
             member_id: self.member_id,
             vote: self.vote,
@@ -101,7 +101,7 @@ impl EditVoteModel {
             "UPDATE edit_vote SET vote = $3 WHERE edit_id = $1 AND member_id = $2",
             params![
                 edit_id,
-                *member_id as i64,
+                *member_id as i32,
                 vote,
             ]
         ).await?;
@@ -114,7 +114,7 @@ impl EditVoteModel {
             "DELETE FROM edit_vote WHERE edit_id = $1 AND member_id = $2",
             params![
                 edit_id,
-                *member_id as i64,
+                *member_id as i32,
             ]
         ).await?)
     }
@@ -124,7 +124,7 @@ impl EditVoteModel {
             "SELECT * FROM edit_vote WHERE edit_id = $1 AND member_id = $2",
             params![
                 edit_id,
-                *member_id as i64,
+                *member_id as i32,
             ]
         ).await?.map(Self::from_row).transpose()
     }
@@ -139,6 +139,6 @@ impl EditVoteModel {
     }
 
     pub async fn count_by_edit_id(edit_id: EditId, client: &Client) -> Result<usize> {
-        row_to_usize(client.query_one("SELECT COUNT(*) FROM edit_vote WHERE edit_id = $1", params![edit_id]).await?)
+        row_bigint_to_usize(client.query_one("SELECT COUNT(*) FROM edit_vote WHERE edit_id = $1", params![edit_id]).await?)
     }
 }

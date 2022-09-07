@@ -5,7 +5,7 @@ use serde::Serialize;
 
 use crate::{Result};
 
-use super::{TableRow, AdvRow, row_to_usize};
+use super::{TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize};
 
 
 #[derive(Debug, Serialize)]
@@ -53,7 +53,7 @@ pub struct ImageWithLink {
 impl TableRow for ImageWithLink {
     fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
-            image_id: ImageId::from(row.next::<i64>()? as usize),
+            image_id: ImageId::from(row.next::<i32>()? as usize),
             link_id: row.next::<i64>()? as usize,
             type_of: ImageType::from_number(row.next::<i16>()? as u8).unwrap(),
             path: ThumbnailStore::from(row.next::<String>()?),
@@ -67,7 +67,7 @@ impl TableRow for ImageWithLink {
 impl TableRow for UploadedImageModel {
     fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
-            id: ImageId::from(row.next::<i64>()? as usize),
+            id: ImageId::from(row.next::<i32>()? as usize),
             path: ThumbnailStore::from(row.next::<String>()?),
             created_at: row.next()?,
         })
@@ -77,7 +77,7 @@ impl TableRow for UploadedImageModel {
 impl TableRow for ImageLinkModel {
     fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
-            image_id: ImageId::from(row.next::<i64>()? as usize),
+            image_id: ImageId::from(row.next::<i32>()? as usize),
             link_id: row.next::<i64>()? as usize,
             type_of: ImageType::from_number(row.next::<i16>()? as u8).unwrap(),
         })
@@ -109,14 +109,14 @@ impl NewUploadedImageModel {
         ).await?;
 
         Ok(UploadedImageModel {
-            id: ImageId::from(row_to_usize(row)?),
+            id: ImageId::from(row_int_to_usize(row)?),
             path: self.path,
             created_at: self.created_at,
         })
     }
 
     pub async fn path_exists(path: &str, db: &tokio_postgres::Client) -> Result<bool> {
-        Ok(row_to_usize(db.query_one(
+        Ok(row_bigint_to_usize(db.query_one(
             "SELECT COUNT(*) FROM uploaded_image WHERE path = $1",
             params![ path ],
         ).await?)? != 0)

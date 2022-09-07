@@ -34,7 +34,7 @@ pub async fn init(config: &Config) -> Result<Client> {
             is_public        BOOL NOT NULL,
             edition_count    BIGINT NOT NULL,
 
-            available_at     TIMESTAMPTZ,
+            available_at     DATE,
             language         SMALLINT,
 
             created_at       TIMESTAMPTZ,
@@ -53,7 +53,7 @@ pub async fn init(config: &Config) -> Result<Client> {
 
             name          TEXT NOT NULL,
             description   TEXT,
-            birth_date    INT,
+            birth_date    DATE,
 
             thumb_url     CHAR(64),
 

@@ -172,7 +172,7 @@ mod book_edit {
         pub is_public: Option<bool>,
 
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub available_at: Option<String>,
+        pub available_at: Option<i64>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub language: Option<u16>,
 

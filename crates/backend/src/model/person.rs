@@ -1,11 +1,11 @@
-use common_local::{Person, util::serialize_datetime};
-use chrono::{DateTime, Utc};
+use common_local::{Person, util::{serialize_datetime, serialize_naivedate_opt}};
+use chrono::{DateTime, Utc, NaiveDate};
 use common::{BookId, PersonId, Source, ThumbnailStore};
 use serde::Serialize;
 
 use crate::Result;
 
-use super::{PersonAltModel, TableRow, AdvRow, row_to_usize};
+use super::{PersonAltModel, TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize};
 
 
 
@@ -15,7 +15,7 @@ pub struct NewPersonModel {
 
     pub name: String,
     pub description: Option<String>,
-    pub birth_date: Option<String>,
+    pub birth_date: Option<NaiveDate>,
 
     pub thumb_url: ThumbnailStore,
 
@@ -31,7 +31,8 @@ pub struct PersonModel {
 
     pub name: String,
     pub description: Option<String>,
-    pub birth_date: Option<String>,
+    #[serde(serialize_with = "serialize_naivedate_opt")]
+    pub birth_date: Option<NaiveDate>,
 
     pub thumb_url: ThumbnailStore,
 
@@ -44,13 +45,13 @@ pub struct PersonModel {
 impl TableRow for PersonModel {
     fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
-            id: PersonId::from(row.next::<i64>()? as usize),
+            id: PersonId::from(row.next::<i32>()? as usize),
 
             source: Source::try_from(row.next::<String>()?).unwrap(),
 
             name: row.next()?,
             description: row.next()?,
-            birth_date: row.next()?,
+            birth_date: row.next_opt()?,
 
             thumb_url: ThumbnailStore::from(row.next_opt::<String>()?),
 
@@ -87,7 +88,7 @@ impl NewPersonModel {
         ).await?;
 
         Ok(PersonModel {
-            id: PersonId::from(row_to_usize(row)?),
+            id: PersonId::from(row_int_to_usize(row)?),
             source: self.source,
             name: self.name,
             description: self.description,
@@ -103,12 +104,7 @@ impl NewPersonModel {
 impl PersonModel {
     pub async fn get_all(offset: usize, limit: usize, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
         let values = db.query(
-            r#"
-                SELECT person.* FROM book_person
-                LEFT JOIN
-                    person ON person.id = book_person.person_id
-                WHERE book_id = $1
-            "#,
+            "SELECT * FROM person LIMIT $1 OFFSET $2",
             params![ limit as i64, offset as i64 ]
         ).await?;
 
@@ -117,7 +113,12 @@ impl PersonModel {
 
     pub async fn get_all_by_book_id(book_id: BookId, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
         let values = db.query(
-            "SELECT * FROM person LIMIT $1 OFFSET $2",
+            r#"
+                SELECT person.* FROM book_person
+                LEFT JOIN
+                    person ON person.id = book_person.person_id
+                WHERE book_id = $1
+            "#,
             params![ *book_id as i64 ]
         ).await?;
 
@@ -170,7 +171,7 @@ impl PersonModel {
     pub async fn get_by_id(id: PersonId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         db.query_opt(
             r#"SELECT * FROM person WHERE id = $1"#,
-            params![ *id as i64 ],
+            params![ *id as i32 ],
         ).await?.map(Self::from_row).transpose()
     }
 
@@ -182,7 +183,7 @@ impl PersonModel {
     }
 
     pub async fn get_count(db: &tokio_postgres::Client) -> Result<usize> {
-        row_to_usize(db.query_one("SELECT COUNT(*) FROM person", &[]).await?)
+        row_bigint_to_usize(db.query_one("SELECT COUNT(*) FROM person", &[]).await?)
     }
 
     pub async fn update(&self, db: &tokio_postgres::Client) -> Result<()> {

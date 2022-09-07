@@ -5,7 +5,7 @@ use serde::Serialize;
 
 use crate::Result;
 
-use super::{TableRow, AdvRow, row_to_usize};
+use super::{TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize};
 
 
 #[derive(Debug)]
@@ -50,7 +50,7 @@ impl TableRow for ServerLinkModel {
             server_id: row.next()?,
             public_id: row.next()?,
 
-            member_id: MemberId::from(row.next::<i64>()? as usize),
+            member_id: MemberId::from(row.next::<i32>()? as usize),
             verified: row.next()?,
 
             created_at: row.next()?,
@@ -72,7 +72,7 @@ impl NewServerLinkModel {
         ]).await?;
 
         Ok(ServerLinkModel {
-            id: ServerLinkId::from(row_to_usize(row)?),
+            id: ServerLinkId::from(row_int_to_usize(row)?),
 
             server_owner_name: self.server_owner_name,
             server_name: self.server_name,
@@ -97,7 +97,7 @@ impl ServerLinkModel {
     }
 
     pub async fn does_exist_by_server_id(value: &str, db: &tokio_postgres::Client) -> Result<bool> {
-        Ok(row_to_usize(db.query_one(
+        Ok(row_bigint_to_usize(db.query_one(
             "SELECT EXISTS(SELECT id FROM server_link WHERE server_id = $1)",
             params![ value ],
         ).await?)? != 0)
@@ -113,7 +113,7 @@ impl ServerLinkModel {
     pub async fn get_by_id(id: MemberId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         db.query_opt(
             r#"SELECT * FROM server_link WHERE id = $1"#,
-            params![ *id as i64 ],
+            params![ *id as i32 ],
         ).await?.map(Self::from_row).transpose()
     }
 

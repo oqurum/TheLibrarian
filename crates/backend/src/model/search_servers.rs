@@ -6,7 +6,7 @@ use serde::Serialize;
 
 use crate::Result;
 
-use super::{TableRow, AdvRow, row_to_usize};
+use super::{TableRow, AdvRow, row_int_to_usize};
 
 
 #[derive(Debug)]
@@ -74,7 +74,7 @@ impl NewSearchItemServerModel {
         ).await?;
 
         Ok(SearchItemServerModel {
-            id: SearchItemId::from(row_to_usize(row)?),
+            id: SearchItemId::from(row_int_to_usize(row)?),
 
             server_link_id: self.server_link_id,
             query: self.query,

@@ -67,7 +67,11 @@ impl AdvRow {
 }
 
 
-pub fn row_to_usize(value: Row) -> Result<usize> {
+pub fn row_int_to_usize(value: Row) -> Result<usize> {
+    Ok(value.try_get::<_, i32>(0)? as usize)
+}
+
+pub fn row_bigint_to_usize(value: Row) -> Result<usize> {
     Ok(value.try_get::<_, i64>(0)? as usize)
 }
 

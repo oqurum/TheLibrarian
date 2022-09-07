@@ -25,7 +25,7 @@ rand = "0.8"
 common = { path = "../../global_common" }
 
 # Backend
-tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"], optional = true }
+tokio-postgres = { version = "0.7", features = ["with-chrono-0_4", "with-serde_json-1"], optional = true }
 
 # Frontend
 getrandom = { version = "0.2", features = ["js"], optional = true }

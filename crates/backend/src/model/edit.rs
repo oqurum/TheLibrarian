@@ -11,7 +11,7 @@ pub use edit_vote::*;
 
 use crate::{Result, edit_translate};
 
-use super::{BookModel, MemberModel, BookTagModel, BookPersonModel, TagModel, PersonModel, ImageLinkModel, TableRow, AdvRow, row_to_usize};
+use super::{BookModel, MemberModel, BookTagModel, BookPersonModel, TagModel, PersonModel, ImageLinkModel, TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize};
 
 
 #[derive(Debug)]
@@ -72,12 +72,12 @@ impl TableRow for EditModel {
             operation: row.next()?,
             status: row.next()?,
 
-            member_id: MemberId::from(row.next::<i64>()? as usize),
-            model_id: row.next::<Option<i64>>()?.map(|v| v as usize),
+            member_id: MemberId::from(row.next::<i32>()? as usize),
+            model_id: row.next::<Option<i32>>()?.map(|v| v as usize),
 
             is_applied: row.next()?,
 
-            vote_count: row.next::<i64>()? as usize,
+            vote_count: row.next::<i16>()? as usize,
 
             data: row.next()?,
 
@@ -128,7 +128,7 @@ impl NewEditModel {
         ).await?;
 
         Ok(EditModel {
-            id: EditId::from(row_to_usize(row)?),
+            id: EditId::from(row_int_to_usize(row)?),
 
             type_of: self.type_of,
             operation: self.operation,
@@ -203,7 +203,7 @@ impl EditModel {
     }
 
     pub async fn get_count(db: &tokio_postgres::Client) -> Result<usize> {
-        row_to_usize(db.query_one("SELECT COUNT(*) FROM edit", &[]).await?)
+        row_bigint_to_usize(db.query_one("SELECT COUNT(*) FROM edit", &[]).await?)
     }
 
     pub async fn update_by_id(id: EditId, edit: UpdateEditModel, db: &tokio_postgres::Client) -> Result<u64> {
@@ -369,7 +369,7 @@ pub fn new_edit_data_from_book(current: BookModel, updated: BookEdit) -> EditDat
     let (isbn_10_old, isbn_10) = edit_translate::cmp_opt_string(current.isbn_10, updated.isbn_10);
     let (isbn_13_old, isbn_13) = edit_translate::cmp_opt_string(current.isbn_13, updated.isbn_13);
     let (is_public_old, is_public) = edit_translate::cmp_opt_bool(Some(current.is_public), updated.is_public);
-    let (available_at_old, available_at) = edit_translate::cmp_opt_string(current.available_at, updated.available_at);
+    let (available_at_old, available_at) = edit_translate::cmp_opt_partial_eq(current.available_at.map(|v| v.timestamp_millis()), updated.available_at);
     let (language_old, language) = edit_translate::cmp_opt_partial_eq(current.language, updated.language);
 
     let new = BookEdit {
@@ -452,7 +452,7 @@ pub async fn accept_register_book_data_overwrites(
     cmp_opt_old_and_new_return(&mut book_edits.description, &mut book_model.description, old.description, new.description);
     cmp_opt_old_and_new_return(&mut book_edits.isbn_10, &mut book_model.isbn_10, old.isbn_10, new.isbn_10);
     cmp_opt_old_and_new_return(&mut book_edits.isbn_13, &mut book_model.isbn_13, old.isbn_13, new.isbn_13);
-    cmp_opt_old_and_new_return(&mut book_edits.available_at, &mut book_model.available_at, old.available_at, new.available_at);
+    cmp_opt_old_and_new_return(&mut book_edits.available_at, &mut book_model.available_at.map(|v| v.timestamp_millis()), old.available_at, new.available_at);
     cmp_opt_old_and_new_return(&mut book_edits.language, &mut book_model.language, old.language, new.language);
     cmp_old_and_new_return(&mut book_edits.rating, &mut book_model.rating, old.rating, new.rating);
     cmp_old_and_new_return(&mut book_edits.is_public, &mut book_model.is_public, old.is_public, new.is_public);

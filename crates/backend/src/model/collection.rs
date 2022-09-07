@@ -5,7 +5,7 @@ use tokio_postgres::types::ToSql;
 
 use crate::Result;
 
-use super::{AdvRow, TableRow, BookModel, CollectionItemModel, row_to_usize};
+use super::{AdvRow, TableRow, BookModel, CollectionItemModel, row_int_to_usize, row_bigint_to_usize};
 
 pub struct NewCollectionModel {
     pub name: String,
@@ -216,7 +216,7 @@ impl CollectionModel {
 
         let sql = Self::gen_search_query(query, book_id, &mut parameters).replace("SELECT *", "SELECT COUNT(*)");
 
-        row_to_usize(db.query_one(&sql, &super::boxed_to_dyn_vec(&parameters)).await?)
+        row_bigint_to_usize(db.query_one(&sql, &super::boxed_to_dyn_vec(&parameters)).await?)
     }
 }
 
@@ -237,7 +237,7 @@ impl NewCollectionModel {
         ).await?;
 
         Ok(CollectionModel {
-            id: CollectionId::from(row_to_usize(row)?),
+            id: CollectionId::from(row_int_to_usize(row)?),
 
             name: self.name,
             description: self.description,

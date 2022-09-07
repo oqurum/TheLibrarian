@@ -1,6 +1,6 @@
 use actix_web::{get, web, HttpResponse, post, HttpRequest};
 
-use chrono::Utc;
+use chrono::{Utc, TimeZone};
 use common::api::WrappingResponse;
 use common::{Either, ThumbnailStore, BookId, PersonId};
 use common_local::item::edit::{BookEdit, NewOrCachedImage};
@@ -151,7 +151,7 @@ pub async fn add_new_book(
                 isbn_10: book.isbn_10,
                 isbn_13: book.isbn_13,
                 is_public: book.is_public.unwrap_or_default(),
-                available_at: book.available_at,
+                available_at: book.available_at.map(|v| Utc.timestamp_millis(v)),
                 language: book.language,
                 edition_count: 0,
                 created_at: Utc::now(),

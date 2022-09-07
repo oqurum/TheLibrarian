@@ -14,8 +14,8 @@ pub struct BookPersonModel {
 impl TableRow for BookPersonModel {
     fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
-            book_id: BookId::from(row.next::<i64>()? as usize),
-            person_id: PersonId::from(row.next::<i64>()? as usize),
+            book_id: BookId::from(row.next::<i32>()? as usize),
+            person_id: PersonId::from(row.next::<i32>()? as usize),
         })
     }
 }
@@ -53,7 +53,7 @@ impl BookPersonModel {
     pub async fn remove_by_book_id(id: BookId, db: &tokio_postgres::Client) -> Result<()> {
         db.execute(
             "DELETE FROM book_person WHERE book_id = $1",
-            params![ *id as i64 ]
+            params![ *id as i32 ]
         ).await?;
 
         Ok(())
@@ -61,7 +61,7 @@ impl BookPersonModel {
 
     pub async fn remove_by_person_id(id: PersonId, db: &tokio_postgres::Client) -> Result<()> {
         db.execute("DELETE FROM book_person WHERE person_id = $1",
-            params![ *id as i64 ]
+            params![ *id as i32 ]
         ).await?;
 
         Ok(())

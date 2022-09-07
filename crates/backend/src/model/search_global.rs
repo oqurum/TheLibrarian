@@ -9,7 +9,7 @@ use tokio_postgres::{types::{to_sql_checked, ToSql, FromSql, IsNull, Type}, Clie
 
 use crate::Result;
 
-use super::{TableRow, AdvRow, row_to_usize};
+use super::{TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize};
 
 
 #[derive(Debug)]
@@ -86,7 +86,7 @@ impl NewSearchGroupModel {
         ).await?;
 
         Ok(SearchGroupModel {
-            id: SearchGroupId::from(row_to_usize(row)?),
+            id: SearchGroupId::from(row_int_to_usize(row)?),
 
             query: self.query,
             calls: self.calls,
@@ -145,7 +145,7 @@ impl SearchGroupModel {
     }
 
     pub async fn get_count(db: &Client) -> Result<usize> {
-        row_to_usize(db.query_one("SELECT COUNT(*) FROM search_group", &[]).await?)
+        row_bigint_to_usize(db.query_one("SELECT COUNT(*) FROM search_group", &[]).await?)
     }
 
     pub async fn find_all(offset: usize, limit: usize, db: &Client) -> Result<Vec<Self>> {

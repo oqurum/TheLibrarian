@@ -6,7 +6,7 @@ use tokio_postgres::types::ToSql;
 
 use crate::Result;
 
-use super::{TableRow, AdvRow, row_to_usize};
+use super::{TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize};
 
 
 #[derive(Debug, Clone, Serialize)]
@@ -29,7 +29,8 @@ pub struct BookModel {
     pub is_public: bool,
     pub edition_count: usize,
 
-    pub available_at: Option<String>,
+    #[serde(serialize_with = "serialize_datetime_opt")]
+    pub available_at: Option<DateTime<Utc>>,
     pub language: Option<u16>,
 
     #[serde(serialize_with = "serialize_datetime")]
@@ -44,7 +45,7 @@ pub struct BookModel {
 impl TableRow for BookModel {
     fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
-            id: BookId::from(row.next::<i64>()? as usize),
+            id: BookId::from(row.next::<i32>()? as usize),
             title: row.next()?,
             clean_title: row.next()?,
             description: row.next()?,
@@ -57,8 +58,8 @@ impl TableRow for BookModel {
             isbn_13: row.next()?,
             is_public: row.next()?,
             edition_count: row.next::<i64>()? as usize,
-            available_at: row.next()?,
-            language: row.next::<Option<i32>>()?.map(|v| v as u16),
+            available_at: row.next_opt()?,
+            language: row.next::<Option<i16>>()?.map(|v| v as u16),
             created_at: row.next()?,
             updated_at: row.next()?,
             deleted_at: row.next_opt()?,
@@ -141,7 +142,7 @@ impl Into<PublicBook> for BookModel {
 
 impl BookModel {
     pub async fn get_book_count(db: &tokio_postgres::Client) -> Result<usize> {
-        row_to_usize(db.query_one(r#"SELECT COUNT(*) FROM book"#, &[]).await?)
+        row_bigint_to_usize(db.query_one(r#"SELECT COUNT(*) FROM book"#, &[]).await?)
     }
 
     pub async fn add_or_update_book(&mut self, db: &tokio_postgres::Client) -> Result<()> {
@@ -176,7 +177,7 @@ impl BookModel {
                 ]
             ).await?;
 
-            self.id = BookId::from(row_to_usize(row)?);
+            self.id = BookId::from(row_int_to_usize(row)?);
 
             Ok(())
         }
@@ -194,7 +195,7 @@ impl BookModel {
                 updated_at = $13, deleted_at = $14
             WHERE id = $1"#,
             params![
-                *self.id as i64,
+                *self.id as i32,
                 &self.title, &self.clean_title, &self.description, &self.rating, self.thumb_path.as_value(),
                 &self.cached.as_string_optional(), self.is_public,
                 &self.isbn_10, &self.isbn_13,
@@ -209,12 +210,12 @@ impl BookModel {
     pub async fn get_by_id(id: BookId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         db.query_opt(
             "SELECT * FROM book WHERE id = $1",
-            params![ *id as i64 ],
+            params![ *id as i32 ],
         ).await?.map(Self::from_row).transpose()
     }
 
     pub async fn exists_by_isbn(value: &str, db: &tokio_postgres::Client) -> Result<bool> {
-        Ok(row_to_usize(db.query_one(
+        Ok(row_bigint_to_usize(db.query_one(
             "SELECT EXISTS(SELECT id FROM book WHERE isbn_10 = $1 OR isbn_13 = $1)",
             params![ value ],
         ).await?)? != 0)
@@ -223,7 +224,7 @@ impl BookModel {
     pub async fn remove_by_id(id: BookId, db: &tokio_postgres::Client) -> Result<u64> {
         Ok(db.execute(
             "DELETE FROM book WHERE id = $1",
-            params![ *id as i64 ]
+            params![ *id as i32 ]
         ).await?)
     }
 
@@ -298,7 +299,7 @@ impl BookModel {
 
         if let Some(pid) = person_id {
             sql_queries.push("id IN (SELECT book_id FROM book_person WHERE person_id = ??)".to_string());
-            parameters.push(Box::new(*pid as i64) as Box<dyn ToSql + Sync>);
+            parameters.push(Box::new(*pid as i32) as Box<dyn ToSql + Sync>);
         }
 
         let sql_query = sql_queries.into_iter()
@@ -359,6 +360,6 @@ impl BookModel {
         };
 
 
-        row_to_usize(db.query_one(&sql, &super::boxed_to_dyn_vec(&parameters)).await?)
+        row_bigint_to_usize(db.query_one(&sql, &super::boxed_to_dyn_vec(&parameters)).await?)
     }
 }

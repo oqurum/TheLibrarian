@@ -7,7 +7,7 @@ use tokio_postgres::Client;
 
 use crate::Result;
 
-use super::{TableRow, AdvRow, row_to_usize};
+use super::{TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize};
 
 lazy_static! {
     pub static ref SYSTEM_MEMBER: MemberModel = MemberModel {
@@ -53,7 +53,7 @@ pub struct MemberModel {
 impl TableRow for MemberModel {
     fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
-            id: MemberId::from(row.next::<i64>()? as usize),
+            id: MemberId::from(row.next::<i32>()? as usize),
             name: row.next()?,
             email: row.next()?,
             password: row.next()?,
@@ -90,7 +90,7 @@ impl NewMemberModel {
         ).await?;
 
         Ok(MemberModel {
-            id: MemberId::from(row_to_usize(row)?),
+            id: MemberId::from(row_int_to_usize(row)?),
             name: self.name,
             email: self.email,
             password: self.password,
@@ -115,13 +115,13 @@ impl MemberModel {
         } else {
             db.query_opt(
                 "SELECT * FROM member WHERE id = $1",
-                params![ *id as i64 ],
+                params![ *id as i32 ],
             ).await?.map(Self::from_row).transpose()
         }
     }
 
     pub async fn get_count(db: &Client) -> Result<usize> {
-        row_to_usize(db.query_one("SELECT COUNT(*) FROM member", &[]).await?)
+        row_bigint_to_usize(db.query_one("SELECT COUNT(*) FROM member", &[]).await?)
     }
 
     pub async fn find_all(offset: usize, limit: usize, db: &Client) -> Result<Vec<Self>> {

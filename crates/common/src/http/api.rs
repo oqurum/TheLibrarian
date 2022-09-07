@@ -382,7 +382,7 @@ pub struct MetadataBookItem {
     pub isbn_10: Option<String>,
     pub isbn_13: Option<String>,
 
-    pub available_at: Option<String>,
+    pub available_at: Option<i64>,
     pub language: Option<u16>
 }
 
