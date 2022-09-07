@@ -2,6 +2,10 @@
 This repo will ultimately be for the main metadata website we use for the client application. It will be hosted on the official website. I hope this can be one day used to aggregate the other metadata agents into here.
 
 
+# IMPORTANT
+**Recently ported from sqlite to postgres. Will probably contain invalid SQL queries**
+
+
 You can view the public website below:
 
 **[https://oqurum.io](https://oqurum.io)**
@@ -13,7 +17,6 @@ You can also log into it:
 
 Todo:
  - **#1 Priority: Implement Full-Text Search**
- - Transfer OFF of sqlite. Used b/c it was easy to setup.
  - Implement database migrations
  - Member management
  - Allow users to upload drafts of their own to this server if they're linked.
