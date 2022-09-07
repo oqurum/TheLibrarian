@@ -320,8 +320,8 @@ pub struct DisplayMetaItem {
 
 impl DisplayMetaItem {
     pub fn get_thumb_url(&self) -> String {
-        if self.thumb_path != ThumbnailStore::None {
-            format!("/api/v1/book/{}/thumbnail", self.id)
+        if let ThumbnailStore::Path(path) = &self.thumb_path {
+            format!("/api/v1/image/{path}")
         } else {
             String::from("/images/missingthumbnail.jpg")
         }
