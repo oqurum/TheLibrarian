@@ -127,6 +127,14 @@ pub struct GetBookTagResponse {
 
 // Images
 
+
+#[derive(Serialize, Deserialize)]
+pub struct GetPostersQuery {
+    #[serde(default)]
+    pub search_metadata: bool,
+}
+
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetPostersResponse {
     pub items: Vec<Poster>

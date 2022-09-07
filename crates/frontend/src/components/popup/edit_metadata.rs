@@ -74,7 +74,7 @@ impl Component for PopupEditMetadata {
 
                 ctx.link()
                 .send_future(async move {
-                    Msg::RetrievePostersResponse(request::get_posters_for_meta(ImageIdType::new_book(book_id)).await)
+                    Msg::RetrievePostersResponse(request::get_posters_for_meta(ImageIdType::new_book(book_id), None).await)
                 });
 
                 return false;
@@ -122,7 +122,7 @@ impl PopupEditMetadata {
 
                     ctx.link()
                     .send_future(async move {
-                        Msg::RetrievePostersResponse(request::get_posters_for_meta(ImageIdType::new_book(book_id)).await)
+                        Msg::RetrievePostersResponse(request::get_posters_for_meta(ImageIdType::new_book(book_id), None).await)
                     });
                 }
 

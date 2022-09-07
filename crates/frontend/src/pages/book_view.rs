@@ -7,7 +7,7 @@ use common::{
     },
     Either, LANGUAGES, ImageIdType, BookId, TagId, api::WrappingResponse, util::upper_case_first_char
 };
-use common_local::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse}, TagType, item::edit::BookEdit, TagFE, SearchType};
+use common_local::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse, GetPostersQuery}, TagType, item::edit::BookEdit, TagFE, SearchType};
 
 use js_sys::Date;
 use wasm_bindgen::{JsCast, JsValue, UnwrapThrowExt};
@@ -33,6 +33,7 @@ pub enum Msg {
     AllTagsResponse(WrappingResponse<GetTagsResponse>),
 
     ReloadPosters,
+    TogglePosterMetaSearch,
 
     // Events
     ToggleEdit,
@@ -62,6 +63,8 @@ pub struct BookView {
 
     // Multiselect Values
     cached_tags: Vec<CachedTag>,
+
+    search_poster_metadata: bool,
 }
 
 impl Component for BookView {
@@ -81,6 +84,8 @@ impl Component for BookView {
             is_editing: false,
 
             cached_tags: Vec::new(),
+
+            search_poster_metadata: false,
         }
     }
 
@@ -170,12 +175,22 @@ impl Component for BookView {
             Msg::ReloadPosters => if let Some(curr_book) = self.media.as_ref().and_then(|v| v.as_ok().ok()) {
                 let book_id = curr_book.metadata.id;
 
+                let search_metadata = self.search_poster_metadata;
+
                 ctx.link()
                 .send_future(async move {
-                    Msg::RetrievePosters(request::get_posters_for_meta(ImageIdType::new_book(book_id)).await)
+                    Msg::RetrievePosters(request::get_posters_for_meta(
+                        ImageIdType::new_book(book_id),
+                        Some(GetPostersQuery { search_metadata })
+                    ).await)
                 });
 
                 return false;
+            }
+
+            Msg::TogglePosterMetaSearch => {
+                self.search_poster_metadata = !self.search_poster_metadata;
+                ctx.link().send_message(Msg::ReloadPosters);
             }
 
             // Edits
@@ -528,6 +543,22 @@ impl BookView {
                                                 >
                                                     <span class="material-icons">{ "add" }</span>
                                                 </UploadModule>
+
+                                                {
+                                                    if !self.search_poster_metadata {
+                                                        html! {
+                                                            <div
+                                                                class="poster new-container"
+                                                                title="Search Posters By Name"
+                                                                onclick={ ctx.link().callback(|_| Msg::TogglePosterMetaSearch) }
+                                                            >
+                                                                <span><b>{ "Search For" }</b></span>
+                                                            </div>
+                                                        }
+                                                    } else {
+                                                        html! {}
+                                                    }
+                                                }
 
                                                 {
                                                     for resp.items.iter().map(move |poster| {

@@ -172,10 +172,10 @@ pub async fn delete_book_tag(book_id: BookId, tag_id: TagId) -> WrappingResponse
 
 // Image
 
-pub async fn get_posters_for_meta(img_id_type: ImageIdType) -> WrappingResponse<GetPostersResponse> {
+pub async fn get_posters_for_meta(img_id_type: ImageIdType, query: Option<GetPostersQuery>) -> WrappingResponse<GetPostersResponse> {
     fetch(
         "GET",
-        &format!("/api/v1/posters/{}", img_id_type),
+        &format!("/api/v1/posters/{}?{}", img_id_type, query.and_then(|v| serde_qs::to_string(&v).ok()).unwrap_or_default()),
         Option::<&()>::None
     ).await.unwrap_or_else(def)
 }

@@ -1,6 +1,7 @@
 use std::io::{Write, Cursor};
 
 use actix_web::{get, post, web, HttpResponse, HttpRequest};
+use chrono::Utc;
 use common::{Either, ImageIdType, ImageType, BookId, PersonId, api::WrappingResponse};
 use futures::TryStreamExt;
 use common_local::{Poster, api};
@@ -18,15 +19,56 @@ async fn get_local_image(id: web::Path<String>, req: HttpRequest) -> WebResult<H
 
 #[get("/posters/{id}")]
 async fn get_poster_list(
+    query: web::Query<api::GetPostersQuery>,
     image: web::Path<ImageIdType>,
-    db: web::Data<tokio_postgres::Client>
+    member: MemberCookie,
+    db: web::Data<tokio_postgres::Client>,
 ) -> WebResult<JsonResponse<api::GetPostersResponse>> {
+    let member = member.fetch_or_error(&db).await?;
+
+    let mut items = Vec::new();
+
     let current_thumb = match image.type_of {
-        ImageType::Book => BookModel::get_by_id(BookId::from(image.id), &db).await?.unwrap().thumb_path,
+        ImageType::Book => {
+            let book = BookModel::get_by_id(BookId::from(image.id), &db).await?.unwrap();
+
+            if query.search_metadata {
+                if !member.permissions.has_editing_perms() {
+                    return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
+                }
+
+                let search = crate::metadata::search_all_agents(
+                    &format!(
+                        "{} {}",
+                        book.title.as_deref().or(book.title.as_deref()).unwrap_or_default(),
+                        book.cached.author.as_deref().unwrap_or_default(),
+                    ),
+                    common_local::SearchFor::Book(common_local::SearchForBooksBy::Query),
+                    &db
+                ).await?;
+
+                for item in search.0.into_values().flatten() {
+                    if let crate::metadata::SearchItem::Book(item) = item {
+                        for path in item.thumb_locations.into_iter().filter_map(|v| v.into_url_value()) {
+                            items.push(Poster {
+                                id: None,
+
+                                selected: false,
+                                path,
+
+                                created_at: Utc::now(),
+                            });
+                        }
+                    }
+                }
+            }
+
+            book.thumb_path
+        },
         ImageType::Person => PersonModel::get_by_id(PersonId::from(image.id), &db).await?.unwrap().thumb_url,
     };
 
-    let items = ImageLinkModel::get_by_linked_id(image.id, image.type_of, &db).await?
+    let mut stored = ImageLinkModel::get_by_linked_id(image.id, image.type_of, &db).await?
         .into_iter()
         .map(|poster| Poster {
             id: Some(poster.image_id),
@@ -37,10 +79,12 @@ async fn get_poster_list(
 
             created_at: poster.created_at,
         })
-        .collect();
+        .collect::<Vec<_>>();
+
+    stored.append(&mut items);
 
     Ok(web::Json(WrappingResponse::okay(api::GetPostersResponse {
-        items
+        items: stored
     })))
 }
 

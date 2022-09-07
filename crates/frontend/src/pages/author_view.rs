@@ -89,7 +89,7 @@ impl Component for AuthorView {
 
                 ctx.link()
                 .send_future(async move {
-                    Msg::RetrievePosters(request::get_posters_for_meta(person_id).await)
+                    Msg::RetrievePosters(request::get_posters_for_meta(person_id, None).await)
                 });
 
                 return false;
@@ -105,7 +105,7 @@ impl Component for AuthorView {
 
                         ctx.link()
                         .send_future(async move {
-                            Msg::RetrievePosters(request::get_posters_for_meta(person_id).await)
+                            Msg::RetrievePosters(request::get_posters_for_meta(person_id, None).await)
                         });
                     }
                 } else {
