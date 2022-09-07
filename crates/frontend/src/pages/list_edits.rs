@@ -383,7 +383,7 @@ impl EditListPage {
                 { Self::display_row("ISBN 10", &new_data.isbn_10, &old_data.isbn_10, current.and_then(|v| v.isbn_10.as_ref()), updated.isbn_10, status, operation) }
                 { Self::display_row("ISBN 13", &new_data.isbn_13, &old_data.isbn_13, current.and_then(|v| v.isbn_13.as_ref()), updated.isbn_13, status, operation) }
                 { Self::display_row("Is Public", &new_data.is_public, &old_data.is_public, current.map(|v| &v.is_public), updated.is_public, status, operation) }
-                { Self::display_row("Available At", &new_data.available_at, &old_data.available_at, current.and_then(|v| v.available_at.map(|v| v.timestamp_millis())).as_ref(), updated.available_at, status, operation) }
+                { Self::display_row("Available At", &new_data.available_at, &old_data.available_at, current.and_then(|v| v.available_at.map(|v| v.and_hms(0, 0, 0).timestamp())).as_ref(), updated.available_at, status, operation) }
                 { Self::display_row("Language", &new_data.language, &old_data.language, current.and_then(|v| v.language.as_ref()), updated.language, status, operation) }
                 // { Self::display_row("Publisher", &new_data.publisher, &old_data.publisher, current.and_then(|v| v.publisher.as_ref())) }
 

@@ -1,9 +1,9 @@
 use std::{collections::HashMap, ops::{Deref, DerefMut}, fmt::{self, Debug}, borrow::Cow};
 
 use async_trait::async_trait;
-use common::{Source, ThumbnailStore, PersonId, BookId, util::{serialize_datetime_opt, deserialize_datetime_opt}};
-use common_local::{SearchFor, MetadataItemCached, api::MetadataBookItem};
-use chrono::{Utc, DateTime};
+use common::{Source, ThumbnailStore, PersonId, BookId};
+use common_local::{SearchFor, MetadataItemCached, api::MetadataBookItem, util::{serialize_naivedate_opt, deserialize_naivedate_opt}};
+use chrono::{Utc, NaiveDate};
 use serde::{Serialize, Deserialize};
 use tokio_postgres::Client;
 
@@ -290,8 +290,8 @@ pub struct FoundItem {
     pub isbn_10: Option<String>,
     pub isbn_13: Option<String>,
 
-    #[serde(serialize_with = "serialize_datetime_opt", deserialize_with = "deserialize_datetime_opt")]
-    pub available_at: Option<DateTime<Utc>>,
+    #[serde(serialize_with = "serialize_naivedate_opt", deserialize_with = "deserialize_naivedate_opt")]
+    pub available_at: Option<NaiveDate>,
     pub language: Option<u16>
 }
 
@@ -331,7 +331,7 @@ impl From<FoundItem> for MetadataBookItem {
             cached: val.cached,
             isbn_10: val.isbn_10,
             isbn_13: val.isbn_13,
-            available_at: val.available_at.map(|v| v.timestamp_millis()),
+            available_at: val.available_at,
             language: val.language,
         }
     }

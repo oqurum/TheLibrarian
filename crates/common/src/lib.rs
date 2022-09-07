@@ -306,8 +306,8 @@ pub struct DisplayMetaItem {
     pub is_public: bool,
     pub edition_count: usize,
 
-    #[serde(serialize_with = "serialize_datetime_opt", deserialize_with = "deserialize_datetime_opt")]
-    pub available_at: Option<DateTime<Utc>>,
+    #[serde(serialize_with = "serialize_naivedate_opt", deserialize_with = "deserialize_naivedate_opt")]
+    pub available_at: Option<NaiveDate>,
     pub language: Option<u16>,
 
     #[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]
@@ -363,7 +363,7 @@ impl From<DisplayMetaItem> for BookEdit {
             rating: Some(value.rating),
             isbn_10: value.isbn_10,
             isbn_13: value.isbn_13,
-            available_at: value.available_at.map(|v| v.timestamp_millis()),
+            available_at: value.available_at.map(|v| v.and_hms(0, 0, 0).timestamp()),
             language: value.language,
 
             .. Self::default()

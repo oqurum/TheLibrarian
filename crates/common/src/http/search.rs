@@ -1,11 +1,11 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Utc, NaiveDate};
 use common::api::QueryListResponse;
 use serde::{Serialize, Deserialize};
 
 use crate::{
     serialize_datetime, deserialize_datetime,
     serialize_datetime_opt, deserialize_datetime_opt,
-    MetadataItemCached,
+    MetadataItemCached, util::{serialize_naivedate_opt, deserialize_naivedate_opt},
 };
 
 
@@ -48,8 +48,8 @@ pub struct PublicBook {
     pub is_public: bool,
     pub edition_count: usize,
 
-    #[serde(serialize_with = "serialize_datetime_opt", deserialize_with = "deserialize_datetime_opt")]
-    pub available_at: Option<DateTime<Utc>>,
+    #[serde(serialize_with = "serialize_naivedate_opt", deserialize_with = "deserialize_naivedate_opt")]
+    pub available_at: Option<NaiveDate>,
     pub language: Option<u16>,
 
     #[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]

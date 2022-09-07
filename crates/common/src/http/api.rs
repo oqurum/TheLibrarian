@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use chrono::NaiveDate;
 use common::{TagId, BookTagId, Either, ImageId, Source, PersonId, api::QueryListResponse, ImageIdType, BookId};
 use serde::{Serialize, Deserialize};
 
@@ -11,7 +12,7 @@ use crate::{
     Result, TagFE, BookTag, TagType,
     MetadataItemCached,
     item::edit::{SharedEditModel, SharedEditVoteModel, BookEdit, NewOrCachedImage}, SharedConfig,
-    des_if_opt_str_not_empty, CollectionType, Collection,
+    des_if_opt_str_not_empty, CollectionType, Collection, util::{serialize_naivedate_opt, deserialize_naivedate_opt},
 };
 
 
@@ -382,7 +383,8 @@ pub struct MetadataBookItem {
     pub isbn_10: Option<String>,
     pub isbn_13: Option<String>,
 
-    pub available_at: Option<i64>,
+    #[serde(serialize_with = "serialize_naivedate_opt", deserialize_with = "deserialize_naivedate_opt")]
+    pub available_at: Option<NaiveDate>,
     pub language: Option<u16>
 }
 
@@ -394,7 +396,7 @@ impl From<MetadataBookItem> for BookEdit {
             rating: Some(value.rating).filter(|v|*v != 0.0),
             isbn_10: value.isbn_10,
             isbn_13: value.isbn_13,
-            available_at: value.available_at,
+            available_at: value.available_at.map(|v| v.and_hms(0, 0, 0).timestamp()),
             language: value.language,
 
             added_images: Some(value.thumbnails.into_iter().map(NewOrCachedImage::Url).collect::<Vec<_>>()).filter(|v| !v.is_empty()),

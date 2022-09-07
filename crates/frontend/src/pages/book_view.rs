@@ -376,7 +376,7 @@ impl BookView {
                                     <input class="title" type="text"
                                         placeholder="YYYY-MM-DD"
                                         onchange={Self::on_change_input(ctx.link(), ChangingType::AvailableAt)}
-                                        value={ editing.available_at.map(|v| Utc.timestamp_millis(v)).or(book_model.available_at).map(|v| v.format("%Y-%m-%d").to_string()).unwrap_or_default() }
+                                        value={ editing.available_at.map(|v| Utc.timestamp(v, 0).date_naive()).or(book_model.available_at).map(|v| v.format("%Y-%m-%d").to_string()).unwrap_or_default() }
                                     />
 
                                     <span class="sub-title">{"ISBN 10"}</span>

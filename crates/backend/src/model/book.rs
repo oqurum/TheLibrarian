@@ -1,5 +1,5 @@
-use common_local::{MetadataItemCached, DisplayMetaItem, util::{serialize_datetime, serialize_datetime_opt}, search::PublicBook};
-use chrono::{DateTime, Utc};
+use common_local::{MetadataItemCached, DisplayMetaItem, util::{serialize_datetime, serialize_datetime_opt, serialize_naivedate_opt}, search::PublicBook};
+use chrono::{DateTime, Utc, NaiveDate};
 use common::{ThumbnailStore, BookId, PersonId};
 use serde::Serialize;
 use tokio_postgres::types::ToSql;
@@ -29,8 +29,8 @@ pub struct BookModel {
     pub is_public: bool,
     pub edition_count: usize,
 
-    #[serde(serialize_with = "serialize_datetime_opt")]
-    pub available_at: Option<DateTime<Utc>>,
+    #[serde(serialize_with = "serialize_naivedate_opt")]
+    pub available_at: Option<NaiveDate>,
     pub language: Option<u16>,
 
     #[serde(serialize_with = "serialize_datetime")]

@@ -151,7 +151,7 @@ pub async fn add_new_book(
                 isbn_10: book.isbn_10,
                 isbn_13: book.isbn_13,
                 is_public: book.is_public.unwrap_or_default(),
-                available_at: book.available_at.map(|v| Utc.timestamp_millis(v)),
+                available_at: book.available_at.map(|v| Utc.timestamp(v, 0).date_naive()),
                 language: book.language,
                 edition_count: 0,
                 created_at: Utc::now(),
