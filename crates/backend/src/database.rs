@@ -160,6 +160,10 @@ pub async fn init(config: &Config) -> Result<Client> {
 
             path        TEXT NOT NULL,
 
+            width       INT NOT NULL,
+            height      INT NOT NULL,
+            ratio       REAL NOT NULL,
+
             created_at  TIMESTAMPTZ NOT NULL,
 
             UNIQUE(path)

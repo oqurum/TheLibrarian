@@ -225,12 +225,20 @@ pub async fn get_member_list(
 
 // Metadata
 
-pub async fn update_book(id: BookId, value: &BookEdit) {
-    let _: Option<String> = fetch(
+pub async fn update_book(id: BookId, value: &BookEdit) -> WrappingResponse<String> {
+    fetch(
         "POST",
         &format!("/api/v1/book/{}", id),
         Some(value)
-    ).await.ok();
+    ).await.unwrap_or_else(def)
+}
+
+pub async fn delete_book(id: BookId) -> WrappingResponse<bool> {
+    fetch(
+        "DELETE",
+        &format!("/api/v1/book/{}", id),
+        Option::<&()>::None
+    ).await.unwrap_or_else(def)
 }
 
 pub async fn get_media_view(book_id: BookId) -> WrappingResponse<MediaViewResponse> {

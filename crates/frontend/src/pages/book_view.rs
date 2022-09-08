@@ -41,6 +41,8 @@ pub enum Msg {
     SaveEdits,
     UpdateEditing(ChangingType, String),
 
+    OnDelete(WrappingResponse<bool>),
+
     ShowPopup(DisplayOverlay),
     ClosePopup,
 
@@ -251,6 +253,21 @@ impl Component for BookView {
                     ChangingType::Publicity => updating.is_public = value.and_then(|v| v.parse().ok()),
                 }
             }
+
+
+            Msg::OnDelete(resp) => {
+                match resp {
+                    WrappingResponse::Resp(okay) => {
+                        if okay {
+                            // TODO: Deletion View.
+                            self.media = Some(WrappingResponse::error("Deleted..."));
+                        }
+                    }
+
+                    WrappingResponse::Error(e) => self.media = Some(WrappingResponse::Error(e)),
+                }
+            }
+
 
             // Popup
             Msg::ClosePopup => {
@@ -666,7 +683,9 @@ impl BookView {
                                                 <div class="menu-item" yew-close-popup="" onclick={
                                                     Self::on_click_prevdef_stopprop(ctx.link(), Msg::ShowPopup(DisplayOverlay::SearchForBook { input_value: None }))
                                                 }>{ "Search New Metadata" }</div>
-                                                <div class="menu-item" yew-close-popup="">{ "Delete" }</div>
+                                                <div class="menu-item" yew-close-popup="" onclick={ ctx.link().callback_future(move |_| async move {
+                                                    Msg::OnDelete(request::delete_book(book_id).await)
+                                                }) }>{ "Delete" }</div>
                                             </div>
                                         </Popup>
                                     }

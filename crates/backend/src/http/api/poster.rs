@@ -68,7 +68,7 @@ async fn get_poster_list(
         ImageType::Person => PersonModel::get_by_id(PersonId::from(image.id), &db).await?.unwrap().thumb_url,
     };
 
-    let mut stored = ImageLinkModel::get_by_linked_id(image.id, image.type_of, &db).await?
+    let mut stored = ImageLinkModel::find_by_linked_id_w_image(image.id, image.type_of, &db).await?
         .into_iter()
         .map(|poster| Poster {
             id: Some(poster.image_id),

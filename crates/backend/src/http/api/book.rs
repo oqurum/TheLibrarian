@@ -1,8 +1,8 @@
-use actix_web::{get, web, HttpResponse, post, HttpRequest};
+use actix_web::{get, web, HttpResponse, post, HttpRequest, delete};
 
 use chrono::{Utc, TimeZone};
 use common::api::WrappingResponse;
-use common::{Either, ThumbnailStore, BookId, PersonId};
+use common::{Either, ThumbnailStore, BookId, PersonId, ImageType};
 use common_local::item::edit::{BookEdit, NewOrCachedImage};
 use common_local::{api, DisplayItem, MetadataItemCached, DisplayMetaItem};
 use tokio_postgres::Client;
@@ -286,6 +286,39 @@ pub async fn update_book_id(
     }
 
     Ok(web::Json(WrappingResponse::okay("success")))
+}
+
+
+#[delete("/book/{id}")]
+pub async fn delete_book_id(
+    book_id: web::Path<BookId>,
+    member: MemberCookie,
+    db: web::Data<Client>,
+) -> WebResult<JsonResponse<bool>> {
+    let member = member.fetch(&db).await?.unwrap();
+
+    if !member.permissions.has_editing_perms() {
+        return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
+    }
+
+    // TODO: Utilize edit
+
+    let image_links = ImageLinkModel::find_by_link_id(**book_id, ImageType::Book, &db).await?;
+
+    let amount = BookModel::remove_by_id(*book_id, &db).await?;
+
+    // Remove remaining images
+    for ImageLinkModel { image_id, .. } in image_links {
+        // Check how many links there are for the image
+        let count = ImageLinkModel::count_by_image_id(image_id, &db).await?;
+
+        if count == 0 {
+            // If we have no more links then remove it.
+            UploadedImageModel::remove_by_id(image_id, &db).await?;
+        }
+    }
+
+    Ok(web::Json(WrappingResponse::okay(amount != 0)))
 }
 
 

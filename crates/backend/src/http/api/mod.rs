@@ -28,6 +28,7 @@ pub fn api_route() -> Scope<
         .service(book::get_book_info)
         .service(book::update_book_id)
         .service(book::load_book_thumbnail)
+        .service(book::delete_book_id)
 
         // Collection
         .service(collection::get_collection_list)
