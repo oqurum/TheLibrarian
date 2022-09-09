@@ -12,7 +12,7 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Serialize, Deserialize};
 
-use crate::{metadata::{FoundItem, FoundImageLocation}};
+use crate::{metadata::{BookMetadata, FoundImageLocation}};
 use super::{Metadata, SearchItem, MetadataReturned, SearchFor};
 
 lazy_static! {
@@ -89,7 +89,7 @@ impl Metadata for GoogleBooksMetadata {
                             item.id
                         ));
 
-                        books.push(SearchItem::Book(FoundItem {
+                        books.push(SearchItem::Book(BookMetadata {
                             source: self.prefix_text(&item.id).try_into()?,
                             title: item.volume_info.title.clone(),
                             description: item.volume_info.description.as_deref().map(|text| REMOVE_HTML_TAGS.replace_all(text, "").to_string()),
@@ -146,7 +146,7 @@ impl GoogleBooksMetadata {
         Ok(Some(MetadataReturned {
             authors: None,
             publisher: None,
-            meta: FoundItem {
+            meta: BookMetadata {
                 source: self.prefix_text(value.id).try_into()?,
                 title: value.volume_info.title.clone(),
                 description: value.volume_info.description.as_deref().map(|text| REMOVE_HTML_TAGS.replace_all(text, "").to_string()),

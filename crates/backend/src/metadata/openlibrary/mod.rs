@@ -7,7 +7,7 @@ use serde::{Serialize, Deserialize};
 
 use self::book::BookSearchType;
 
-use super::{Metadata, SearchItem, MetadataReturned, SearchFor, AuthorInfo, FoundItem, FoundImageLocation};
+use super::{Metadata, SearchItem, MetadataReturned, SearchFor, AuthorMetadata, BookMetadata, FoundImageLocation};
 
 pub mod book;
 pub mod author;
@@ -56,7 +56,7 @@ impl Metadata for OpenLibraryMetadata {
     }
 
 
-    async fn get_person_by_source_id(&mut self, value: &str, db: &tokio_postgres::Client) -> Result<Option<AuthorInfo>> {
+    async fn get_person_by_source_id(&mut self, value: &str, db: &tokio_postgres::Client) -> Result<Option<AuthorMetadata>> {
         let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Person, value, self.get_prefix(), db).await?;
 
         if let Some(model) = existing_model.should_use_cached()? {
@@ -65,7 +65,7 @@ impl Metadata for OpenLibraryMetadata {
 
         let resp = match author::get_author_from_url(value).await? {
             Some(author) => {
-                Some(AuthorInfo {
+                Some(AuthorMetadata {
                     source: self.prefix_text(value).try_into()?,
                     name: author.name.clone(),
                     other_names: author.alternate_names,
@@ -106,7 +106,7 @@ impl Metadata for OpenLibraryMetadata {
                     let mut authors = Vec::new();
 
                     for item in found.items {
-                        authors.push(SearchItem::Author(AuthorInfo {
+                        authors.push(SearchItem::Author(AuthorMetadata {
                             source: self.prefix_text(item.key.as_deref().unwrap()).try_into()?,
                             cover_image_url: Some(FoundImageLocation::Url(self::CoverId::Olid(item.key.unwrap()).get_author_cover_url())),
                             name: item.name.unwrap(),
@@ -150,7 +150,7 @@ impl Metadata for OpenLibraryMetadata {
                     let mut books = Vec::new();
 
                     for item in found.items {
-                        books.push(SearchItem::Book(FoundItem { // TODO: Move .replace
+                        books.push(SearchItem::Book(BookMetadata { // TODO: Move .replace
                             source: format!("{}:{}", self.get_prefix(), &item.key.replace("/works/", "").replace("/books/", "")).try_into()?,
                             title: item.title.clone(),
                             description: None,
@@ -241,7 +241,7 @@ impl OpenLibraryMetadata {
 
             match author::get_author_from_url(&auth_id).await {
                 Ok(Some(author)) => {
-                    authors.push(AuthorInfo {
+                    authors.push(AuthorMetadata {
                         source: self.prefix_text(auth_id).try_into()?,
                         name: author.name.clone(),
                         other_names: author.alternate_names,
@@ -270,7 +270,7 @@ impl OpenLibraryMetadata {
             authors: Some(authors).filter(|v| !v.is_empty()),
             publisher: book_info.publishers.and_then(|v| v.first().cloned()),
 
-            meta: FoundItem {
+            meta: BookMetadata {
                 source: self.prefix_text(source_id).try_into()?,
                 title: Some(book_info.title.clone()),
                 description: book_info.description.as_ref().map(|v| v.content().to_owned()),

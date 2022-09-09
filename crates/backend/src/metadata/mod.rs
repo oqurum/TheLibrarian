@@ -32,7 +32,7 @@ pub trait Metadata {
     // Person
 
     #[allow(unused_variables)]
-    async fn get_person_by_source_id(&mut self, value: &str, db: &Client) -> Result<Option<AuthorInfo>> {
+    async fn get_person_by_source_id(&mut self, value: &str, db: &Client) -> Result<Option<AuthorMetadata>> {
         Ok(None)
     }
 
@@ -97,7 +97,7 @@ pub async fn search_all_agents(search: &str, search_for: SearchFor, db: &Client)
 }
 
 /// Searches all agents except for local.
-pub async fn get_person_by_source(source: &Source, db: &Client) -> Result<Option<AuthorInfo>> {
+pub async fn get_person_by_source(source: &Source, db: &Client) -> Result<Option<AuthorMetadata>> {
     match source.agent.deref().deref() {
         v if v == OpenLibraryMetadata.get_prefix() => OpenLibraryMetadata.get_person_by_source_id(&source.value, db).await,
         v if v == GoogleBooksMetadata.get_prefix() => GoogleBooksMetadata.get_person_by_source_id(&source.value, db).await,
@@ -147,26 +147,26 @@ impl DerefMut for SearchResults {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SearchItem {
-    Author(AuthorInfo),
-    Book(FoundItem)
+    Author(AuthorMetadata),
+    Book(BookMetadata)
 }
 
 impl SearchItem {
-    pub fn into_author(self) -> Option<AuthorInfo> {
+    pub fn into_author(self) -> Option<AuthorMetadata> {
         match self {
             SearchItem::Author(v) => Some(v),
             _ => None,
         }
     }
 
-    pub fn into_book(self) -> Option<FoundItem> {
+    pub fn into_book(self) -> Option<BookMetadata> {
         match self {
             SearchItem::Book(v) => Some(v),
             _ => None,
         }
     }
 
-    pub fn as_book(&self) -> Option<&FoundItem> {
+    pub fn as_book(&self) -> Option<&BookMetadata> {
         match self {
             SearchItem::Book(v) => Some(v),
             _ => None,
@@ -176,7 +176,7 @@ impl SearchItem {
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AuthorInfo {
+pub struct AuthorMetadata {
     pub source: Source,
 
     pub cover_image_url: Option<FoundImageLocation>,
@@ -193,11 +193,11 @@ pub struct AuthorInfo {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MetadataReturned {
     // Person, Alt Names
-    pub authors: Option<Vec<AuthorInfo>>,
+    pub authors: Option<Vec<AuthorMetadata>>,
     pub publisher: Option<String>,
     // TODO: Add More.
 
-    pub meta: FoundItem
+    pub meta: BookMetadata
 }
 
 impl MetadataReturned {
@@ -272,7 +272,7 @@ impl MetadataReturned {
 
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FoundItem {
+pub struct BookMetadata {
     pub source: Source,
     pub title: Option<String>,
     pub description: Option<String>,
@@ -291,8 +291,8 @@ pub struct FoundItem {
     pub language: Option<u16>
 }
 
-impl From<FoundItem> for BookModel {
-    fn from(val: FoundItem) -> Self {
+impl From<BookMetadata> for BookModel {
+    fn from(val: BookMetadata) -> Self {
         BookModel {
             id: BookId::none(),
             title: val.title.clone(),
@@ -316,8 +316,8 @@ impl From<FoundItem> for BookModel {
     }
 }
 
-impl From<FoundItem> for MetadataBookItem {
-    fn from(val: FoundItem) -> Self {
+impl From<BookMetadata> for MetadataBookItem {
+    fn from(val: BookMetadata) -> Self {
         MetadataBookItem {
             source: val.source,
             title: val.title,

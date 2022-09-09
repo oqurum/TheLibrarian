@@ -6,7 +6,7 @@ use num_enum::{FromPrimitive, IntoPrimitive};
 use serde::{Serialize, Deserialize};
 use tokio_postgres::Client;
 
-use crate::{Result, metadata::{MetadataReturned, SearchItem, AuthorInfo}};
+use crate::{Result, metadata::{MetadataReturned, SearchItem, AuthorMetadata}};
 
 use super::{TableRow, AdvRow, row_int_to_usize};
 
@@ -182,7 +182,7 @@ impl OptMetadataSearchModel {
 pub enum DataType {
     BookSingle(Option<MetadataReturned>),
 
-    PersonSingle(Option<AuthorInfo>),
+    PersonSingle(Option<AuthorMetadata>),
 
     Search(Vec<SearchItem>),
 }
@@ -195,7 +195,7 @@ impl DataType {
         }
     }
 
-    pub fn inner_person_single(self) -> Option<AuthorInfo> {
+    pub fn inner_person_single(self) -> Option<AuthorMetadata> {
         match self {
             Self::PersonSingle(v) => v,
             _ => unreachable!(),
