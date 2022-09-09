@@ -353,8 +353,16 @@ impl Component for MediaItem {
                     <div class="title" title={ item.title.clone() }>{ item.title.clone() }</div>
                     {
                         if let Some(author) = item.cached.author.as_ref() {
-                            html! {
-                                <div class="author" title={ author.clone() }>{ author.clone() }</div>
+                            if let Some(author_id) = item.cached.author_id {
+                                html! {
+                                    <Link<Route> to={ Route::Person { id: author_id } } classes={ "author" }>
+                                        { author.clone() }
+                                    </Link<Route>>
+                                }
+                            } else {
+                                html! {
+                                    <div class="author" title={ author.clone() }>{ author.clone() }</div>
+                                }
                             }
                         } else {
                             html! {}

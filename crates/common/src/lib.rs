@@ -454,6 +454,7 @@ pub struct BasicDirectory {
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MetadataItemCached {
+    pub author_id: Option<PersonId>,
     pub author: Option<String>,
     pub publisher: Option<String>,
 }
