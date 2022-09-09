@@ -11,7 +11,7 @@ use crate::http::{MemberCookie, JsonResponse};
 use crate::metadata::MetadataReturned;
 use crate::model::{BookPersonModel, BookModel, BookTagWithTagModel, PersonModel, NewEditModel, ImageLinkModel, UploadedImageModel};
 use crate::storage::get_storage;
-use crate::{WebResult, metadata, Error};
+use crate::{WebResult, metadata, Error, InternalError};
 
 
 
@@ -21,7 +21,7 @@ pub async fn add_new_book(
     member: MemberCookie,
     db: web::Data<Client>,
 ) -> WebResult<JsonResponse<Option<DisplayMetaItem>>> {
-    let member = member.fetch(&db).await?.unwrap();
+    let member = member.fetch_or_error(&db).await?;
 
     if !member.permissions.has_editing_perms() {
         return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
@@ -116,7 +116,7 @@ pub async fn add_new_book(
                             uploaded_images.push(id);
 
                             if thumb_path.is_none() {
-                                let image = UploadedImageModel::get_by_id(id, &db).await?.unwrap();
+                                let image = UploadedImageModel::get_by_id(id, &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
 
                                 thumb_path = image.path;
                             }
@@ -241,7 +241,7 @@ pub async fn load_book_list(
 
 #[get("/book/{id}")]
 pub async fn get_book_info(book_id: web::Path<BookId>, db: web::Data<Client>) -> WebResult<JsonResponse<api::MediaViewResponse>> {
-    let book = BookModel::get_by_id(*book_id, &db).await?.unwrap();
+    let book = BookModel::get_by_id(*book_id, &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
     let people = PersonModel::get_all_by_book_id(book.id, &db).await?;
     let tags = BookTagWithTagModel::get_by_book_id(book.id, &db).await?;
 
@@ -266,7 +266,7 @@ pub async fn update_book_id(
 ) -> WebResult<JsonResponse<&'static str>> {
     let body = body.into_inner();
 
-    let member = member.fetch(&db).await?.unwrap();
+    let member = member.fetch_or_error(&db).await?;
 
     if !member.permissions.has_editing_perms() {
         return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
@@ -295,7 +295,7 @@ pub async fn delete_book_id(
     member: MemberCookie,
     db: web::Data<Client>,
 ) -> WebResult<JsonResponse<bool>> {
-    let member = member.fetch(&db).await?.unwrap();
+    let member = member.fetch_or_error(&db).await?;
 
     if !member.permissions.has_editing_perms() {
         return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));

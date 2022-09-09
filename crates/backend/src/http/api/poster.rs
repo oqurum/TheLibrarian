@@ -6,7 +6,7 @@ use common::{Either, ImageIdType, ImageType, BookId, PersonId, api::WrappingResp
 use futures::TryStreamExt;
 use common_local::{Poster, api};
 
-use crate::{WebResult, Error, store_image, model::{BookModel, ImageLinkModel, UploadedImageModel, PersonModel}, http::{JsonResponse, MemberCookie}, storage::get_storage};
+use crate::{WebResult, Error, store_image, model::{BookModel, ImageLinkModel, UploadedImageModel, PersonModel}, http::{JsonResponse, MemberCookie}, storage::get_storage, InternalError};
 
 
 
@@ -30,7 +30,7 @@ async fn get_poster_list(
 
     let current_thumb = match image.type_of {
         ImageType::Book => {
-            let book = BookModel::get_by_id(BookId::from(image.id), &db).await?.unwrap();
+            let book = BookModel::get_by_id(BookId::from(image.id), &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
 
             if query.search_metadata {
                 if !member.permissions.has_editing_perms() {
@@ -65,7 +65,7 @@ async fn get_poster_list(
 
             book.thumb_path
         },
-        ImageType::Person => PersonModel::get_by_id(PersonId::from(image.id), &db).await?.unwrap().thumb_url,
+        ImageType::Person => PersonModel::get_by_id(PersonId::from(image.id), &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?.thumb_url,
     };
 
     let mut stored = ImageLinkModel::find_by_linked_id_w_image(image.id, image.type_of, &db).await?
@@ -96,7 +96,7 @@ async fn post_change_poster(
     member: MemberCookie,
     db: web::Data<tokio_postgres::Client>
 ) -> WebResult<JsonResponse<&'static str>> {
-    let member = member.fetch(&db).await?.unwrap();
+    let member = member.fetch_or_error(&db).await?;
 
     if !member.permissions.has_editing_perms() {
         return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
@@ -104,7 +104,7 @@ async fn post_change_poster(
 
     match image.type_of {
         ImageType::Book => {
-            let mut book = BookModel::get_by_id(BookId::from(image.id), &db).await?.unwrap();
+            let mut book = BookModel::get_by_id(BookId::from(image.id), &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
 
             match body.into_inner().url_or_id {
                 Either::Left(url) => {
@@ -122,7 +122,7 @@ async fn post_change_poster(
                 }
 
                 Either::Right(id) => {
-                    let poster = UploadedImageModel::get_by_id(id, &db).await?.unwrap();
+                    let poster = UploadedImageModel::get_by_id(id, &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
 
                     if book.thumb_path == poster.path {
                         return Ok(web::Json(WrappingResponse::okay("poster already set")));
@@ -136,7 +136,7 @@ async fn post_change_poster(
         }
 
         ImageType::Person => {
-            let mut person = PersonModel::get_by_id(PersonId::from(image.id), &db).await?.unwrap();
+            let mut person = PersonModel::get_by_id(PersonId::from(image.id), &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
 
             match body.into_inner().url_or_id {
                 Either::Left(url) => {
@@ -154,7 +154,7 @@ async fn post_change_poster(
                 }
 
                 Either::Right(id) => {
-                    let poster = UploadedImageModel::get_by_id(id, &db).await?.unwrap();
+                    let poster = UploadedImageModel::get_by_id(id, &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
 
                     if person.thumb_url == poster.path {
                         return Ok(web::Json(WrappingResponse::okay("poster already set")));
@@ -179,7 +179,7 @@ async fn post_upload_poster(
     member: MemberCookie,
     db: web::Data<tokio_postgres::Client>,
 ) -> WebResult<JsonResponse<&'static str>> {
-    let member = member.fetch(&db).await?.unwrap();
+    let member = member.fetch_or_error(&db).await?;
 
     if !member.permissions.has_editing_perms() {
         return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
@@ -187,7 +187,7 @@ async fn post_upload_poster(
 
     match image.type_of {
         ImageType::Book => {
-            let book = BookModel::get_by_id(BookId::from(image.id), &db).await?.unwrap();
+            let book = BookModel::get_by_id(BookId::from(image.id), &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
 
             let mut file = Cursor::new(Vec::new());
 
@@ -202,7 +202,7 @@ async fn post_upload_poster(
         }
 
         ImageType::Person => {
-            let person = PersonModel::get_by_id(PersonId::from(image.id), &db).await?.unwrap();
+            let person = PersonModel::get_by_id(PersonId::from(image.id), &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
 
             let mut file = Cursor::new(Vec::new());
 

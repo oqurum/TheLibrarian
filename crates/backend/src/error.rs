@@ -139,6 +139,9 @@ pub enum InternalError {
     #[error("The user does not exist")]
     UserMissing,
 
+    #[error("The item does not exist")]
+    ItemMissing,
+
     #[error("Unable to convert PathBuf to String")]
     ConvertPathBufToString,
 

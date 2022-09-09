@@ -27,7 +27,7 @@ async fn update_collection_by_id(
 ) -> WebResult<JsonResponse<&'static str>> {
     let coll_id = parse_num_description_string::<CollectionId>(&coll_id).map_err(crate::Error::from)?;
 
-    let member = member.fetch(&db).await?.unwrap();
+    let member = member.fetch_or_error(&db).await?;
 
     if !member.permissions.has_editing_perms() {
         return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
@@ -94,7 +94,7 @@ async fn create_new_collection(
     member: MemberCookie,
     db: web::Data<tokio_postgres::Client>
 ) -> WebResult<JsonResponse<api::NewCollectionResponse>> {
-    let member = member.fetch(&db).await?.unwrap();
+    let member = member.fetch_or_error(&db).await?;
 
     if !member.permissions.has_editing_perms() {
         return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));

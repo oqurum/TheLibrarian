@@ -11,7 +11,7 @@ pub async fn get_external_search(
     member: MemberCookie,
     db: web::Data<tokio_postgres::Client>,
 ) -> WebResult<JsonResponse<api::ExternalSearchResponse>> {
-    let member = member.fetch(&db).await?.unwrap();
+    let member = member.fetch_or_error(&db).await?;
 
     if !member.permissions.has_editing_perms() {
         return Err(ApiErrorResponse::new("You cannot do this! No Permissions!").into());
@@ -74,7 +74,7 @@ pub async fn get_external_item(
     member: MemberCookie,
     db: web::Data<tokio_postgres::Client>,
 ) -> WebResult<JsonResponse<api::ExternalSourceItemResponse>> {
-    let member = member.fetch(&db).await?.unwrap();
+    let member = member.fetch_or_error(&db).await?;
 
     if !member.permissions.has_editing_perms() {
         return Err(ApiErrorResponse::new("You cannot do this! No Permissions!").into());

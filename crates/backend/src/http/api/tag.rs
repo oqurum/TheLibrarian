@@ -25,7 +25,7 @@ async fn create_new_tag(
     member: MemberCookie,
     db: web::Data<tokio_postgres::Client>
 ) -> WebResult<JsonResponse<api::NewTagResponse>> {
-    let member = member.fetch(&db).await?.unwrap();
+    let member = member.fetch_or_error(&db).await?;
 
     if !member.permissions.has_editing_perms() {
         return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
@@ -70,7 +70,7 @@ async fn delete_book_tag(
     member: MemberCookie,
     db: web::Data<tokio_postgres::Client>
 ) -> WebResult<JsonResponse<DeletionResponse>> {
-    let member = member.fetch(&db).await?.unwrap();
+    let member = member.fetch_or_error(&db).await?;
 
     if !member.permissions.has_editing_perms() {
         return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
@@ -103,7 +103,7 @@ async fn add_book_tag(
     body: web::Json<api::NewBookTagBody>,
     db: web::Data<tokio_postgres::Client>
 ) -> WebResult<JsonResponse<api::NewBookTagResponse>> {
-    let member = member.fetch(&db).await?.unwrap();
+    let member = member.fetch_or_error(&db).await?;
 
     if !member.permissions.has_editing_perms() {
         return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));

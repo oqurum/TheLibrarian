@@ -49,7 +49,7 @@ pub async fn load_author_list(
 // Person
 #[get("/person/{id}")]
 async fn load_person(person_id: web::Path<PersonId>, db: web::Data<tokio_postgres::Client>) -> WebResult<JsonResponse<api::GetPersonResponse>> {
-    let person = PersonModel::get_by_id(*person_id, &db).await?.unwrap();
+    let person = PersonModel::get_by_id(*person_id, &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
 
     Ok(web::Json(WrappingResponse::okay(api::GetPersonResponse {
         person: person.into()

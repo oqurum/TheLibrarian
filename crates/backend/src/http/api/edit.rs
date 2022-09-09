@@ -4,7 +4,7 @@ use actix_web::{web, get, post};
 use common::api::{QueryListResponse, WrappingResponse};
 use common_local::{api, EditId, item::edit::*};
 
-use crate::{WebResult, model::{EditModel, BookModel, MemberModel, EditVoteModel, NewEditVoteModel}, http::{MemberCookie, JsonResponse}};
+use crate::{WebResult, model::{EditModel, BookModel, MemberModel, EditVoteModel, NewEditVoteModel}, http::{MemberCookie, JsonResponse}, InternalError, Error};
 
 
 // Get List Of Edits
@@ -85,7 +85,7 @@ pub async fn load_edit_list(
 // Edit
 #[get("/edit/{id}")]
 async fn load_edit(edit_id: web::Path<EditId>, db: web::Data<tokio_postgres::Client>) -> WebResult<JsonResponse<api::GetEditResponse>> {
-    let model = EditModel::get_by_id(*edit_id, &db).await?.unwrap();
+    let model = EditModel::get_by_id(*edit_id, &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
 
     let member = MemberModel::get_by_id(model.member_id, &db).await?;
 
@@ -122,7 +122,7 @@ async fn update_edit(
     }
 
 
-    let member = MemberModel::get_by_id(member.member_id(), &db).await?.unwrap();
+    let member = member.fetch_or_error(&db).await?;
 
     let member_is_admin = member.permissions.is_admin();
 
