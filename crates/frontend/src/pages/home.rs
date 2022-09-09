@@ -7,7 +7,7 @@ use web_sys::{HtmlElement, UrlSearchParams, HtmlInputElement};
 use yew::prelude::*;
 use yew_router::prelude::Link;
 
-use crate::{Route, request, components::{LoginBarrier, MassSelectBar, PopupSearch, popup::search::{SearchBy, SearchSelectedValue}}, get_member_self};
+use crate::{Route, request, components::{LoginBarrier, MassSelectBar, PopupSearch, popup::{SearchBy, search::SearchSelectedValue}}, get_member_self};
 
 
 #[derive(Clone)]

@@ -3,7 +3,7 @@ use common_local::{SearchGroup, SearchType, SearchGroupId, api::{PostUpdateSearc
 use gloo_utils::window;
 use yew::{prelude::*, html::Scope};
 
-use crate::{components::popup::search::{PopupSearch, SearchBy, SearchSelectedValue}, request};
+use crate::{components::popup::{PopupSearch, SearchBy, search::SearchSelectedValue}, request};
 
 
 #[derive(Clone)]

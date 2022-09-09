@@ -179,7 +179,7 @@ impl SearchItem {
 pub struct AuthorInfo {
     pub source: Source,
 
-    pub cover_image_url: Option<String>,
+    pub cover_image_url: Option<FoundImageLocation>,
 
     pub name: String,
     pub other_names: Option<Vec<String>>,
@@ -222,21 +222,17 @@ impl MetadataReturned {
                 let mut thumb_url = ThumbnailStore::None;
 
                 // Download thumb url and store it.
-                if let Some(url) = author_info.cover_image_url {
-                    let resp = reqwest::get(url).await?;
-
-                    if resp.status().is_success() {
-                        let bytes = resp.bytes().await?;
-
-                        match crate::store_image(bytes.to_vec(), client).await {
-                            Ok(model) => thumb_url = model.path,
-                            Err(e) => {
-                                eprintln!("add_or_ignore_authors_into_database Error: {}", e);
+                if let Some(mut url) = author_info.cover_image_url {
+                    match url.download(client).await {
+                        Ok(_) => {
+                            if let FoundImageLocation::Local(value) = url {
+                                thumb_url = value;
                             }
                         }
-                    } else {
-                        let text = resp.text().await;
-                        eprintln!("add_or_ignore_authors_into_database Error: {:?}", text);
+
+                        Err(e) => {
+                            eprintln!("add_or_ignore_authors_into_database Error: {}", e);
+                        }
                     }
                 }
 

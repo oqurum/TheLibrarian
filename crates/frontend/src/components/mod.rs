@@ -8,5 +8,7 @@ pub use navbar::NavbarModule;
 pub use popup::{
     edit_metadata::PopupEditMetadata,
     search::PopupSearch,
+    SearchBy,
+    search_person::PopupSearchPerson,
 };
 pub use mass_selector_bar::MassSelectBar;

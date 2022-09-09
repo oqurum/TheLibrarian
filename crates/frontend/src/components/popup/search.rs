@@ -7,6 +7,8 @@ use yew::prelude::*;
 
 use crate::{request, util::{self, LoadingItem}};
 
+use super::SearchBy;
+
 
 #[derive(Properties, PartialEq)]
 pub struct Property {
@@ -370,15 +372,6 @@ impl PopupSearch {
         }
     }
 }
-
-
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum SearchBy {
-    External,
-    Local,
-}
-
 
 #[derive(PartialEq)]
 pub enum SearchSelectedValue {

@@ -6,7 +6,7 @@ use web_sys::{HtmlElement, HtmlInputElement};
 use yew::{prelude::*, html::Scope};
 use yew_router::prelude::Link;
 
-use crate::{components::LoginBarrier, request, util, Route};
+use crate::{components::{LoginBarrier, PopupSearchPerson, popup::search_person::SearchSelectedValue, SearchBy}, request, util, Route};
 
 
 #[derive(Properties, PartialEq, Eq)]
@@ -57,7 +57,7 @@ impl Component for AuthorListPage {
             total_media_count: 0,
             is_fetching_authors: false,
             media_popup: None,
-            author_list_ref: NodeRef::default()
+            author_list_ref: NodeRef::default(),
         }
     }
 
@@ -119,7 +119,7 @@ impl Component for AuthorListPage {
             }
 
             Msg::PersonUpdateSearchResults(search_value, resp) => {
-                if let Some(DisplayOverlay::SearchForPerson { response, input_value, .. }) = self.media_popup.as_mut() {
+                if let Some(DisplayOverlay::UpdatePersonBySearch { response, input_value, .. }) = self.media_popup.as_mut() {
                     *response = Some(resp);
                     *input_value = Some(search_value);
                 }
@@ -179,7 +179,7 @@ impl Component for AuthorListPage {
             None => None,
         };
 
-        if let Some(items) = items {
+        let content = if let Some(items) = items {
             // TODO: Placeholders
             // let remaining = (self.total_media_count as usize - items.len()).min(50);
 
@@ -211,7 +211,7 @@ impl Component for AuthorListPage {
                                                             Self::on_click_prevdef(ctx.link(), Msg::PosterItem(PosterItem::UpdatePerson(person_id)))
                                                         }>{ "Refresh Person" }</PopupClose>
                                                         <PopupClose class="menu-item" onclick={
-                                                            Self::on_click_prevdef_stopprop(ctx.link(), Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::SearchForPerson { person_id, input_value: None, response: None })))
+                                                            Self::on_click_prevdef_stopprop(ctx.link(), Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::UpdatePersonBySearch { person_id, input_value: None, response: None })))
                                                         }>{ "Search For Person" }</PopupClose>
                                                         <PopupClose class="menu-item" onclick={
                                                             Self::on_click_prevdef_stopprop(ctx.link(), Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::CombinePersonWith { person_id, input_value: None, response: None })))
@@ -227,7 +227,7 @@ impl Component for AuthorListPage {
                                         }
                                     }
 
-                                    &DisplayOverlay::SearchForPerson { person_id, ref input_value, ref response } => {
+                                    &DisplayOverlay::UpdatePersonBySearch { person_id, ref input_value, ref response } => {
                                         let input_id = "external-person-search-input";
 
                                         let input_value = if let Some(v) = input_value {
@@ -395,6 +395,22 @@ impl Component for AuthorListPage {
                                             </Popup>
                                         }
                                     }
+
+                                    DisplayOverlay::AddNewPerson => {
+                                        html! {
+                                            <PopupSearchPerson
+                                                type_of={ SearchBy::External }
+                                                on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
+                                                on_select={ ctx.link().callback_future(|value: SearchSelectedValue| async {
+                                                    if let SearchSelectedValue::Source(source) = value {
+                                                        request::new_person(source).await;
+                                                    }
+
+                                                    Msg::Ignore
+                                                }) }
+                                            />
+                                        }
+                                    }
                                 }
                             } else {
                                 html! {}
@@ -407,6 +423,19 @@ impl Component for AuthorListPage {
             html! {
                 <h1>{ "Loading..." }</h1>
             }
+        };
+
+        html! {
+            <div class="outer-view-container">
+                <div class="sidebar-container">
+                    <LoginBarrier>
+                        <div class="sidebar-item">
+                            <button class="button" onclick={ ctx.link().callback(|_| Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::AddNewPerson))) }>{ "Add Author" }</button>
+                        </div>
+                    </LoginBarrier>
+                </div>
+                { content }
+            </div>
         }
     }
 
@@ -511,11 +540,13 @@ pub enum DisplayOverlay {
         mouse_pos: (i32, i32)
     },
 
-    SearchForPerson {
+    UpdatePersonBySearch {
         person_id: PersonId,
         input_value: Option<String>,
         response: Option<api::ExternalSearchResponse>
     },
+
+    AddNewPerson,
 
     CombinePersonWith {
         person_id: PersonId,
@@ -530,8 +561,8 @@ impl PartialEq for DisplayOverlay {
             (Self::Info { person_id: l_id }, Self::Info { person_id: r_id }) => l_id == r_id,
             (Self::More { person_id: l_id, .. }, Self::More { person_id: r_id, .. }) => l_id == r_id,
             (
-                Self::SearchForPerson { person_id: l_id, input_value: l_val, .. },
-                Self::SearchForPerson { person_id: r_id, input_value: r_val, .. }
+                Self::UpdatePersonBySearch { person_id: l_id, input_value: l_val, .. },
+                Self::UpdatePersonBySearch { person_id: r_id, input_value: r_val, .. }
             ) => l_id == r_id && l_val == r_val,
 
             _ => false

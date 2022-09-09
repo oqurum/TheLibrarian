@@ -1,8 +1,10 @@
-use actix_web::{web, get, HttpResponse, HttpRequest};
-use common::{PersonId, api::WrappingResponse};
+use actix_web::{web, get, HttpResponse, HttpRequest, post};
+use chrono::{Utc, NaiveDate};
+use common::{PersonId, api::WrappingResponse, Source, ThumbnailStore};
 use common_local::api;
+use tokio_postgres::Client;
 
-use crate::{WebResult, model::PersonModel, http::JsonResponse, storage::get_storage};
+use crate::{WebResult, model::{PersonModel, NewPersonModel, PersonAltModel}, http::{JsonResponse, MemberCookie}, storage::get_storage, metadata, InternalError, Error};
 
 
 // Get List Of People and Search For People
@@ -44,6 +46,60 @@ pub async fn load_author_list(
         })))
     }
 }
+
+
+#[post("/person")]
+pub async fn add_new_person(
+    source: web::Json<Source>,
+    member: MemberCookie,
+    db: web::Data<Client>,
+) -> WebResult<JsonResponse<&'static str>> {
+    let member = member.fetch_or_error(&db).await?;
+
+    if !member.permissions.has_editing_perms() {
+        return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
+    }
+
+    if let Some(author) = metadata::get_person_by_source(&source, &db).await? {
+        // Download thumbnail
+        let thumb_url = if let Some(mut item) = author.cover_image_url {
+            item.download(&db).await?;
+
+            item.as_local_value().cloned().unwrap_or(ThumbnailStore::None)
+        } else {
+            ThumbnailStore::None
+        };
+
+        // Insert Person
+        let person = NewPersonModel {
+            source: source.into_inner(),
+            thumb_url,
+            name: author.name,
+            description: author.description,
+            birth_date: author.birth_date.and_then(|v| v.parse::<NaiveDate>().ok()),
+            updated_at: Utc::now(),
+            created_at: Utc::now(),
+        }.insert(&db).await?;
+
+        // Insert Person Alt Names
+        if let Some(names) = author.other_names {
+            for name in names {
+                let _ = PersonAltModel {
+                    person_id: person.id,
+                    name,
+                }.insert(&db).await;
+            }
+        }
+
+        Ok(web::Json(WrappingResponse::okay("ok")))
+    } else {
+        Ok(web::Json(WrappingResponse::error("Unable to find person from source")))
+    }
+
+}
+
+
+
 
 
 // Person

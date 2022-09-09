@@ -361,7 +361,7 @@ mod book_edit {
                 self.isbn_10.clone().map(|v| Ok(map.insert("isbn_10", morph_map_value(v)?))).transpose()?;
                 self.isbn_13.clone().map(|v| Ok(map.insert("isbn_13", morph_map_value(v)?))).transpose()?;
                 self.is_public.map(|v| Ok(map.insert("is_public", morph_map_value(v)?))).transpose()?;
-                self.available_at.clone().map(|v| Ok(map.insert("available_at", morph_map_value(v)?))).transpose()?;
+                self.available_at.map(|v| Ok(map.insert("available_at", morph_map_value(v)?))).transpose()?;
                 self.language.map(|v| Ok(map.insert("language", morph_map_value(v)?))).transpose()?;
                 self.publisher.clone().map(|v| Ok(map.insert("publisher", morph_map_value(v)?))).transpose()?;
 
@@ -384,14 +384,14 @@ mod book_edit {
 }
 
 mod person_edit {
-    use common::ThumbnailStore;
+    use common::ImageId;
 
     use crate::Person;
     use super::*;
 
     pub type PersonEditData = InnerEditData<Person, PersonEdit, UpdatedPersonEdit>;
 
-    #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+    #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
     pub struct PersonEdit {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub name: Option<String>,
@@ -401,9 +401,9 @@ mod person_edit {
         pub birth_date: Option<String>,
 
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub added_images: Option<Vec<ThumbnailStore>>,
+        pub added_images: Option<Vec<NewOrCachedImage>>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub removed_images: Option<Vec<ThumbnailStore>>,
+        pub removed_images: Option<Vec<ImageId>>,
     }
 
     #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -432,6 +432,60 @@ mod person_edit {
             !self.name &&
             !self.description &&
             !self.birth_date
+        }
+    }
+
+    #[cfg(feature = "frontend")]
+    mod _personedit_frontend {
+        use std::collections::HashMap;
+
+        use common::component::popup::compare::{Comparable, CompareContainer, CompareDisplay, MapContainer, morph_map_value};
+
+        use super::*;
+
+        impl Comparable for PersonEdit {
+            fn create_comparison_with(&self, other: &Self) -> serde_json::Result<CompareContainer> {
+                Ok(CompareContainer::create(
+                    vec![
+                        ("name", "Name", CompareDisplay::Text),
+                        ("description", "Description", CompareDisplay::Text),
+                        ("birth_date", "Birthday", CompareDisplay::Text),
+
+                        ("added_images", "Added Images", CompareDisplay::Image),
+                        ("removed_images", "Removed Images", CompareDisplay::Image),
+                    ],
+                    self.create_map()?,
+                    other.create_map()?
+                ))
+            }
+
+            fn create_from_comparison(mut map: HashMap<&'static str, serde_json::Value>) -> serde_json::Result<Self> where Self: Sized {
+                Ok(Self {
+                    name: map.remove("name").map(serde_json::from_value).transpose()?,
+                    description: map.remove("description").map(serde_json::from_value).transpose()?,
+                    birth_date: map.remove("birth_date").map(serde_json::from_value).transpose()?,
+
+                    added_images: map.remove("added_images").map(serde_json::from_value).transpose()?,
+                    removed_images: map.remove("removed_images").map(serde_json::from_value).transpose()?,
+                })
+            }
+
+            fn create_map(&self) -> serde_json::Result<MapContainer> {
+                let mut map = MapContainer::with_capacity(5);
+
+                self.name.clone().map(|v| Ok(map.insert("name", morph_map_value(v)?))).transpose()?;
+                self.description.clone().map(|v| Ok(map.insert("description", morph_map_value(v)?))).transpose()?;
+                self.birth_date.clone().map(|v| Ok(map.insert("birth_date", morph_map_value(v)?))).transpose()?;
+
+                self.added_images.as_deref()
+                    .map(|v| Ok(map.insert("added_images", morph_map_value(v.iter().map(|v| v.as_url().into_owned()).collect::<Vec<_>>())?)))
+                    .transpose()?;
+                self.removed_images.as_deref()
+                    .map(|v| Ok(map.insert("removed_images", morph_map_value(v.iter().map(|v| format!("/api/v1/book/{v}/thumbnail")).collect::<Vec<_>>())?)))
+                    .transpose()?;
+
+                Ok(map)
+            }
         }
     }
 }

@@ -50,7 +50,7 @@ pub async fn get_external_search(
                             api::SearchItem::Person(api::MetadataPersonSearchItem {
                                 source: author.source,
 
-                                cover_image: author.cover_image_url,
+                                cover_image: author.cover_image_url.map(|v| v.as_api_path().into_owned()),
 
                                 name: author.name,
                                 other_names: author.other_names,

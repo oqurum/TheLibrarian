@@ -2,7 +2,7 @@ use common::api::WrappingResponse;
 use common_local::{api::{self, UpdateCollectionModel}, SearchType};
 use yew::prelude::*;
 
-use crate::{components::{PopupSearch, LoginBarrier, popup::search::{SearchBy, SearchSelectedValue}}, request, pages::home::MediaItem};
+use crate::{components::{PopupSearch, LoginBarrier, popup::{SearchBy, search::SearchSelectedValue}}, request, pages::home::MediaItem};
 
 
 

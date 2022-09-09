@@ -15,7 +15,7 @@ use web_sys::{HtmlInputElement, HtmlTextAreaElement, HtmlSelectElement};
 use yew::{prelude::*, html::Scope};
 
 use crate::{
-    components::{LoginBarrier, PopupEditMetadata, PopupSearch, popup::search::{SearchBy, SearchSelectedValue}},
+    components::{LoginBarrier, PopupEditMetadata, PopupSearch, popup::{SearchBy, search::SearchSelectedValue}},
     request
 };
 
