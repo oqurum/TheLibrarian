@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 use crate::{Result, model::{OptMetadataSearchModel, DataType}};
 use async_trait::async_trait;
+use chrono::NaiveDate;
 use common_local::{MetadataItemCached, SearchForBooksBy, MetadataSearchType};
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -101,7 +102,7 @@ impl Metadata for GoogleBooksMetadata {
                             isbn_13: item.volume_info.industry_identifiers.as_ref()
                                 .and_then(|v|
                                 v.iter().find_map(|v| if v.type_of == "ISBN_13" { Some(v.identifier.clone()) } else { None })),
-                            available_at: None,
+                            available_at: item.volume_info.published_date.and_then(|v| v.parse::<NaiveDate>().ok()),
                             language: None,
                         }));
                     }
@@ -160,7 +161,8 @@ impl GoogleBooksMetadata {
                 isbn_13: value.volume_info.industry_identifiers.as_ref()
                     .and_then(|v|
                     v.iter().find_map(|v| if v.type_of == "ISBN_13" { Some(v.identifier.clone()) } else { None })),
-                available_at: None,
+                    // TODO: Handle multiple different formats instead of just 0000-00-00
+                available_at: value.volume_info.published_date.and_then(|v| v.parse::<NaiveDate>().ok()),
                 language: None,
             }
         }))
