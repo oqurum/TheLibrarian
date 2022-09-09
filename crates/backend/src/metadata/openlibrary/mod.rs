@@ -1,8 +1,8 @@
 // https://openlibrary.org/developers/api
 
-use crate::{Result, model::{OptMetadataSearchModel, DataType}};
+use crate::{Result, model::{OptMetadataSearchModel, DataType, MetadataSearchType}};
 use async_trait::async_trait;
-use common_local::{MetadataItemCached, SearchForBooksBy, MetadataSearchType};
+use common_local::{MetadataItemCached, SearchForBooksBy};
 use serde::{Serialize, Deserialize};
 
 use self::book::BookSearchType;

@@ -4,10 +4,10 @@
 
 use std::collections::HashMap;
 
-use crate::{Result, model::{OptMetadataSearchModel, DataType}};
+use crate::{Result, model::{OptMetadataSearchModel, DataType, MetadataSearchType}};
 use async_trait::async_trait;
 use chrono::NaiveDate;
-use common_local::{MetadataItemCached, SearchForBooksBy, MetadataSearchType};
+use common_local::{MetadataItemCached, SearchForBooksBy};
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Serialize, Deserialize};

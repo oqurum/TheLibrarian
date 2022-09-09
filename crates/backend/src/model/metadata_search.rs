@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
-use common_local::{MetadataSearchId, util::serialize_datetime, MetadataSearchType};
+use common_local::{MetadataSearchId, util::serialize_datetime};
 use num_enum::{FromPrimitive, IntoPrimitive};
 use serde::{Serialize, Deserialize};
 use tokio_postgres::Client;
@@ -209,3 +209,16 @@ impl DataType {
         }
     }
 }
+
+
+
+
+
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, FromPrimitive, IntoPrimitive)]
+#[repr(u8)]
+pub enum MetadataSearchType {
+    #[num_enum(default)]
+    Book,
+    Person,
+}
+
