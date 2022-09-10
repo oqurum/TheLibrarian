@@ -476,14 +476,14 @@ impl AuthorListPage {
     // TODO: Move into own struct.
     fn render_media_item(&self, item: &Person, scope: &Scope<Self>) -> Html {
         let person_id = item.id;
-        let author_list_ref = self.author_list_ref.clone();
         let on_click_more = scope.callback(move |e: MouseEvent| {
             e.prevent_default();
             e.stop_propagation();
 
-            let scroll = author_list_ref.cast::<HtmlElement>().unwrap().scroll_top();
+            let target = e.target_unchecked_into::<HtmlElement>();
+            let bb = target.get_bounding_client_rect();
 
-            Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::More { person_id, mouse_pos: (e.page_x(), e.page_y() + scroll) }))
+            Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::More { person_id, mouse_pos: ((bb.left() + bb.width()) as i32, (bb.top() + bb.height()) as i32) }))
         });
 
         html! {
