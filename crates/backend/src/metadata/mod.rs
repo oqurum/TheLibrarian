@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::{Deref, DerefMut}, fmt::{self, Debug}, borrow::Cow};
 
 use async_trait::async_trait;
-use common::{Source, ThumbnailStore, PersonId, BookId, Agent};
+use common::{Source, ThumbnailStore, PersonId, BookId, Agent, Either};
 use common_local::{SearchFor, MetadataItemCached, api::MetadataBookItem, util::{serialize_naivedate_opt, deserialize_naivedate_opt}};
 use chrono::{Utc, NaiveDate};
 use serde::{Serialize, Deserialize};
@@ -127,6 +127,10 @@ impl SearchResults {
 
         items
     }
+
+    pub fn into_search_items(self) -> Vec<SearchItem> {
+        self.0.into_values().flatten().collect()
+    }
 }
 
 impl Deref for SearchResults {
@@ -166,6 +170,13 @@ impl SearchItem {
         }
     }
 
+    pub fn as_author(&self) -> Option<&AuthorMetadata> {
+        match self {
+            SearchItem::Author(v) => Some(v),
+            _ => None,
+        }
+    }
+
     pub fn as_book(&self) -> Option<&BookMetadata> {
         match self {
             SearchItem::Book(v) => Some(v),
@@ -192,10 +203,8 @@ pub struct AuthorMetadata {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MetadataReturned {
-    // Person, Alt Names
-    pub authors: Option<Vec<AuthorMetadata>>,
+    pub authors: Option<Vec<Either<AuthorMetadata, String>>>,
     pub publisher: Option<String>,
-    // TODO: Add More.
 
     pub meta: BookMetadata
 }
@@ -207,17 +216,47 @@ impl MetadataReturned {
         let mut person_ids = Vec::new();
 
         if let Some(authors_with_alts) = self.authors.take() {
-            for author_info in authors_with_alts {
-                // Check if we already have a person by that name anywhere in the two database tables.
-                if let Some(person) = PersonModel::get_by_name(&author_info.name, client).await? {
-                    person_ids.push(person.id);
+            for author_or_name in authors_with_alts {
+                // Return AuthorMetadata by either Fetching DB person, found person or, search for person by name
+                let author_info = match author_or_name {
+                    Either::Left(author_info) => {
+                        // Check if we already have a person by that name anywhere in the two database tables.
+                        if let Some(person) = PersonModel::get_by_name(&author_info.name, client).await? {
+                            person_ids.push(person.id);
 
-                    if main_author.is_none() {
-                        main_author = Some(person.name);
+                            if main_author.is_none() {
+                                main_author = Some(person.name);
+                            }
+
+                            continue;
+                        }
+
+                        author_info
                     }
 
-                    continue;
-                }
+                    Either::Right(author_name) => {
+                        // Check if we already have a person by that name anywhere in the two database tables.
+                        if let Some(person) = PersonModel::get_by_name(&author_name, client).await? {
+                            person_ids.push(person.id);
+
+                            if main_author.is_none() {
+                                main_author = Some(person.name);
+                            }
+
+                            continue;
+                        }
+
+                        let search = search_all_agents(&author_name, SearchFor::Person, client).await
+                            .map(|v| v.into_search_items())
+                            .unwrap_or_default(); // I want to ignore errors and just continue.
+
+                        if let Some(meta) = search.first().and_then(|v| v.as_author()).cloned() {
+                            meta
+                        } else {
+                            continue;
+                        }
+                    }
+                };
 
                 let mut thumb_url = ThumbnailStore::None;
 

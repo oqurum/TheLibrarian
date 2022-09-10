@@ -2,7 +2,7 @@
 
 use crate::{Result, model::{OptMetadataSearchModel, DataType, MetadataSearchType}};
 use async_trait::async_trait;
-use common::Agent;
+use common::{Agent, Either};
 use common_local::{MetadataItemCached, SearchForBooksBy};
 use serde::{Serialize, Deserialize};
 
@@ -268,7 +268,7 @@ impl OpenLibraryMetadata {
         };
 
         Ok(Some(MetadataReturned {
-            authors: Some(authors).filter(|v| !v.is_empty()),
+            authors: Some(authors).filter(|v| !v.is_empty()).map(|v| v.into_iter().map(Either::Left).collect()),
             publisher: book_info.publishers.and_then(|v| v.first().cloned()),
 
             meta: BookMetadata {

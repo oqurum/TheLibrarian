@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use crate::{Result, model::{OptMetadataSearchModel, DataType, MetadataSearchType}};
 use async_trait::async_trait;
 use chrono::NaiveDate;
-use common::Agent;
+use common::{Agent, Either};
 use common_local::{MetadataItemCached, SearchForBooksBy};
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -144,8 +144,10 @@ impl GoogleBooksMetadata {
             value.id
         ));
 
+        let author = value.volume_info.authors.as_ref().and_then(|v| v.first().cloned());
+
         Ok(Some(MetadataReturned {
-            authors: None,
+            authors: value.volume_info.authors.map(|v| v.into_iter().map(Either::Right).collect()),
             publisher: None,
             meta: BookMetadata {
                 source: self.prefix_text(value.id).try_into()?,
@@ -155,7 +157,7 @@ impl GoogleBooksMetadata {
                 thumb_locations: vec![thumb_dl_url],
                 cached: MetadataItemCached::default()
                     .publisher_optional(value.volume_info.publisher)
-                    .author_optional(value.volume_info.authors.and_then(|v| v.first().cloned())),
+                    .author_optional(author),
                 isbn_10: value.volume_info.industry_identifiers.as_ref()
                     .and_then(|v|
                         v.iter().find_map(|v| if v.type_of == "ISBN_10" { Some(v.identifier.clone()) } else { None })),
