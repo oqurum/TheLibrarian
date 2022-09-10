@@ -156,8 +156,8 @@ pub async fn update_person_data(
                 return Err(ApiErrorResponse::new("You cannot join the same person into itself!").into());
             }
 
-            let old_person = PersonModel::get_by_id(person_id, &db).await?.unwrap();
-            let mut into_person = PersonModel::get_by_id(into_person_id, &db).await?.unwrap();
+            let old_person = PersonModel::get_by_id(person_id, &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
+            let mut into_person = PersonModel::get_by_id(into_person_id, &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
 
             // Attempt to transfer to other person
             let _ = PersonAltModel::transfer_by_person_id(old_person.id, into_person.id, &db).await;
