@@ -488,6 +488,11 @@ impl MetadataItemCached {
         self
     }
 
+    pub fn author_id(mut self, value: PersonId) -> Self {
+        self.author_id = Some(value);
+        self
+    }
+
     pub fn publisher(mut self, value: String) -> Self {
         self.publisher = Some(value);
         self

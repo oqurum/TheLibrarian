@@ -79,7 +79,11 @@ pub async fn add_new_book(
 
                 let mut db_book: BookModel = meta.into();
 
-                db_book.cached = db_book.cached.publisher_optional(publisher).author_optional(main_author);
+                if let Some(author) = main_author {
+                    db_book.cached = db_book.cached.publisher_optional(publisher).author(author.name).author_id(author.id);
+                } else {
+                    db_book.cached = db_book.cached.publisher_optional(publisher);
+                }
 
                 db_book.add_or_update_book(&db).await?;
 

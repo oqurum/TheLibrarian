@@ -210,8 +210,8 @@ pub struct MetadataReturned {
 }
 
 impl MetadataReturned {
-    /// Returns (Main Author, Person IDs)
-    pub async fn add_or_ignore_authors_into_database(&mut self, client: &Client) -> Result<(Option<String>, Vec<PersonId>)> {
+    /// Returns ((Id, Main Author), Person IDs)
+    pub async fn add_or_ignore_authors_into_database(&mut self, client: &Client) -> Result<(Option<PersonModel>, Vec<PersonId>)> {
         let mut main_author = None;
         let mut person_ids = Vec::new();
 
@@ -225,7 +225,7 @@ impl MetadataReturned {
                             person_ids.push(person.id);
 
                             if main_author.is_none() {
-                                main_author = Some(person.name);
+                                main_author = Some(person);
                             }
 
                             continue;
@@ -240,7 +240,7 @@ impl MetadataReturned {
                             person_ids.push(person.id);
 
                             if main_author.is_none() {
-                                main_author = Some(person.name);
+                                main_author = Some(person);
                             }
 
                             continue;
@@ -300,7 +300,7 @@ impl MetadataReturned {
                 person_ids.push(person.id);
 
                 if main_author.is_none() {
-                    main_author = Some(person.name);
+                    main_author = Some(person);
                 }
             }
         }
