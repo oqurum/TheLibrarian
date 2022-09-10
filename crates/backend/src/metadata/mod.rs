@@ -217,28 +217,13 @@ impl MetadataReturned {
 
         if let Some(authors_with_alts) = self.authors.take() {
             for author_or_name in authors_with_alts {
-                println!("\n---");
-                println!("{}", if matches!(author_or_name, Either::Left(_)) { "Left" } else { "Right" });
                 // Return AuthorMetadata by either Fetching DB person, found person or, search for person by name
                 let author_info = match author_or_name {
-                    Either::Left(author_info) => {
-                        // Check if we already have a person by that name anywhere in the two database tables.
-                        if let Some(person) = PersonModel::get_by_name(&author_info.name, client).await? {
-                            person_ids.push(person.id);
-
-                            if main_author.is_none() {
-                                main_author = Some(person);
-                            }
-
-                            continue;
-                        }
-
-                        author_info
-                    }
+                    Either::Left(value) => value,
 
                     Either::Right(author_name) => {
                         // Check if we already have a person by that name anywhere in the two database tables.
-                        if let Some(person) = PersonModel::get_by_name(&author_name, client).await? {
+                        if let Some(person) = PersonModel::get_by_name(author_name.trim(), client).await? {
                             person_ids.push(person.id);
 
                             if main_author.is_none() {
@@ -260,6 +245,18 @@ impl MetadataReturned {
                     }
                 };
 
+                // Check if we already have a person by that name anywhere in the two database tables.
+                if let Some(person) = PersonModel::get_by_name(author_info.name.trim(), client).await? {
+                    person_ids.push(person.id);
+
+                    if main_author.is_none() {
+                        main_author = Some(person);
+                    }
+
+                    continue;
+                }
+
+
                 let mut thumb_url = ThumbnailStore::None;
 
                 // Download thumb url and store it.
@@ -276,8 +273,6 @@ impl MetadataReturned {
                         }
                     }
                 }
-
-                println!("== {}", author_info.name);
 
                 let new_person = NewPersonModel {
                     source: author_info.source,
