@@ -448,16 +448,17 @@ impl SimpleListQuery {
             ).ok()?;
 
             let limit = search_params.get("limit")
-                .and_then(|v| v.parse::<usize>().ok());
+                .and_then(|v| v.parse::<usize>().ok())
+                .unwrap_or_else(SimpleListQuery::limit);
 
-            let (offset, limit) = match search_params.get("page").and_then(|v| v.parse::<usize>().ok()) {
-                Some(page) => (page * limit.unwrap_or_else(SimpleListQuery::limit), limit),
-                None => (search_params.get("offset").and_then(|v| v.parse::<usize>().ok()).unwrap_or_default(), limit)
+            let offset = match search_params.get("page").and_then(|v| v.parse::<usize>().ok()) {
+                Some(page) => page * limit,
+                None => search_params.get("offset").and_then(|v| v.parse::<usize>().ok()).unwrap_or_default()
             };
 
             Some(SimpleListQuery {
                 offset: Some(offset).filter(|v| *v != 0),
-                limit,
+                limit: Some(limit),
                 query: None,
             })
         }
