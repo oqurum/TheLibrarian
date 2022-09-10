@@ -246,7 +246,19 @@ impl MetadataReturned {
                 };
 
                 // Check if we already have a person by that name anywhere in the two database tables.
+                // TODO: Better way. There can be multiple people with the same name.
                 if let Some(person) = PersonModel::find_one_by_name(author_info.name.trim(), client).await? {
+                    person_ids.push(person.id);
+
+                    if main_author.is_none() {
+                        main_author = Some(person);
+                    }
+
+                    continue;
+                }
+
+                // Check by source.
+                if let Some(person) = PersonModel::get_by_source(&author_info.source.to_string(), client).await? {
                     person_ids.push(person.id);
 
                     if main_author.is_none() {
