@@ -18,8 +18,12 @@ pub async fn store_image(image: Vec<u8>, db: &tokio_postgres::Client) -> Result<
         .map(|v| format!("{:02x}", v))
         .collect();
 
-    get_storage().await.upload(&hash, image_data).await?;
+    if let Some(v) = UploadedImageModel::get_by_path(&hash, db).await? {
+        Ok(v)
+    } else {
+        get_storage().await.upload(&hash, image_data).await?;
 
-    NewUploadedImageModel::new(ThumbnailStore::from(hash), image.width(), image.height())
-        .get_or_insert(db).await
+        NewUploadedImageModel::new(ThumbnailStore::from(hash), image.width(), image.height())
+            .get_or_insert(db).await
+    }
 }
