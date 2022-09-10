@@ -247,7 +247,8 @@ impl OpenLibraryMetadata {
                         name: author.name.clone(),
                         other_names: author.alternate_names,
                         description: author.bio.map(|v| v.into_content()),
-                        cover_image_url: Some(FoundImageLocation::Url(self::CoverId::Olid(author.key).get_author_cover_url())),
+                        cover_image_url: author.photos.and_then(|v| v.iter().find(|i| **i != -1).copied())
+                            .map(|v| FoundImageLocation::Url(self::CoverId::Id(v.to_string()).get_author_cover_url())),
                         birth_date: author.birth_date,
                         death_date: author.death_date,
                     });
