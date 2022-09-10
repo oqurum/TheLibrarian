@@ -207,10 +207,10 @@ impl PersonModel {
         Ok(())
     }
 
-    pub async fn remove_by_id(id: usize, db: &tokio_postgres::Client) -> Result<u64> {
+    pub async fn remove_by_id(id: PersonId, db: &tokio_postgres::Client) -> Result<u64> {
         Ok(db.execute(
             "DELETE FROM person WHERE id = $1",
-            params![ id as i32 ]
+            params![ *id as i32 ]
         ).await?)
     }
 }

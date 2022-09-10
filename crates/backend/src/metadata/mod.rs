@@ -217,6 +217,8 @@ impl MetadataReturned {
 
         if let Some(authors_with_alts) = self.authors.take() {
             for author_or_name in authors_with_alts {
+                println!("\n---");
+                println!("{}", if matches!(author_or_name, Either::Left(_)) { "Left" } else { "Right" });
                 // Return AuthorMetadata by either Fetching DB person, found person or, search for person by name
                 let author_info = match author_or_name {
                     Either::Left(author_info) => {
@@ -274,6 +276,8 @@ impl MetadataReturned {
                         }
                     }
                 }
+
+                println!("== {}", author_info.name);
 
                 let new_person = NewPersonModel {
                     source: author_info.source,

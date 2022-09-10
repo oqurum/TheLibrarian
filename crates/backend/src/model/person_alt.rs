@@ -55,9 +55,9 @@ impl PersonAltModel {
         ).await?)
     }
 
-    pub async fn transfer_by_person_id(&self, from_id: PersonId, to_id: PersonId, db: &Client) -> Result<u64> {
+    pub async fn transfer_by_person_id(from_id: PersonId, to_id: PersonId, db: &Client) -> Result<u64> {
         Ok(db.execute(
-            "UPDATE OR IGNORE person_alt SET person_id = $2 WHERE person_id = $1",
+            "UPDATE person_alt SET person_id = $2 WHERE person_id = $1",
             params![ *from_id as i32, *to_id as i32 ]
         ).await?)
     }

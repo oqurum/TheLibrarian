@@ -57,6 +57,7 @@ pub fn api_route() -> Scope<
         .service(person::load_person)
         .service(person::load_person_thumbnail)
         .service(person::add_new_person)
+        .service(person::update_person_data)
 
         // Poster
         .service(poster::get_local_image)

@@ -1,10 +1,10 @@
 use actix_web::{web, get, HttpResponse, HttpRequest, post};
 use chrono::{Utc, NaiveDate};
-use common::{PersonId, api::WrappingResponse, Source, ThumbnailStore};
+use common::{PersonId, api::{WrappingResponse, ApiErrorResponse}, Source, ThumbnailStore};
 use common_local::api;
 use tokio_postgres::Client;
 
-use crate::{WebResult, model::{PersonModel, NewPersonModel, PersonAltModel}, http::{JsonResponse, MemberCookie}, storage::get_storage, metadata, InternalError, Error};
+use crate::{WebResult, model::{PersonModel, NewPersonModel, PersonAltModel, BookPersonModel, BookModel}, http::{JsonResponse, MemberCookie}, storage::get_storage, metadata, InternalError, Error};
 
 
 // Get List Of People and Search For People
@@ -123,4 +123,98 @@ async fn load_person_thumbnail(person_id: web::Path<PersonId>, req: HttpRequest,
     } else {
         Ok(HttpResponse::NotFound().finish())
     }
+}
+
+
+
+
+
+// Person Tasks - Update Person, Overwrite Person with another source.
+#[post("/person/{id}")]
+pub async fn update_person_data(
+    person_id: web::Path<PersonId>,
+    body: web::Json<api::PostPersonBody>,
+    member: MemberCookie,
+    db: web::Data<tokio_postgres::Client>,
+) -> WebResult<JsonResponse<&'static str>> {
+    let person_id = *person_id;
+
+    let member = member.fetch_or_error(&db).await?;
+
+    if !member.permissions.has_editing_perms() {
+        return Err(ApiErrorResponse::new("You cannot do this! No Permissions!").into());
+    }
+
+    match body.into_inner() {
+        api::PostPersonBody::AutoMatchById => (),
+        api::PostPersonBody::UpdateBySource(_) => (),
+
+        api::PostPersonBody::CombinePersonWith(into_person_id) => {
+            // TODO: Tests for this to ensure it's correct.
+
+            if person_id == into_person_id {
+                return Err(ApiErrorResponse::new("You cannot join the same person into itself!").into());
+            }
+
+            let old_person = PersonModel::get_by_id(person_id, &db).await?.unwrap();
+            let mut into_person = PersonModel::get_by_id(into_person_id, &db).await?.unwrap();
+
+            // Attempt to transfer to other person
+            let _ = PersonAltModel::transfer_by_person_id(old_person.id, into_person.id, &db).await;
+
+            // Delete remaining Alt Names
+            PersonAltModel::remove_by_person_id(old_person.id, &db).await?;
+
+            // Make Old Person Name an Alt Name
+            let _ = PersonAltModel {
+                name: old_person.name,
+                person_id: into_person.id,
+            }.insert(&db).await;
+
+            // Transfer Old Person Book to New Person
+            let trans_book_person_vec = BookPersonModel::find_by_person_id(old_person.id, &db).await?;
+            for met_per in &trans_book_person_vec {
+                let _ = BookPersonModel {
+                    book_id: met_per.book_id,
+                    person_id: into_person.id,
+                }.insert(&db).await;
+            }
+
+            BookPersonModel::remove_by_person_id(old_person.id, &db).await?;
+
+            if into_person.birth_date.is_none() {
+                into_person.birth_date = old_person.birth_date;
+            }
+
+            if into_person.description.is_none() {
+                into_person.description = old_person.description;
+            }
+
+            if into_person.thumb_url.is_none() {
+                into_person.thumb_url = old_person.thumb_url;
+            }
+
+            into_person.updated_at = Utc::now();
+
+            // Update New Person
+            into_person.update(&db).await?;
+
+            // Delete Old Person
+            PersonModel::remove_by_id(old_person.id, &db).await?;
+
+            // Update book cache author name cache
+            for met_per in trans_book_person_vec {
+                let person = PersonModel::get_by_id(into_person_id, &db).await?;
+                let book = BookModel::get_by_id(met_per.book_id, &db).await?;
+
+                if let Some((person, mut book)) = person.zip(book) {
+                    book.cached.author = Some(person.name);
+                    book.cached.author_id = Some(person.id);
+                    book.update_book(&db).await?;
+                }
+            }
+        }
+    }
+
+    Ok(web::Json(WrappingResponse::okay("success")))
 }

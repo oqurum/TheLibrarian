@@ -81,4 +81,13 @@ impl BookPersonModel {
 
         conn.into_iter().map(Self::from_row).collect()
     }
+
+    pub async fn find_by_person_id(id: PersonId, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
+        let conn = db.query(
+            "SELECT * FROM book_person WHERE person_id = $1",
+            params![ *id as i32 ]
+        ).await?;
+
+        conn.into_iter().map(Self::from_row).collect()
+    }
 }
