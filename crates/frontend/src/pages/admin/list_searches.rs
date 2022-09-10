@@ -104,6 +104,10 @@ impl Component for ListSearchesPage {
                             }) }>{ "Next Page" }</button>
 
                             <button onclick={ ctx.link().callback(|_| Msg::AutoFindAll) } class="green">{ "Auto Find All" }</button>
+
+                            <hr />
+
+                            <span>{ "Page: " } { resp.offset / resp.limit } { "/" } { resp.total / resp.limit } { " - " } { "Limit " } { resp.limit }</span>
                         </div>
 
                         { for resp.items.iter().map(|item| self.render_item(item, ctx.link())) }
