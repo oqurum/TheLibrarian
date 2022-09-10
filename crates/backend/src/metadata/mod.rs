@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::{Deref, DerefMut}, fmt::{self, Debug}, borrow::Cow};
 
 use async_trait::async_trait;
-use common::{Source, ThumbnailStore, PersonId, BookId};
+use common::{Source, ThumbnailStore, PersonId, BookId, Agent};
 use common_local::{SearchFor, MetadataItemCached, api::MetadataBookItem, util::{serialize_naivedate_opt, deserialize_naivedate_opt}};
 use chrono::{Utc, NaiveDate};
 use serde::{Serialize, Deserialize};
@@ -21,10 +21,10 @@ pub mod openlibrary;
 #[async_trait]
 pub trait Metadata {
     fn prefix_text<V: AsRef<str>>(&self, value: V) -> String {
-        format!("{}:{}", self.get_prefix(), value.as_ref())
+        format!("{}:{}", self.get_agent(), value.as_ref())
     }
 
-    fn get_prefix(&self) -> &'static str;
+    fn get_agent(&self) -> Agent;
 
     // Metadata
     async fn get_metadata_by_source_id(&mut self, value: &str, upgrade_editions: bool, db: &Client) -> Result<Option<MetadataReturned>>;
@@ -47,9 +47,9 @@ pub trait Metadata {
 
 /// Doesn't check local
 pub async fn get_metadata_by_source(source: &Source, upgrade_editions: bool, db: &Client) -> Result<Option<MetadataReturned>> {
-    match source.agent.deref().deref() {
-        v if v == OpenLibraryMetadata.get_prefix() => OpenLibraryMetadata.get_metadata_by_source_id(&source.value, upgrade_editions, db).await,
-        v if v == GoogleBooksMetadata.get_prefix() => GoogleBooksMetadata.get_metadata_by_source_id(&source.value, upgrade_editions, db).await,
+    match &source.agent {
+        v if v == &OpenLibraryMetadata.get_agent() => OpenLibraryMetadata.get_metadata_by_source_id(&source.value, upgrade_editions, db).await,
+        v if v == &GoogleBooksMetadata.get_agent() => GoogleBooksMetadata.get_metadata_by_source_id(&source.value, upgrade_editions, db).await,
 
         _ => Ok(None)
     }
@@ -75,7 +75,7 @@ pub async fn search_all_agents(search: &str, search_for: SearchFor, db: &Client)
     }
 
     // Search all sources
-    let prefixes = [OpenLibraryMetadata.get_prefix(), GoogleBooksMetadata.get_prefix()];
+    let prefixes = [OpenLibraryMetadata.get_agent(), GoogleBooksMetadata.get_agent()];
     let asdf = futures::future::join_all(
         [OpenLibraryMetadata.search(search, search_for, db), GoogleBooksMetadata.search(search, search_for, db)]
     ).await;
@@ -98,9 +98,9 @@ pub async fn search_all_agents(search: &str, search_for: SearchFor, db: &Client)
 
 /// Searches all agents except for local.
 pub async fn get_person_by_source(source: &Source, db: &Client) -> Result<Option<AuthorMetadata>> {
-    match source.agent.deref().deref() {
-        v if v == OpenLibraryMetadata.get_prefix() => OpenLibraryMetadata.get_person_by_source_id(&source.value, db).await,
-        v if v == GoogleBooksMetadata.get_prefix() => GoogleBooksMetadata.get_person_by_source_id(&source.value, db).await,
+    match &source.agent {
+        v if v == &OpenLibraryMetadata.get_agent() => OpenLibraryMetadata.get_person_by_source_id(&source.value, db).await,
+        v if v == &GoogleBooksMetadata.get_agent() => GoogleBooksMetadata.get_person_by_source_id(&source.value, db).await,
 
         _ => Ok(None)
     }

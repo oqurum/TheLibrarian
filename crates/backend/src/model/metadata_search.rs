@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
+use common::Agent;
 use common_local::{MetadataSearchId, util::serialize_datetime};
 use num_enum::{FromPrimitive, IntoPrimitive};
 use serde::{Serialize, Deserialize};
@@ -13,7 +14,7 @@ use super::{TableRow, AdvRow, row_int_to_usize};
 
 pub struct NewMetadataSearchModel {
     pub query: String,
-    pub agent: String,
+    pub agent: Agent,
     pub type_of: MetadataSearchType,
     pub last_found_amount: usize,
     pub data: DataType,
@@ -27,7 +28,7 @@ pub struct MetadataSearchModel {
     pub id: MetadataSearchId,
 
     pub query: String,
-    pub agent: String,
+    pub agent: Agent,
     pub type_of: MetadataSearchType,
     pub last_found_amount: usize,
     pub data: String,
@@ -44,7 +45,7 @@ impl TableRow for MetadataSearchModel {
             id: row.next()?,
 
             query: row.next()?,
-            agent: row.next()?,
+            agent: Agent::new_owned(row.next()?),
             type_of: MetadataSearchType::from(row.next::<i16>()? as u8),
             last_found_amount: row.next::<i32>()? as usize,
             data: row.next()?,
@@ -57,7 +58,7 @@ impl TableRow for MetadataSearchModel {
 
 
 impl NewMetadataSearchModel {
-    pub fn new(type_of: MetadataSearchType, query: String, agent: String, last_found_amount: usize, data: DataType) -> Self {
+    pub fn new(type_of: MetadataSearchType, query: String, agent: Agent, last_found_amount: usize, data: DataType) -> Self {
         let now = Utc::now();
 
         Self {
@@ -78,7 +79,7 @@ impl NewMetadataSearchModel {
             r#"INSERT INTO metadata_search (query, agent, type_of, last_found_amount, data, created_at, updated_at)
                 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"#,
             params![
-                &self.query, self.agent, u8::from(self.type_of) as i16, self.last_found_amount as i32, &data,
+                &self.query, self.agent.to_string(), u8::from(self.type_of) as i16, self.last_found_amount as i32, &data,
                 self.created_at, self.updated_at
             ]
         ).await?;
@@ -112,10 +113,10 @@ impl MetadataSearchModel {
         Ok(serde_json::from_str(&self.data)?)
     }
 
-    pub async fn find_one_by_query_and_agent(type_of: MetadataSearchType, query: &str, agent: &str, client: &Client) -> Result<Option<Self>> {
+    pub async fn find_one_by_query_and_agent(type_of: MetadataSearchType, query: &str, agent: &Agent, client: &Client) -> Result<Option<Self>> {
         client.query_opt(
             "SELECT * FROM metadata_search WHERE type_of = $1 AND query = $2 AND agent = $3",
-            params![ u8::from(type_of) as i16, query, agent ],
+            params![ u8::from(type_of) as i16, query, agent.to_string() ],
         ).await?.map(Self::from_row).transpose()
     }
 
@@ -132,7 +133,7 @@ impl MetadataSearchModel {
             WHERE id = $1"#,
             params![
                 self.id,
-                &self.query, self.agent, u8::from(self.type_of) as i16, self.last_found_amount as i32, self.data,
+                &self.query, self.agent.to_string(), u8::from(self.type_of) as i16, self.last_found_amount as i32, self.data,
                 self.created_at, self.updated_at
             ]
         ).await?)
@@ -144,7 +145,7 @@ impl MetadataSearchModel {
 pub struct OptMetadataSearchModel(Option<MetadataSearchModel>);
 
 impl OptMetadataSearchModel {
-    pub async fn find_one_by_query_and_agent(type_of: MetadataSearchType, query: &str, agent: &str, client: &Client) -> Result<Self> {
+    pub async fn find_one_by_query_and_agent(type_of: MetadataSearchType, query: &str, agent: &Agent, client: &Client) -> Result<Self> {
         if let Some(model) = MetadataSearchModel::find_one_by_query_and_agent(type_of, query, agent, client).await? {
             Ok(Self(Some(model)))
         } else {
@@ -160,7 +161,7 @@ impl OptMetadataSearchModel {
             .transpose()
     }
 
-    pub async fn update_or_insert(self, type_of: MetadataSearchType, query: String, agent: String, last_found_amount: usize, data: DataType, client: &Client) -> Result<()> {
+    pub async fn update_or_insert(self, type_of: MetadataSearchType, query: String, agent: Agent, last_found_amount: usize, data: DataType, client: &Client) -> Result<()> {
         if let Some(mut model) = self.0 {
             model.last_found_amount = last_found_amount;
             model.data = serde_json::to_string(&data)?;

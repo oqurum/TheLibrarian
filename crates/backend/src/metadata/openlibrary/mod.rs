@@ -2,6 +2,7 @@
 
 use crate::{Result, model::{OptMetadataSearchModel, DataType, MetadataSearchType}};
 use async_trait::async_trait;
+use common::Agent;
 use common_local::{MetadataItemCached, SearchForBooksBy};
 use serde::{Serialize, Deserialize};
 
@@ -18,12 +19,12 @@ pub struct OpenLibraryMetadata;
 
 #[async_trait]
 impl Metadata for OpenLibraryMetadata {
-    fn get_prefix(&self) -> &'static str {
-        "openlibrary"
+    fn get_agent(&self) -> Agent {
+        Agent::new_static("openlibrary")
     }
 
     async fn get_metadata_by_source_id(&mut self, value: &str, upgrade_editions: bool, db: &tokio_postgres::Client) -> Result<Option<MetadataReturned>> {
-        let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Book, value, self.get_prefix(), db).await?;
+        let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Book, value, &self.get_agent(), db).await?;
 
         if let Some(model) = existing_model.should_use_cached()? {
             return Ok(model.inner_book_single());
@@ -46,7 +47,7 @@ impl Metadata for OpenLibraryMetadata {
         existing_model.update_or_insert(
             MetadataSearchType::Book,
             value.to_string(),
-            self.get_prefix().to_string(),
+            self.get_agent(),
             1,
             DataType::BookSingle(resp.clone()),
             db
@@ -57,7 +58,7 @@ impl Metadata for OpenLibraryMetadata {
 
 
     async fn get_person_by_source_id(&mut self, value: &str, db: &tokio_postgres::Client) -> Result<Option<AuthorMetadata>> {
-        let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Person, value, self.get_prefix(), db).await?;
+        let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Person, value, &self.get_agent(), db).await?;
 
         if let Some(model) = existing_model.should_use_cached()? {
             return Ok(model.inner_person_single());
@@ -83,7 +84,7 @@ impl Metadata for OpenLibraryMetadata {
         existing_model.update_or_insert(
             MetadataSearchType::Person,
             value.to_string(),
-            self.get_prefix().to_string(),
+            self.get_agent(),
             1,
             DataType::PersonSingle(resp.clone()),
             db
@@ -96,7 +97,7 @@ impl Metadata for OpenLibraryMetadata {
     async fn search(&mut self, value: &str, search_for: SearchFor, db: &tokio_postgres::Client) -> Result<Vec<SearchItem>> {
         match search_for {
             SearchFor::Person => {
-                let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Person, value, self.get_prefix(), db).await?;
+                let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Person, value, &self.get_agent(), db).await?;
 
                 if let Some(model) = existing_model.should_use_cached()? {
                     return Ok(model.inner_search());
@@ -120,7 +121,7 @@ impl Metadata for OpenLibraryMetadata {
                     existing_model.update_or_insert(
                         MetadataSearchType::Person,
                         value.to_string(),
-                        self.get_prefix().to_string(),
+                        self.get_agent(),
                         authors.len(),
                         DataType::Search(authors.clone()),
                         db
@@ -133,7 +134,7 @@ impl Metadata for OpenLibraryMetadata {
             }
 
             SearchFor::Book(specifically) => {
-                let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Book, value, self.get_prefix(), db).await?;
+                let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Book, value, &self.get_agent(), db).await?;
 
                 if let Some(model) = existing_model.should_use_cached()? {
                     return Ok(model.inner_search());
@@ -151,7 +152,7 @@ impl Metadata for OpenLibraryMetadata {
 
                     for item in found.items {
                         books.push(SearchItem::Book(BookMetadata { // TODO: Move .replace
-                            source: format!("{}:{}", self.get_prefix(), &item.key.replace("/works/", "").replace("/books/", "")).try_into()?,
+                            source: format!("{}:{}", self.get_agent(), &item.key.replace("/works/", "").replace("/books/", "")).try_into()?,
                             title: item.title.clone(),
                             description: None,
                             rating: 0.0,
@@ -169,7 +170,7 @@ impl Metadata for OpenLibraryMetadata {
                     existing_model.update_or_insert(
                         MetadataSearchType::Book,
                         value.to_string(),
-                        self.get_prefix().to_string(),
+                        self.get_agent(),
                         books.len(),
                         DataType::Search(books.clone()),
                         db
