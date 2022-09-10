@@ -223,7 +223,7 @@ impl MetadataReturned {
 
                     Either::Right(author_name) => {
                         // Check if we already have a person by that name anywhere in the two database tables.
-                        if let Some(person) = PersonModel::get_by_name(author_name.trim(), client).await? {
+                        if let Some(person) = PersonModel::find_one_by_name(author_name.trim(), client).await? {
                             person_ids.push(person.id);
 
                             if main_author.is_none() {
@@ -246,7 +246,7 @@ impl MetadataReturned {
                 };
 
                 // Check if we already have a person by that name anywhere in the two database tables.
-                if let Some(person) = PersonModel::get_by_name(author_info.name.trim(), client).await? {
+                if let Some(person) = PersonModel::find_one_by_name(author_info.name.trim(), client).await? {
                     person_ids.push(person.id);
 
                     if main_author.is_none() {
