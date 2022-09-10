@@ -434,9 +434,11 @@ impl FoundImageLocation {
                 .bytes()
                 .await?;
 
-            let model = crate::store_image(resp.to_vec(), db).await?;
+            if resp.len() > 1300 {
+                let model = crate::store_image(resp.to_vec(), db).await?;
 
-            *self = Self::Local(model.path);
+                *self = Self::Local(model.path);
+            }
         }
 
         Ok(())
