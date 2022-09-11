@@ -100,7 +100,7 @@ impl Component for PopupSearch {
                         let resp = request::get_books(
                             None,
                             None,
-                            Some(SearchQuery { query: Some(search.clone()), source: None }),
+                            Some(SearchQuery { query: Some(search.clone()), source: None, order: None, }),
                             None
                         ).await;
 

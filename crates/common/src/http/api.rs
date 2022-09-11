@@ -16,6 +16,31 @@ use crate::{
 };
 
 
+
+#[derive(Serialize, Deserialize, Clone, Copy)]
+pub enum OrderBy {
+    Asc,
+    Desc
+}
+
+impl OrderBy {
+    pub fn into_string(self) -> &'static str {
+        match self {
+            OrderBy::Asc => "ASC",
+            OrderBy::Desc => "DESC",
+        }
+    }
+
+    pub fn from_string(value: &str) -> Option<Self> {
+        match value.to_lowercase().as_str() {
+            "asc" => Some(Self::Asc),
+            "desc" => Some(Self::Desc),
+            _ => None,
+        }
+    }
+}
+
+
 // Searches
 
 // POST /search/{id}
@@ -225,7 +250,7 @@ impl BookListQuery {
             offset,
             limit,
             search,
-            person_id
+            person_id,
         })
     }
 
@@ -235,7 +260,7 @@ impl BookListQuery {
 }
 
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct SearchQuery {
     #[serde(deserialize_with = "des_if_opt_str_not_empty")]
     #[serde(default)]
@@ -243,6 +268,9 @@ pub struct SearchQuery {
     #[serde(deserialize_with = "des_if_opt_str_not_empty")]
     #[serde(default)]
     pub source: Option<String>,
+
+    #[serde(default)]
+    pub order: Option<OrderBy>,
 }
 
 

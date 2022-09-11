@@ -63,6 +63,7 @@ impl Component for NavbarModule {
                         Some(api::SearchQuery {
                             query: Some(value),
                             source: None,
+                            order: None,
                         }),
                         None,
                     ).await)

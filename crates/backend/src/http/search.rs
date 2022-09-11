@@ -1,6 +1,6 @@
 use actix_web::{get, web, HttpRequest};
 use common::api::WrappingResponse;
-use common_local::search::{self, BookSearchResponse, PublicBook};
+use common_local::{search::{self, BookSearchResponse, PublicBook}, api::OrderBy};
 
 use crate::{WebResult, model::{BookModel, ServerLinkModel, NewSearchGroupModel, NewSearchItemServerModel}, http::JsonResponse};
 
@@ -48,6 +48,7 @@ pub async fn public_search(
             Some(&query.query),
             offset,
             limit,
+            OrderBy::Asc,
             !query.view_private,
             None,
             &db,

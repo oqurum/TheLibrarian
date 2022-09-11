@@ -1,8 +1,9 @@
-use common_local::{MetadataItemCached, DisplayMetaItem, util::{serialize_datetime, serialize_datetime_opt, serialize_naivedate_opt}, search::PublicBook};
+use common_local::{MetadataItemCached, DisplayMetaItem, util::{serialize_datetime, serialize_datetime_opt, serialize_naivedate_opt}, search::PublicBook, api::OrderBy};
 use chrono::{DateTime, Utc, NaiveDate};
 use common::{ThumbnailStore, BookId, PersonId};
 use serde::Serialize;
 use tokio_postgres::types::ToSql;
+use std::fmt::Write;
 
 use crate::Result;
 
@@ -227,7 +228,7 @@ impl BookModel {
         ).await?)
     }
 
-    pub async fn get_book_by(offset: usize, limit: usize, _only_public: bool, person_id: Option<PersonId>, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
+    pub async fn get_book_by(offset: usize, limit: usize, order: OrderBy, _only_public: bool, person_id: Option<PersonId>, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
         let inner_query = if let Some(pid) = person_id {
             format!(
                 "WHERE id IN (SELECT book_id FROM book_person WHERE person_id = {})",
@@ -238,7 +239,7 @@ impl BookModel {
         };
 
         let values = db.query(
-            &format!("SELECT * FROM book {} LIMIT $1 OFFSET $2", inner_query),
+            &format!("SELECT * FROM book {} ORDER BY id {} LIMIT $1 OFFSET $2", inner_query, order.into_string()),
             params![ limit as i64, offset as i64 ]
         ).await?;
 
@@ -246,7 +247,7 @@ impl BookModel {
     }
 
 
-    fn gen_search_query(query: Option<&str>, only_public: bool, person_id: Option<PersonId>, parameters: &mut Vec<Box<dyn ToSql + Sync>>) -> Option<String> {
+    fn gen_search_query(query: Option<&str>, only_public: bool, person_id: Option<PersonId>, parameters: &mut Vec<Box<dyn ToSql + Sync>>) -> String {
         let base_param_len = parameters.len();
 
         let mut sql = String::from("SELECT * FROM book WHERE ");
@@ -311,9 +312,9 @@ impl BookModel {
 
         if sql.len() == orig_len {
             // If sql is still unmodified
-            None
+            String::from("SELECT * FROM BOOK ")
         } else {
-            Some(sql)
+            sql
         }
     }
 
@@ -321,6 +322,7 @@ impl BookModel {
         query: Option<&str>,
         offset: usize,
         limit: usize,
+        order: OrderBy,
         only_public: bool,
         person_id: Option<PersonId>,
         db: &tokio_postgres::Client
@@ -330,12 +332,9 @@ impl BookModel {
             Box::new(offset as i64) as Box<dyn ToSql + Sync>
         ];
 
-        let mut sql = match Self::gen_search_query(query, only_public, person_id, &mut parameters) {
-            Some(v) => v,
-            None => return Ok(Vec::new())
-        };
+        let mut sql = Self::gen_search_query(query, only_public, person_id, &mut parameters);
 
-        sql += " LIMIT $1 OFFSET $2";
+        let _ = write!(&mut sql, " ORDER BY id {} LIMIT $1 OFFSET $2", order.into_string());
 
         let values = db.query(
             &sql,
@@ -353,10 +352,7 @@ impl BookModel {
     ) -> Result<usize> {
         let mut parameters = Vec::new();
 
-        let sql = match Self::gen_search_query(query, only_public, person_id, &mut parameters) {
-            Some(v) => v.replace("SELECT *", "SELECT COUNT(*)"),
-            None => return Ok(0)
-        };
+        let sql = Self::gen_search_query(query, only_public, person_id, &mut parameters).replace("SELECT *", "SELECT COUNT(*)");
 
 
         row_bigint_to_usize(db.query_one(&sql, &super::boxed_to_dyn_vec(&parameters)).await?)

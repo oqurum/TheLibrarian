@@ -1,7 +1,7 @@
 use std::{rc::Rc, sync::Mutex};
 
 use common::{BookId, api::WrappingResponse};
-use common_local::{api::{self, NewBookBody}, DisplayItem, SearchType};
+use common_local::{api::{self, NewBookBody, OrderBy}, DisplayItem, SearchType};
 use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
 use web_sys::{HtmlElement, UrlSearchParams, HtmlInputElement};
 use yew::prelude::*;
@@ -400,9 +400,11 @@ fn get_search_query() -> Option<api::SearchQuery> {
 
     let query = search_params.get("query");
     let source = search_params.get("source");
+    let order = search_params.get("order").and_then(|v| OrderBy::from_string(&v));
 
     Some(api::SearchQuery {
         query,
         source,
+        order,
     })
 }

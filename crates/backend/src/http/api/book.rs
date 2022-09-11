@@ -194,6 +194,7 @@ pub async fn load_book_list(
                 search.query.as_deref(),
                 query.offset.unwrap_or(0),
                 query.limit.unwrap_or(50),
+                search.order.unwrap_or(api::OrderBy::Asc),
                 false,
                 query.person_id.map(PersonId::from),
                 &db
@@ -217,6 +218,7 @@ pub async fn load_book_list(
         let items = BookModel::get_book_by(
             query.offset.unwrap_or(0),
             query.limit.unwrap_or(50),
+            api::OrderBy::Asc,
             false,
             query.person_id.map(PersonId::from),
             &db,
