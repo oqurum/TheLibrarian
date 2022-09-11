@@ -125,7 +125,7 @@ impl MetadataSearchModel {
             UPDATE metadata_search SET
                 query = $2,
                 agent = $3,
-                type_of = $4
+                type_of = $4,
                 last_found_amount = $5,
                 data = $6,
                 created_at = $7,
