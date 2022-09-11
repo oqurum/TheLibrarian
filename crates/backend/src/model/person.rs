@@ -153,6 +153,7 @@ impl PersonModel {
         values.into_iter().map(Self::from_row).collect()
     }
 
+    // TODO: Change result to Vec since multiple people can have the same name.
     pub async fn find_one_by_name(value: &str, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         let person = db.query_opt(
             "SELECT * FROM person WHERE name = $1 LIMIT 1",
