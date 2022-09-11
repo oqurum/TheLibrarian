@@ -104,7 +104,7 @@ impl NewPersonModel {
 impl PersonModel {
     pub async fn get_all(offset: usize, limit: usize, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
         let values = db.query(
-            "SELECT * FROM person LIMIT $1 OFFSET $2",
+            "SELECT * FROM person ORDER BY name ASC LIMIT $1 OFFSET $2",
             params![ limit as i64, offset as i64 ]
         ).await?;
 
@@ -139,7 +139,7 @@ impl PersonModel {
         }
 
         let sql = format!(
-            r#"SELECT * FROM person WHERE name ILIKE '%{}%' ESCAPE '{}' LIMIT $1 OFFSET $2"#,
+            r#"SELECT * FROM person WHERE name ILIKE '%{}%' ESCAPE '{}' ORDER BY name ASC LIMIT $1 OFFSET $2"#,
             query.replace('%', &format!("{}%", escape_char)).replace('_', &format!("{}_", escape_char)),
             escape_char
         );
