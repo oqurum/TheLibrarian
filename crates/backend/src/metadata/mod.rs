@@ -316,6 +316,10 @@ impl MetadataReturned {
             }
         }
 
+        if let Some(person) = main_author.as_ref() {
+            self.meta.cached.author_id = Some(person.id);
+        }
+
         Ok((main_author, person_ids))
     }
 }
