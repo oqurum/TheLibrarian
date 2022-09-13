@@ -89,16 +89,18 @@ pub async fn init(config: &Config) -> Result<Client> {
     // Members
     client.execute(
         r#"CREATE TABLE IF NOT EXISTS member (
-            id           SERIAL PRIMARY KEY,
+            id             SERIAL PRIMARY KEY,
 
-            name         TEXT NOT NULL,
-            email        VARCHAR(32),
-            password     VARCHAR(128),
+            name           TEXT NOT NULL,
+            email          VARCHAR(32),
+            password       VARCHAR(128),
 
-            permissions  TEXT NOT NULL,
+            permissions    TEXT NOT NULL,
 
-            created_at   TIMESTAMPTZ NOT NULL,
-            updated_at   TIMESTAMPTZ NOT NULL,
+            localsettings  TEXT,
+
+            created_at     TIMESTAMPTZ NOT NULL,
+            updated_at     TIMESTAMPTZ NOT NULL,
 
             UNIQUE(email)
         );"#,

@@ -16,6 +16,7 @@ lazy_static! {
         email: None,
         password: None,
         permissions: Permissions::empty(),
+        localsettings: None,
         created_at: Utc.timestamp(0, 0),
         updated_at: Utc.timestamp(0, 0),
     };
@@ -28,6 +29,7 @@ pub struct NewMemberModel {
     pub password: Option<String>,
 
     pub permissions: Permissions,
+    pub localsettings: Option<String>,
 
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -42,6 +44,7 @@ pub struct MemberModel {
     pub password: Option<String>,
 
     pub permissions: Permissions,
+    pub localsettings: Option<String>,
 
     #[serde(serialize_with = "serialize_datetime")]
     pub created_at: DateTime<Utc>,
@@ -58,6 +61,7 @@ impl TableRow for MemberModel {
             email: row.next()?,
             password: row.next()?,
             permissions: row.next()?,
+            localsettings: row.next()?,
             created_at: row.next()?,
             updated_at: row.next()?,
         })
@@ -95,6 +99,7 @@ impl NewMemberModel {
             email: self.email,
             password: self.password,
             permissions: self.permissions,
+            localsettings: self.localsettings,
             created_at: self.created_at,
             updated_at: self.updated_at,
         })

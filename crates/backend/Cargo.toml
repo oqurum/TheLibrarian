@@ -52,4 +52,4 @@ url = "2.2"
 
 lettre = "0.10.0-rc.5"
 
-tokio-postgres = "0.7"
+tokio-postgres = { version = "0.7", features = ["with-chrono-0_4"] }
