@@ -67,14 +67,15 @@ impl Component for Model {
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::LoadMemberSelf(member) => {
+                self.has_loaded_member = true;
+
                 match member.ok() {
                     Ok(resp) => {
                         *MEMBER_SELF.lock().unwrap() = resp.member;
-                        self.has_loaded_member = true;
                     }
 
-                    Err(e) => {
-                        self.error = Some(e);
+                    Err(_e) => {
+                        // self.error = Some(e);
                     }
                 }
 
