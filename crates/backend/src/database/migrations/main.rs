@@ -1,23 +1,29 @@
-use crate::{Result, config::Config};
-use tokio_postgres::{connect, NoTls, Client};
+use tokio_postgres::Client;
 
-pub async fn init(config: &Config) -> Result<Client> {
-    let (client, connection) = connect(
-        &config.database.url,
-        NoTls
+use crate::Result;
+
+
+
+
+
+pub async fn init(client: &Client) -> Result<()> {
+    // Migration
+    client.execute(
+        r#"CREATE TABLE migration (
+            id          INT NOT NULL,
+
+            title       TEXT NOT NULL,
+            duration    INT NOT NULL,
+            notes       TEXT NOT NULL,
+
+            created_at  TIMESTAMPTZ NOT NULL
+        );"#,
+        &[]
     ).await?;
-
-    // Initiate Connection
-    tokio::spawn(async move {
-        if let Err(e) = connection.await {
-            panic!("Database Connection Error: {}", e);
-        }
-    });
-
 
     // Book
     client.execute(
-        r#"CREATE TABLE IF NOT EXISTS book (
+        r#"CREATE TABLE book (
             id               SERIAL PRIMARY KEY,
 
             title            TEXT,
@@ -46,7 +52,7 @@ pub async fn init(config: &Config) -> Result<Client> {
 
     // People
     client.execute(
-        r#"CREATE TABLE IF NOT EXISTS person (
+        r#"CREATE TABLE person (
             id            SERIAL PRIMARY KEY,
 
             source        TEXT NOT NULL,
@@ -65,7 +71,7 @@ pub async fn init(config: &Config) -> Result<Client> {
 
     // People Other names
     client.execute(
-        r#"CREATE TABLE IF NOT EXISTS person_alt (
+        r#"CREATE TABLE person_alt (
             person_id   INT references person(id) ON DELETE CASCADE,
 
             name        TEXT NOT NULL,
@@ -77,7 +83,7 @@ pub async fn init(config: &Config) -> Result<Client> {
 
     // Book People
     client.execute(
-        r#"CREATE TABLE IF NOT EXISTS book_person (
+        r#"CREATE TABLE book_person (
             book_id     INT NOT NULL references book(id) ON DELETE CASCADE,
             person_id   INT NOT NULL references person(id) ON DELETE CASCADE,
 
@@ -88,7 +94,7 @@ pub async fn init(config: &Config) -> Result<Client> {
 
     // Members
     client.execute(
-        r#"CREATE TABLE IF NOT EXISTS member (
+        r#"CREATE TABLE member (
             id             SERIAL PRIMARY KEY,
 
             name           TEXT NOT NULL,
@@ -109,7 +115,7 @@ pub async fn init(config: &Config) -> Result<Client> {
 
     // Auths
     client.execute(
-        r#"CREATE TABLE IF NOT EXISTS auth (
+        r#"CREATE TABLE auth (
             oauth_token          TEXT NOT NULL,
             oauth_token_secret   TEXT NOT NULL,
 
@@ -122,7 +128,7 @@ pub async fn init(config: &Config) -> Result<Client> {
 
     // Tags
     client.execute(
-        r#"CREATE TABLE IF NOT EXISTS tag (
+        r#"CREATE TABLE tag (
             id           SERIAL PRIMARY KEY,
 
             name         VARCHAR(32) NOT NULL,
@@ -140,7 +146,7 @@ pub async fn init(config: &Config) -> Result<Client> {
 
     // Book Tags
     client.execute(
-        r#"CREATE TABLE IF NOT EXISTS book_tag (
+        r#"CREATE TABLE book_tag (
             id          SERIAL PRIMARY KEY,
 
             book_id     INT NOT NULL references book(id) ON DELETE CASCADE,
@@ -157,7 +163,7 @@ pub async fn init(config: &Config) -> Result<Client> {
 
     // Uploaded Images
     client.execute(
-        r#"CREATE TABLE IF NOT EXISTS uploaded_image (
+        r#"CREATE TABLE uploaded_image (
             id          SERIAL PRIMARY KEY,
 
             path        TEXT NOT NULL,
@@ -175,7 +181,7 @@ pub async fn init(config: &Config) -> Result<Client> {
 
     // Image Link
     client.execute(
-        r#"CREATE TABLE IF NOT EXISTS image_link (
+        r#"CREATE TABLE image_link (
             "image_id"    INT NOT NULL references uploaded_image(id) ON DELETE CASCADE,
 
             "link_id"     INT NOT NULL,
@@ -189,7 +195,7 @@ pub async fn init(config: &Config) -> Result<Client> {
 
     // Edit
     client.execute(
-        r#"CREATE TABLE IF NOT EXISTS edit (
+        r#"CREATE TABLE edit (
             id           SERIAL PRIMARY KEY,
 
             type_of      SMALLINT NOT NULL,
@@ -214,7 +220,7 @@ pub async fn init(config: &Config) -> Result<Client> {
 
     // Edit Vote
     client.execute(
-        r#"CREATE TABLE IF NOT EXISTS edit_vote (
+        r#"CREATE TABLE edit_vote (
             id          SERIAL PRIMARY KEY,
 
             edit_id     INT NOT NULL references edit(id) ON DELETE CASCADE,
@@ -231,7 +237,7 @@ pub async fn init(config: &Config) -> Result<Client> {
 
     // Edit Comment
     client.execute(
-        r#"CREATE TABLE IF NOT EXISTS edit_comment (
+        r#"CREATE TABLE edit_comment (
             id          SERIAL PRIMARY KEY,
 
             edit_id     INT NOT NULL references edit(id) ON DELETE CASCADE,
@@ -249,7 +255,7 @@ pub async fn init(config: &Config) -> Result<Client> {
 
     // Linked Servers
     client.execute(
-        r#"CREATE TABLE IF NOT EXISTS server_link (
+        r#"CREATE TABLE server_link (
             id                 SERIAL PRIMARY KEY,
 
             server_owner_name  VARCHAR(32),
@@ -272,7 +278,7 @@ pub async fn init(config: &Config) -> Result<Client> {
 
     // Search Groupings
     client.execute(
-        r#"CREATE TABLE IF NOT EXISTS search_group (
+        r#"CREATE TABLE search_group (
             id                SERIAL PRIMARY KEY,
 
             query             TEXT NOT NULL,
@@ -291,7 +297,7 @@ pub async fn init(config: &Config) -> Result<Client> {
 
     // Search Server Item
     client.execute(
-        r#"CREATE TABLE IF NOT EXISTS search_item (
+        r#"CREATE TABLE search_item (
             id              SERIAL PRIMARY KEY,
 
             server_link_id  INT NOT NULL references server_link(id) ON DELETE CASCADE,
@@ -310,7 +316,7 @@ pub async fn init(config: &Config) -> Result<Client> {
 
     // External Metadata Searches
     client.execute(
-        r#"CREATE TABLE IF NOT EXISTS metadata_search (
+        r#"CREATE TABLE metadata_search (
             id                  SERIAL PRIMARY KEY,
 
             query               TEXT NOT NULL,
@@ -329,7 +335,7 @@ pub async fn init(config: &Config) -> Result<Client> {
 
     // Collection
     client.execute(
-        r#"CREATE TABLE IF NOT EXISTS collection (
+        r#"CREATE TABLE collection (
             id            SERIAL PRIMARY KEY,
 
             name          TEXT NOT NULL,
@@ -345,7 +351,7 @@ pub async fn init(config: &Config) -> Result<Client> {
 
     // Collection Item
     client.execute(
-        r#"CREATE TABLE IF NOT EXISTS collection_item (
+        r#"CREATE TABLE collection_item (
             collection_id  INT NOT NULL references collection(id) ON DELETE CASCADE,
             book_id        INT NOT NULL references book(id) ON DELETE CASCADE,
 
@@ -356,11 +362,5 @@ pub async fn init(config: &Config) -> Result<Client> {
         &[]
     ).await?;
 
-
-    // TODO: Tables
-    // Queued External Metadata Searches (prevent continuous searching)
-    // Fingerprints
-    // Custom Book (Fingerprint) Stylings
-
-    Ok(client)
+    Ok(())
 }
