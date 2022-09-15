@@ -1,6 +1,6 @@
 use common_local::{MetadataItemCached, DisplayMetaItem, util::{serialize_datetime, serialize_datetime_opt, serialize_naivedate_opt}, search::PublicBook, api::OrderBy};
 use chrono::{DateTime, Utc, NaiveDate};
-use common::{ThumbnailStore, BookId, PersonId};
+use common::{ThumbnailStore, BookId, PersonId, get_language_id, get_language_name};
 use serde::Serialize;
 use tokio_postgres::types::ToSql;
 use std::fmt::Write;
@@ -32,7 +32,7 @@ pub struct BookModel {
 
     #[serde(serialize_with = "serialize_naivedate_opt")]
     pub available_at: Option<NaiveDate>,
-    pub language: Option<u16>,
+    pub language: u16,
 
     #[serde(serialize_with = "serialize_datetime")]
     pub created_at: DateTime<Utc>,
@@ -60,7 +60,7 @@ impl TableRow for BookModel {
             is_public: row.next()?,
             edition_count: row.next::<i64>()? as usize,
             available_at: row.next_opt()?,
-            language: row.next::<Option<i16>>()?.map(|v| v as u16),
+            language: get_language_id(row.next()?),
             created_at: row.next()?,
             updated_at: row.next()?,
             deleted_at: row.next_opt()?,
@@ -172,7 +172,7 @@ impl BookModel {
                     &self.title, &self.clean_title, &self.description, self.rating, self.thumb_path.as_value(),
                     &self.cached.as_string_optional(), self.is_public, self.edition_count as i64,
                     &self.isbn_10, &self.isbn_13,
-                    &self.available_at, self.language.map(|v| v as i16),
+                    &self.available_at, get_language_name(self.language),
                     self.created_at, self.updated_at, self.deleted_at,
                 ]
             ).await?;
@@ -199,7 +199,7 @@ impl BookModel {
                 &self.title, &self.clean_title, &self.description, &self.rating, self.thumb_path.as_value(),
                 &self.cached.as_string_optional(), self.is_public,
                 &self.isbn_10, &self.isbn_13,
-                &self.available_at, &self.language.map(|v| v as i16),
+                &self.available_at, get_language_name(self.language),
                 &self.updated_at, self.deleted_at,
             ]
         ).await?;

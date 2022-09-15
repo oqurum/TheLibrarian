@@ -41,7 +41,7 @@ pub async fn init(client: &Client) -> Result<()> {
             edition_count    BIGINT NOT NULL,
 
             available_at     DATE,
-            language         SMALLINT,
+            language         TEXT NOT NULL DEFAULT('english'),
 
             created_at       TIMESTAMPTZ,
             updated_at       TIMESTAMPTZ,
@@ -361,6 +361,27 @@ pub async fn init(client: &Client) -> Result<()> {
         );"#,
         &[]
     ).await?;
+
+
+    // Affiliated Book ISBN
+    // client.execute(
+    //     r#"CREATE TABLE IF NOT EXISTS book_isbn (
+    //         id          SERIAL PRIMARY KEY,
+
+    //         book_id     INT NOT NULL references book(id) ON DELETE CASCADE,
+
+    //         isbn_10     CHAR(10) NOT NULL,
+    //         isbn_13     CHAR(13) NOT NULL,
+
+    //         UNIQUE(book_id)
+    //     );"#,
+    //     &[]
+    // ).await?;
+
+
+    // TODO: Tables
+    // Fingerprints
+    // Custom Book (Fingerprint) Stylings
 
     Ok(())
 }

@@ -365,7 +365,7 @@ impl From<BookMetadata> for BookModel {
             updated_at: Utc::now(),
             deleted_at: None,
             available_at: val.available_at,
-            language: val.language,
+            language: val.language.unwrap_or_default(),
         }
     }
 }

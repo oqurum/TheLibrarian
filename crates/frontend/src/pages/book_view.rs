@@ -452,12 +452,11 @@ impl BookView {
                                         type="text"
                                         onchange={Self::on_change_select(ctx.link(), ChangingType::Language)}
                                     >
-                                        <option value="-1" selected={editing.language.or(book_model.language).is_none()}>{ "Unknown" }</option>
                                         {
                                             for LANGUAGES.iter()
                                                 .enumerate()
                                                 .map(|(index, lang)| {
-                                                    let selected = editing.language.or(book_model.language).filter(|v| index as u16 == *v).is_some();
+                                                    let selected = editing.language.unwrap_or(book_model.language) == index as u16;
 
                                                     html! {
                                                         <option

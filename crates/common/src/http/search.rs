@@ -50,7 +50,7 @@ pub struct PublicBook {
 
     #[serde(serialize_with = "serialize_naivedate_opt", deserialize_with = "deserialize_naivedate_opt")]
     pub available_at: Option<NaiveDate>,
-    pub language: Option<u16>,
+    pub language: u16,
 
     #[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]
     pub created_at: DateTime<Utc>,

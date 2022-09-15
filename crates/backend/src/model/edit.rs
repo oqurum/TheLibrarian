@@ -370,7 +370,7 @@ pub fn new_edit_data_from_book(current: BookModel, updated: BookEdit) -> EditDat
     let (isbn_13_old, isbn_13) = edit_translate::cmp_opt_string(current.isbn_13, updated.isbn_13);
     let (is_public_old, is_public) = edit_translate::cmp_opt_bool(Some(current.is_public), updated.is_public);
     let (available_at_old, available_at) = edit_translate::cmp_opt_partial_eq(current.available_at.map(|v| v.and_hms(0, 0, 0).timestamp()), updated.available_at);
-    let (language_old, language) = edit_translate::cmp_opt_partial_eq(current.language, updated.language);
+    let (language_old, language) = edit_translate::cmp_opt_partial_eq(Some(current.language), updated.language);
 
     let new = BookEdit {
         title,
@@ -453,7 +453,7 @@ pub async fn accept_register_book_data_overwrites(
     cmp_opt_old_and_new_return(&mut book_edits.isbn_10, &mut book_model.isbn_10, old.isbn_10, new.isbn_10);
     cmp_opt_old_and_new_return(&mut book_edits.isbn_13, &mut book_model.isbn_13, old.isbn_13, new.isbn_13);
     cmp_opt_old_and_new_return(&mut book_edits.available_at, &mut book_model.available_at.map(|v| v.and_hms(0, 0, 0).timestamp()), old.available_at, new.available_at);
-    cmp_opt_old_and_new_return(&mut book_edits.language, &mut book_model.language, old.language, new.language);
+    cmp_old_and_new_return(&mut book_edits.language, &mut book_model.language, old.language, new.language);
     cmp_old_and_new_return(&mut book_edits.rating, &mut book_model.rating, old.rating, new.rating);
     cmp_old_and_new_return(&mut book_edits.is_public, &mut book_model.is_public, old.is_public, new.is_public);
     // TODO: publisher
