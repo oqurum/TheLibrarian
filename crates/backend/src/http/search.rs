@@ -2,7 +2,7 @@ use actix_web::{get, web, HttpRequest};
 use common::{api::{WrappingResponse, QueryListResponse, librarian::{GetSearchQuery, PublicSearchResponse, PublicSearchType}}, BookId, PersonId};
 use common_local::api::OrderBy;
 
-use crate::{WebResult, model::{BookModel, ServerLinkModel, NewSearchGroupModel, NewSearchItemServerModel, PersonModel}, Error};
+use crate::{WebResult, model::{BookModel, ServerLinkModel, NewSearchGroupModel, NewSearchItemServerModel, PersonModel, PersonAltModel}, Error};
 
 
 
@@ -111,11 +111,18 @@ pub async fn public_search_author(
     if query.query.starts_with(ID_CHECK) && query.query.len() > 3 {
         let book_id = PersonId::from(query.query[ID_CHECK.len()..].parse::<usize>().map_err(Error::from)?);
 
-        let model = PersonModel::get_by_id(book_id, &db).await?;
+        if let Some(model) = PersonModel::get_by_id(book_id, &db).await? {
+            let other_names = PersonAltModel::find_all_by_person_id(model.id, &db).await?
+                .into_iter()
+                .map(|v| v.name)
+                .collect();
 
-        Ok(web::Json(WrappingResponse::okay(
-            PublicSearchType::AuthorItem(model.map(|v| v.into_public_author(&host)))
-        )))
+            Ok(web::Json(WrappingResponse::okay(
+                PublicSearchType::AuthorItem(Some(model.into_public_author(&host, other_names)))
+            )))
+        } else {
+            Ok(web::Json(WrappingResponse::okay(PublicSearchType::AuthorItem(None))))
+        }
     } else {
         let offset = query.offset.unwrap_or(0);
         let limit = query.limit.unwrap_or(25);
@@ -155,7 +162,7 @@ pub async fn public_search_author(
             limit,
             total,
             items: items.into_iter()
-                .map(|v| v.into_public_author(&host))
+                .map(|v| v.into_public_author(&host, Vec::new()))
                 .collect()
         }))))
     }

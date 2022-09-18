@@ -41,7 +41,16 @@ impl PersonAltModel {
     }
 
 
-    pub async fn get_by_name(value: &str, db: &Client) -> Result<Option<PersonAltModel>> {
+    pub async fn find_all_by_person_id(id: PersonId, db: &Client) -> Result<Vec<Self>> {
+        let query = db.query(
+            "SELECT * FROM person_alt WHERE person_id = $1",
+            params![ *id as i32 ],
+        ).await?;
+
+        query.into_iter().map(Self::from_row).collect()
+    }
+
+    pub async fn get_by_name(value: &str, db: &Client) -> Result<Option<Self>> {
         db.query_opt(
             "SELECT * FROM person_alt WHERE name = $1",
             params![ value ],

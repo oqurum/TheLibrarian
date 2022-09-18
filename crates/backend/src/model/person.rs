@@ -102,8 +102,10 @@ impl NewPersonModel {
 
 
 impl PersonModel {
-    pub fn into_public_author(self, host: &str) -> PublicAuthor {
+    pub fn into_public_author(self, host: &str, other_names: Vec<String>) -> PublicAuthor {
         PublicAuthor {
+            other_names,
+
             id: *self.id,
             name: self.name,
             description: self.description,
