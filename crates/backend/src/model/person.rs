@@ -138,54 +138,35 @@ impl PersonModel {
     }
 
     pub async fn search_count(query: &str, db: &tokio_postgres::Client) -> Result<usize> {
-        let mut escape_char = '\\';
-
-        // Change our escape character if it's in the query.
-        if query.contains(escape_char) {
-            for car in [ '!', '@', '#', '$', '^', '&', '*', '-', '=', '+', '|', '~', '`', '/', '?', '>', '<', ',' ] {
-                if !query.contains(car) {
-                    escape_char = car;
-                    break;
-                }
-            }
-        }
-
-        let sql = format!(
-            r#"SELECT COUNT(*) FROM person WHERE name ILIKE '%{}%' ESCAPE '{}' ORDER BY name ASC LIMIT $1 OFFSET $2"#,
-            query.replace('%', &format!("{}%", escape_char)).replace('_', &format!("{}_", escape_char)),
-            escape_char
-        );
+        let statement = r#"
+            SELECT COUNT(*)
+            FROM person
+            WHERE
+                to_tsvector('english', person.name)
+                @@ websearch_to_tsquery('english', $1)
+        "#;
 
         row_bigint_to_usize(db.query_one(
-            &sql,
-            &[]
+            statement,
+            params![ query ]
         ).await?)
     }
 
-    // TODO: Improve
     pub async fn search(query: &str, offset: usize, limit: usize, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
-        let mut escape_char = '\\';
-
-        // Change our escape character if it's in the query.
-        if query.contains(escape_char) {
-            for car in [ '!', '@', '#', '$', '^', '&', '*', '-', '=', '+', '|', '~', '`', '/', '?', '>', '<', ',' ] {
-                if !query.contains(car) {
-                    escape_char = car;
-                    break;
-                }
-            }
-        }
-
-        let sql = format!(
-            r#"SELECT * FROM person WHERE name ILIKE '%{}%' ESCAPE '{}' ORDER BY name ASC LIMIT $1 OFFSET $2"#,
-            query.replace('%', &format!("{}%", escape_char)).replace('_', &format!("{}_", escape_char)),
-            escape_char
-        );
+        let statement = r#"
+            SELECT *
+            FROM person
+            WHERE
+                to_tsvector('english', person.name)
+                @@ websearch_to_tsquery('english', $1)
+            ORDER BY name ASC
+            LIMIT $2 OFFSET $3
+        "#;
 
 
         let values = db.query(
-            &sql,
-            params![ limit as i64, offset as i64 ]
+            statement,
+            params![ query, limit as i64, offset as i64 ]
         ).await?;
 
         values.into_iter().map(Self::from_row).collect()
