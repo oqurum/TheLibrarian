@@ -1,6 +1,6 @@
-use common_local::{MetadataItemCached, DisplayMetaItem, util::{serialize_datetime, serialize_datetime_opt, serialize_naivedate_opt}, search::PublicBook, api::OrderBy};
+use common_local::{MetadataItemCached, DisplayMetaItem, util::{serialize_datetime, serialize_datetime_opt, serialize_naivedate_opt}, api::OrderBy};
 use chrono::{DateTime, Utc, NaiveDate};
-use common::{ThumbnailStore, BookId, PersonId, get_language_id, get_language_name};
+use common::{ThumbnailStore, BookId, PersonId, get_language_id, get_language_name, api::librarian::PublicBook};
 use serde::Serialize;
 use tokio_postgres::types::ToSql;
 use std::fmt::Write;
@@ -115,7 +115,7 @@ impl From<DisplayMetaItem> for BookModel {
     }
 }
 
-#[allow(clippy::from_over_into)]
+// TODO: Replace with normal fn
 impl Into<PublicBook> for BookModel {
     fn into(self) -> PublicBook {
         PublicBook {
@@ -126,7 +126,8 @@ impl Into<PublicBook> for BookModel {
             rating: self.rating,
             // We create the thumb_url in the actix request.
             thumb_url: String::new(),
-            cached: self.cached,
+            author_id: self.cached.author_id,
+            publisher: self.cached.publisher,
             isbn_10: self.isbn_10,
             isbn_13: self.isbn_13,
             is_public: self.is_public,
