@@ -265,22 +265,7 @@ impl BookModel {
 
         // Query
 
-        if let Some(orig_query) = query.as_ref() {
-            // Used to escape percentages
-            let mut escape_char = '\\';
-            // Change our escape character if it's in the query.
-            if orig_query.contains(escape_char) {
-                for car in [ '!', '@', '#', '$', '^', '&', '*', '-', '=', '+', '|', '~', '`', '/', '?', '>', '<', ',' ] {
-                    if !orig_query.contains(car) {
-                        escape_char = car;
-                        break;
-                    }
-                }
-            }
-
-            let query = orig_query.replace('%', &format!("{}%", escape_char))
-                .replace('_', &format!("{}_", escape_char));
-
+        if let Some(orig_query) = query {
             // TODO: Seperate from here.
             // Check for possible isbn.
             let isbn = if let Some(isbn) = common::parse_book_id(orig_query).into_possible_isbn_value() {
@@ -289,9 +274,13 @@ impl BookModel {
                 String::new()
             };
 
-            // TODO: Utilize title > clean_title > description, and sort
-            sql_queries.push(format!("title ILIKE ?? ESCAPE '{escape_char}'{isbn}"));
-            parameters.push(Box::new(format!("%{}%", &query)) as Box<dyn ToSql + Sync>);
+            // TODO: Utilize isbn > title > clean_title > description, and sort
+            sql_queries.push(format!(r#"
+                to_tsvector(book.language::regconfig, CONCAT(book.title, ' ', book.cached))
+                    @@ websearch_to_tsquery(book.language::regconfig, ??)
+                {isbn}
+            "#));
+            parameters.push(Box::new(orig_query.to_string()) as Box<dyn ToSql + Sync>);
         }
 
 
