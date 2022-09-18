@@ -1,6 +1,6 @@
 use common_local::{Person, util::{serialize_datetime, serialize_naivedate_opt}};
 use chrono::{DateTime, Utc, NaiveDate};
-use common::{BookId, PersonId, Source, ThumbnailStore};
+use common::{BookId, PersonId, Source, ThumbnailStore, api::librarian::PublicAuthor};
 use serde::Serialize;
 
 use crate::Result;
@@ -102,6 +102,18 @@ impl NewPersonModel {
 
 
 impl PersonModel {
+    pub fn into_public_author(self, host: &str) -> PublicAuthor {
+        PublicAuthor {
+            id: *self.id,
+            name: self.name,
+            description: self.description,
+            birth_date: self.birth_date,
+            thumb_url: format!("{}/api/v1/image/{}", host, self.thumb_url.as_value().unwrap()),
+            updated_at: self.updated_at,
+            created_at: self.created_at,
+        }
+    }
+
     pub async fn get_all(offset: usize, limit: usize, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
         let values = db.query(
             "SELECT * FROM person ORDER BY name ASC LIMIT $1 OFFSET $2",
@@ -125,6 +137,32 @@ impl PersonModel {
         values.into_iter().map(Self::from_row).collect()
     }
 
+    pub async fn search_count(query: &str, db: &tokio_postgres::Client) -> Result<usize> {
+        let mut escape_char = '\\';
+
+        // Change our escape character if it's in the query.
+        if query.contains(escape_char) {
+            for car in [ '!', '@', '#', '$', '^', '&', '*', '-', '=', '+', '|', '~', '`', '/', '?', '>', '<', ',' ] {
+                if !query.contains(car) {
+                    escape_char = car;
+                    break;
+                }
+            }
+        }
+
+        let sql = format!(
+            r#"SELECT COUNT(*) FROM person WHERE name ILIKE '%{}%' ESCAPE '{}' ORDER BY name ASC LIMIT $1 OFFSET $2"#,
+            query.replace('%', &format!("{}%", escape_char)).replace('_', &format!("{}_", escape_char)),
+            escape_char
+        );
+
+        row_bigint_to_usize(db.query_one(
+            &sql,
+            &[]
+        ).await?)
+    }
+
+    // TODO: Improve
     pub async fn search(query: &str, offset: usize, limit: usize, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
         let mut escape_char = '\\';
 

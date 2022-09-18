@@ -45,7 +45,8 @@ pub async fn register_http_service(cli_args: &CliArgs, db_data: web::Data<tokio_
                     .same_site(SameSite::Strict)
             ))
 
-            .service(search::public_search)
+            .service(search::public_search_book)
+            .service(search::public_search_author)
 
             // API
             .service(api_route())
