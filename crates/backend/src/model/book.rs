@@ -1,6 +1,6 @@
 use common_local::{MetadataItemCached, DisplayMetaItem, util::{serialize_datetime, serialize_datetime_opt, serialize_naivedate_opt}, api::OrderBy};
 use chrono::{DateTime, Utc, NaiveDate};
-use common::{ThumbnailStore, BookId, PersonId, get_language_id, get_language_name, api::librarian::PublicBook};
+use common::{ThumbnailStore, BookId, PersonId, get_language_id, get_language_name, api::librarian::{PublicBook, PartialBook}};
 use serde::Serialize;
 use tokio_postgres::types::ToSql;
 use std::fmt::Write;
@@ -115,17 +115,16 @@ impl From<DisplayMetaItem> for BookModel {
     }
 }
 
-// TODO: Replace with normal fn
-impl Into<PublicBook> for BookModel {
-    fn into(self) -> PublicBook {
+
+impl BookModel {
+    pub fn into_public_book(self, host: &str) -> PublicBook {
         PublicBook {
             id: *self.id,
             title: self.title,
             clean_title: self.clean_title,
             description: self.description,
             rating: self.rating,
-            // We create the thumb_url in the actix request.
-            thumb_url: String::new(),
+            thumb_url: format!("{}/api/v1/image/{}", host, self.thumb_path.as_value().unwrap()),
             author_id: self.cached.author_id,
             publisher: self.cached.publisher,
             isbn_10: self.isbn_10,
@@ -139,10 +138,22 @@ impl Into<PublicBook> for BookModel {
             deleted_at: self.deleted_at,
         }
     }
-}
 
+    pub fn into_partial_book(self, host: &str) -> PartialBook {
+        PartialBook {
+            id: *self.id,
+            title: self.title,
+            description: self.description,
+            rating: self.rating,
+            thumb_url: format!("{}/api/v1/image/{}", host, self.thumb_path.as_value().unwrap()),
+            isbn_10: self.isbn_10,
+            isbn_13: self.isbn_13,
+            is_public: self.is_public,
+            available_at: self.available_at,
+            language: self.language,
+        }
+    }
 
-impl BookModel {
     pub async fn get_book_count(db: &tokio_postgres::Client) -> Result<usize> {
         row_bigint_to_usize(db.query_one(r#"SELECT COUNT(*) FROM book"#, &[]).await?)
     }

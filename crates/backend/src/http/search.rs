@@ -1,19 +1,19 @@
 use actix_web::{get, web, HttpRequest};
-use common::{api::{WrappingResponse, QueryListResponse, librarian::{GetSearchQuery, BookSearchResponse, PublicBook}}, BookId, Either};
+use common::{api::{WrappingResponse, QueryListResponse, librarian::{GetSearchQuery, PublicSearchResponse, PublicSearchType}}, BookId};
 use common_local::api::OrderBy;
 
 use crate::{WebResult, model::{BookModel, ServerLinkModel, NewSearchGroupModel, NewSearchItemServerModel}, Error};
 
 
-// TODO: Author Search
 
-
-#[get("/search")]
+#[get("/search/book")]
 pub async fn public_search(
     req: HttpRequest,
     query: web::Query<GetSearchQuery>,
     db: web::Data<tokio_postgres::Client>,
-) -> WebResult<web::Json<BookSearchResponse>> {
+) -> WebResult<web::Json<PublicSearchResponse>> {
+    const BOOK_ID_CHECK: &str = "id:";
+
     let sever_link_model = match ServerLinkModel::get_by_server_id(&query.server_id, &db).await? {
         Some(v) => v,
         None => return Ok(web::Json(WrappingResponse::error("Invalid Server ID"))),
@@ -21,26 +21,13 @@ pub async fn public_search(
 
     let host = format!("//{}", req.headers().get("host").unwrap().to_str().unwrap());
 
-
-    if query.query.starts_with("id:") && query.query.len() > 3 {
-        let book_id = BookId::from(query.query[3..].parse::<usize>().map_err(Error::from)?);
+    if query.query.starts_with(BOOK_ID_CHECK) && query.query.len() > 3 {
+        let book_id = BookId::from(query.query[BOOK_ID_CHECK.len()..].parse::<usize>().map_err(Error::from)?);
 
         let model = BookModel::get_by_id(book_id, &db).await?;
 
         Ok(web::Json(WrappingResponse::okay(
-            Either::Right(model.map(|v| {
-                let id = v.thumb_path.as_value().unwrap().to_string();
-
-                let mut book: PublicBook = v.into();
-
-                book.thumb_url = format!(
-                    "{}/api/v1/image/{}",
-                    &host,
-                    id
-                );
-
-                book
-            }))
+            PublicSearchType::BookItem(model.map(|v| v.into_public_book(&host)))
         )))
     } else {
         let offset = query.offset.unwrap_or(0);
@@ -81,24 +68,12 @@ pub async fn public_search(
             Vec::new()
         };
 
-        Ok(web::Json(WrappingResponse::okay(Either::Left(QueryListResponse {
+        Ok(web::Json(WrappingResponse::okay(PublicSearchType::BookList(QueryListResponse {
             offset,
             limit,
             total,
             items: items.into_iter()
-                .map(|v| {
-                    let id = v.thumb_path.as_value().unwrap().to_string();
-
-                    let mut book: PublicBook = v.into();
-
-                    book.thumb_url = format!(
-                        "{}/api/v1/image/{}",
-                        &host,
-                        id
-                    );
-
-                    book
-                })
+                .map(|v| v.into_partial_book(&host))
                 .collect()
         }))))
     }
