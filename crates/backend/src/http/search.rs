@@ -24,11 +24,21 @@ pub async fn public_search_book(
     if query.query.starts_with(ID_CHECK) && query.query.len() > 3 {
         let book_id = BookId::from(query.query[ID_CHECK.len()..].parse::<usize>().map_err(Error::from)?);
 
-        let model = BookModel::get_by_id(book_id, &db).await?;
+        if let Some(model) = BookModel::get_by_id(book_id, &db).await? {
+            let author_ids = PersonModel::get_all_by_book_id(book_id, &db).await?
+                .into_iter()
+                .map(|v| *v.id)
+                .collect();
 
-        Ok(web::Json(WrappingResponse::okay(
-            PublicSearchType::BookItem(model.map(|v| v.into_public_book(&host)))
-        )))
+            Ok(web::Json(WrappingResponse::okay(
+                PublicSearchType::BookItem(Some(model.into_public_book(
+                    &host,
+                    author_ids
+                )))
+            )))
+        } else {
+            Ok(web::Json(WrappingResponse::okay(PublicSearchType::BookItem(None))))
+        }
     } else {
         let offset = query.offset.unwrap_or(0);
         let limit = query.limit.unwrap_or(25);

@@ -117,15 +117,17 @@ impl From<DisplayMetaItem> for BookModel {
 
 
 impl BookModel {
-    pub fn into_public_book(self, host: &str) -> PublicBook {
+    pub fn into_public_book(self, host: &str, author_ids: Vec<usize>) -> PublicBook {
         PublicBook {
+            author_ids,
+
             id: *self.id,
             title: self.title,
             clean_title: self.clean_title,
             description: self.description,
             rating: self.rating,
             thumb_url: format!("{}/api/v1/image/{}", host, self.thumb_path.as_value().unwrap()),
-            author_id: self.cached.author_id,
+            display_author_id: self.cached.author_id.map(|v| *v),
             publisher: self.cached.publisher,
             isbn_10: self.isbn_10,
             isbn_13: self.isbn_13,
