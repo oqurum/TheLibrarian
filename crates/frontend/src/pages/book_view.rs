@@ -15,7 +15,7 @@ use web_sys::{HtmlInputElement, HtmlTextAreaElement, HtmlSelectElement};
 use yew::{prelude::*, html::Scope};
 
 use crate::{
-    components::{LoginBarrier, PopupEditMetadata, PopupSearch, popup::{SearchBy, search::SearchSelectedValue}},
+    components::{LoginBarrier, PopupEditMetadata, PopupSearch, PopupSearchPerson, popup::{SearchBy, search::SearchSelectedValue, search_person::SearchSelectedValue as PersonSearchSelectedValue}},
     request
 };
 
@@ -652,7 +652,7 @@ impl BookView {
                             <h2>{ "People" }</h2>
                             <div class="authors-container">
                                 <div class="person-item new-container" title="Add Person">
-                                    <span class="material-icons">{ "add" }</span>
+                                    <span class="material-icons" onclick={ ctx.link().callback(|_| Msg::ShowPopup(DisplayOverlay::AddAuthor)) }>{ "add" }</span>
                                 </div>
 
                                 {
@@ -751,6 +751,29 @@ impl BookView {
                                                         Either::Right(book) => Box::new(book),
                                                     }
                                                 ))
+                                            }) }
+                                        />
+                                    }
+                                }
+
+                                DisplayOverlay::AddAuthor => {
+                                    html! {
+                                        <PopupSearchPerson
+                                            type_of={ SearchBy::Local }
+                                            on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
+                                            on_select={ ctx.link().callback_future(move |value: PersonSearchSelectedValue| async move {
+                                                if let PersonSearchSelectedValue::PersonId(id) = value {
+                                                    request::update_book(
+                                                        book_id,
+                                                        &BookEdit {
+                                                            added_people: Some(vec![id]),
+
+                                                            .. Default::default()
+                                                        }
+                                                    ).await;
+                                                }
+
+                                                Msg::Ignore
                                             }) }
                                         />
                                     }
@@ -984,6 +1007,29 @@ impl BookView {
                                         />
                                     }
                                 }
+
+                                DisplayOverlay::AddAuthor => {
+                                    html! {
+                                        <PopupSearchPerson
+                                            type_of={ SearchBy::Local }
+                                            on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
+                                            on_select={ ctx.link().callback_future(move |value: PersonSearchSelectedValue| async move {
+                                                if let PersonSearchSelectedValue::PersonId(id) = value {
+                                                    request::update_book(
+                                                        book_id,
+                                                        &BookEdit {
+                                                            added_people: Some(vec![id]),
+
+                                                            .. Default::default()
+                                                        }
+                                                    ).await;
+                                                }
+
+                                                Msg::Ignore
+                                            }) }
+                                        />
+                                    }
+                                }
                             }
                         } else {
                             html! {}
@@ -1067,6 +1113,8 @@ pub enum DisplayOverlay {
     SearchForBook {
         input_value: Option<String>,
     },
+
+    AddAuthor,
 }
 
 impl PartialEq for DisplayOverlay {

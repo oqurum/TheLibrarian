@@ -221,6 +221,9 @@ mod book_edit {
         pub language: bool,
 
         #[serde(default, skip_serializing_if = "is_false")]
+        pub added_people: bool,
+
+        #[serde(default, skip_serializing_if = "is_false")]
         pub publisher: bool,
     }
 
@@ -236,7 +239,8 @@ mod book_edit {
             !self.is_public &&
             !self.available_at &&
             !self.language &&
-            !self.publisher
+            !self.publisher &&
+            !self.added_people
         }
     }
 

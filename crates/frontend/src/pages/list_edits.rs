@@ -385,6 +385,7 @@ impl EditListPage {
                 { Self::display_row("Is Public", &new_data.is_public, &old_data.is_public, current.map(|v| &v.is_public), updated.is_public, status, operation) }
                 { Self::display_row("Available At", &new_data.available_at, &old_data.available_at, current.and_then(|v| v.available_at.map(|v| v.and_hms(0, 0, 0).timestamp())).as_ref(), updated.available_at, status, operation) }
                 { Self::display_row("Language", &new_data.language, &old_data.language, current.map(|v| &v.language), updated.language, status, operation) }
+                { Self::display_row_array("Added People", &new_data.added_people, &old_data.added_people, None, updated.added_people, status, operation) }
                 // { Self::display_row("Publisher", &new_data.publisher, &old_data.publisher, current.and_then(|v| v.publisher.as_ref())) }
 
                 // TODO: People, Tags, Images
@@ -449,6 +450,87 @@ impl EditListPage {
                                         <div class="row-grow">
                                             <div class="label green">{ new_value.clone() }</div>
                                         </div>
+                                    }
+                                }
+                            }
+                        </div>
+                    }
+                } else {
+                    html! {}
+                }
+            }
+
+            // EditOperation::Create => html! {},
+            // EditOperation::Delete => html! {},
+            // EditOperation::Merge => html! {},
+
+            _ => html! { <div class="comparison-row"><div class="row-title"><span>{ "Unimplemented Operation" }</span></div></div> }
+        }
+    }
+
+    fn display_row_array<V: Clone + Default + PartialEq + fmt::Display + fmt::Debug>(
+        title: &'static str,
+        new_data: &Option<Vec<V>>,
+        old_data: &Option<Vec<V>>,
+        current: Option<&Vec<V>>,
+        is_updated: bool,
+        status: EditStatus,
+        operation: EditOperation,
+    ) -> Html {
+        match operation {
+            EditOperation::Modify => {
+                if let Some((new_value, old_value)) = determine_new_old(new_data, old_data) {
+                    html! {
+                        <div class="comparison-row">
+                            <div class="row-title"><span>{ title }</span></div>
+                            // Old Value
+                            {
+                                if let Some(val) = old_value {
+                                    html! {
+                                        for val.iter()
+                                            .map(|val| html! {
+                                                <div class="row-grow"><div class="label red">{ val }</div></div>
+                                            })
+                                    }
+                                } else {
+                                    html! {
+                                        <div class="row-grow"><div class="label red">{ "(Empty)" }</div></div>
+                                    }
+                                }
+                            }
+
+                            // New Value
+                            {
+                                if status.is_accepted() && is_updated {
+                                    html! {
+                                        for new_value.iter()
+                                            .map(|val| html! {
+                                                <div class="row-grow">
+                                                    <div class="label green" title={ "Updated Model with value." }>
+                                                        { val.clone() }
+                                                    </div>
+                                                </div>
+                                            })
+                                    }
+                                } else if current.is_some() && current != old_value.as_ref() {
+                                    html! {
+                                        for new_value.iter()
+                                            .map(|val| html! {
+                                                <div class="row-grow">
+                                                    <div class="label yellow" title={ "Current Model has a different value than wanted. It'll not be used if approved." }>
+                                                        { val.clone() }
+                                                    </div>
+                                                </div>
+                                            })
+                                    }
+                                } else {
+                                    html! {
+                                        for new_value.iter()
+                                            .map(|val| html! {
+                                                <div class="row-grow">
+                                                    <div class="label green">{ val.clone() }</div>
+                                                </div>
+                                            })
                                     }
                                 }
                             }

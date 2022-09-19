@@ -92,7 +92,7 @@ impl TableRow for EditModel {
 
 
 impl NewEditModel {
-    pub fn from_book_modify(member_id: MemberId, current: BookModel, updated: BookEdit) -> Result<Self> {
+    pub async fn from_book_modify(member_id: MemberId, current: BookModel, updated: BookEdit, db: &tokio_postgres::Client) -> Result<Self> {
         let now = Utc::now();
 
         Ok(Self {
@@ -103,7 +103,7 @@ impl NewEditModel {
             model_id: Some(*current.id),
             is_applied: false,
             vote_count: 0,
-            data: convert_data_to_string(EditType::Book, &new_edit_data_from_book(current, updated))?,
+            data: convert_data_to_string(EditType::Book, &new_edit_data_from_book(current, updated, db).await?)?,
             ended_at: None,
             expires_at: Some(now + Duration::days(7)),
             created_at: now,
@@ -359,8 +359,17 @@ impl EditModel {
 }
 
 
-pub fn new_edit_data_from_book(current: BookModel, updated: BookEdit) -> EditData {
+pub async fn new_edit_data_from_book(current: BookModel, updated: BookEdit, db: &tokio_postgres::Client) -> Result<EditData> {
     // TODO: Cleaner, less complicated way?
+
+    let current_people = if updated.added_people.is_some() {
+        Some(BookPersonModel::get_all_by_book_id(current.id, db).await?
+            .into_iter()
+            .map(|v| v.person_id)
+            .collect())
+    } else {
+        None
+    };
 
     let (title_old, title) = edit_translate::cmp_opt_string(current.title, updated.title);
     let (clean_title_old, clean_title) = edit_translate::cmp_opt_string(current.clean_title, updated.clean_title);
@@ -371,6 +380,7 @@ pub fn new_edit_data_from_book(current: BookModel, updated: BookEdit) -> EditDat
     let (is_public_old, is_public) = edit_translate::cmp_opt_bool(Some(current.is_public), updated.is_public);
     let (available_at_old, available_at) = edit_translate::cmp_opt_partial_eq(current.available_at.map(|v| v.and_hms(0, 0, 0).timestamp()), updated.available_at);
     let (language_old, language) = edit_translate::cmp_opt_partial_eq(Some(current.language), updated.language);
+    let (added_people_old, added_people) = edit_translate::cmp_opt_partial_eq(current_people, updated.added_people);
 
     let new = BookEdit {
         title,
@@ -383,7 +393,7 @@ pub fn new_edit_data_from_book(current: BookModel, updated: BookEdit) -> EditDat
         available_at,
         language,
         publisher: None, // TODO
-        added_people: None,
+        added_people,
         removed_people: None,
         added_tags: None,
         removed_tags: None,
@@ -402,7 +412,7 @@ pub fn new_edit_data_from_book(current: BookModel, updated: BookEdit) -> EditDat
         available_at: available_at_old,
         language: language_old,
         publisher: None,
-        added_people: None,
+        added_people: added_people_old,
         removed_people: None,
         added_tags: None,
         removed_tags: None,
@@ -410,12 +420,12 @@ pub fn new_edit_data_from_book(current: BookModel, updated: BookEdit) -> EditDat
         removed_images: None,
     };
 
-    EditData::Book(BookEditData {
+    Ok(EditData::Book(BookEditData {
         current: None,
         new: Some(new).filter(|v| !v.is_empty()),
         old: Some(old).filter(|v| !v.is_empty()),
         updated: None,
-    })
+    }))
 }
 
 
