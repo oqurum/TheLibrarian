@@ -1,4 +1,4 @@
-use common_local::{MetadataItemCached, DisplayMetaItem, util::{serialize_datetime, serialize_datetime_opt, serialize_naivedate_opt}, api::OrderBy};
+use common_local::{MetadataItemCached, DisplayMetaItem, util::{serialize_datetime, serialize_datetime_opt, serialize_naivedate_opt}, api::{OrderBy, QueryType}};
 use chrono::{DateTime, Utc, NaiveDate};
 use common::{ThumbnailStore, BookId, PersonId, get_language_id, get_language_name, api::librarian::{PublicBook, PartialBook}};
 use serde::Serialize;
@@ -261,7 +261,7 @@ impl BookModel {
     }
 
 
-    fn gen_search_query(query: Option<&str>, only_public: bool, person_id: Option<PersonId>, parameters: &mut Vec<Box<dyn ToSql + Sync>>) -> String {
+    fn gen_search_query(qt: &QueryType, only_public: bool, parameters: &mut Vec<Box<dyn ToSql + Sync>>) -> String {
         let base_param_len = parameters.len();
 
         let mut sql = String::from("SELECT * FROM book WHERE ");
@@ -278,31 +278,38 @@ impl BookModel {
 
 
         // Query
+        match qt {
+            QueryType::Query(orig_query) => {
+                // TODO: Separate from here.
+                // Check for possible isbn.
+                let isbn = if let Some(isbn) = common::parse_book_id(orig_query).into_possible_isbn_value() {
+                    format!(" OR isbn_10 = {isbn} OR isbn_13 = {isbn}")
+                } else {
+                    String::new()
+                };
 
-        if let Some(orig_query) = query {
-            // TODO: Seperate from here.
-            // Check for possible isbn.
-            let isbn = if let Some(isbn) = common::parse_book_id(orig_query).into_possible_isbn_value() {
-                format!(" OR isbn_10 = {isbn} OR isbn_13 = {isbn}")
-            } else {
-                String::new()
-            };
+                // TODO: Utilize isbn > title > clean_title > description, and sort
+                sql_queries.push(format!(r#"
+                    to_tsvector(book.language::regconfig, CONCAT(book.title, ' ', book.cached))
+                        @@ websearch_to_tsquery(book.language::regconfig, ??)
+                    {isbn}
+                "#));
+                parameters.push(Box::new(orig_query.to_string()) as Box<dyn ToSql + Sync>);
+            }
 
-            // TODO: Utilize isbn > title > clean_title > description, and sort
-            sql_queries.push(format!(r#"
-                to_tsvector(book.language::regconfig, CONCAT(book.title, ' ', book.cached))
-                    @@ websearch_to_tsquery(book.language::regconfig, ??)
-                {isbn}
-            "#));
-            parameters.push(Box::new(orig_query.to_string()) as Box<dyn ToSql + Sync>);
-        }
+            // Search with specific person
+            &QueryType::Person(pid) => {
+                sql_queries.push("id IN (SELECT book_id FROM book_person WHERE person_id = ??)".to_string());
+                parameters.push(Box::new(*pid as i32) as Box<dyn ToSql + Sync>);
+            }
 
-
-        // Search with specific person
-
-        if let Some(pid) = person_id {
-            sql_queries.push("id IN (SELECT book_id FROM book_person WHERE person_id = ??)".to_string());
-            parameters.push(Box::new(*pid as i32) as Box<dyn ToSql + Sync>);
+            &QueryType::HasPerson(exists) => {
+                if exists {
+                    sql_queries.push(String::from("id IN (SELECT book_id FROM book_person)"));
+                } else {
+                    sql_queries.push(String::from("id NOT IN (SELECT book_id FROM book_person)"));
+                }
+            }
         }
 
         let sql_query = sql_queries.into_iter()
@@ -322,12 +329,11 @@ impl BookModel {
     }
 
     pub async fn search_book_list(
-        query: Option<&str>,
+        qt: &QueryType,
         offset: usize,
         limit: usize,
         order: OrderBy,
         only_public: bool,
-        person_id: Option<PersonId>,
         db: &tokio_postgres::Client
     ) -> Result<Vec<Self>> {
         let mut parameters = vec![
@@ -335,7 +341,7 @@ impl BookModel {
             Box::new(offset as i64) as Box<dyn ToSql + Sync>
         ];
 
-        let mut sql = Self::gen_search_query(query, only_public, person_id, &mut parameters);
+        let mut sql = Self::gen_search_query(qt, only_public, &mut parameters);
 
         let _ = write!(&mut sql, " ORDER BY id {} LIMIT $1 OFFSET $2", order.into_string());
 
@@ -348,14 +354,13 @@ impl BookModel {
     }
 
     pub async fn count_search_book(
-        query: Option<&str>,
+        qt: &QueryType,
         only_public: bool,
-        person_id: Option<PersonId>,
         db: &tokio_postgres::Client
     ) -> Result<usize> {
         let mut parameters = Vec::new();
 
-        let sql = Self::gen_search_query(query, only_public, person_id, &mut parameters).replace("SELECT *", "SELECT COUNT(*)");
+        let sql = Self::gen_search_query(qt, only_public, &mut parameters).replace("SELECT *", "SELECT COUNT(*)");
 
 
         row_bigint_to_usize(db.query_one(&sql, &super::boxed_to_dyn_vec(&parameters)).await?)

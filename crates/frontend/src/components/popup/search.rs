@@ -1,5 +1,5 @@
 use common::{component::popup::{compare::{Comparable, PopupComparison}, Popup, PopupType}, Either, Source, api::WrappingResponse, util::upper_case_first_char, BookId};
-use common_local::{api::{SearchItem, self, SearchQuery}, SearchType, item::edit::BookEdit, DisplayItem};
+use common_local::{api::{SearchItem, self, QueryType, BookListQuery}, SearchType, item::edit::BookEdit, DisplayItem};
 use gloo_utils::document;
 use wasm_bindgen::{JsCast, UnwrapThrowExt};
 use web_sys::HtmlInputElement;
@@ -97,12 +97,10 @@ impl Component for PopupSearch {
                 } else {
                     ctx.link()
                     .send_future(async move {
-                        let resp = request::get_books(
-                            None,
-                            None,
-                            Some(SearchQuery { query: Some(search.clone()), source: None, order: None, }),
-                            None
-                        ).await;
+                        let resp = request::get_books(BookListQuery {
+                            search: Some(QueryType::Query(search.clone())),
+                            .. Default::default()
+                        }).await;
 
                         Msg::BookLocalSearchResponse(search, resp)
                     });

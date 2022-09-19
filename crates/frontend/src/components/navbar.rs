@@ -1,7 +1,7 @@
 use std::sync::{Mutex, Arc};
 
 use common::api::WrappingResponse;
-use common_local::api::{GetBookListResponse, self};
+use common_local::api::{GetBookListResponse, self, BookListQuery};
 use gloo_utils::{document, body};
 use wasm_bindgen::{JsCast, prelude::Closure};
 use web_sys::HtmlInputElement;
@@ -57,16 +57,10 @@ impl Component for NavbarModule {
                 self.search_results = None;
 
                 ctx.link().send_future(async move {
-                    Msg::SearchResults(request::get_books(
-                        Some(0),
-                        Some(20),
-                        Some(api::SearchQuery {
-                            query: Some(value),
-                            source: None,
-                            order: None,
-                        }),
-                        None,
-                    ).await)
+                    Msg::SearchResults(request::get_books(BookListQuery {
+                        search: Some(api::QueryType::Query(value)),
+                        .. Default::default()
+                    }).await)
                 });
             }
 

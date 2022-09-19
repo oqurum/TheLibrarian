@@ -9,10 +9,10 @@ use crate::{
     BasicLibrary, BasicDirectory, Chapter,
     DisplayItem, DisplayMetaItem, Person,
     SearchType, Member, Poster,
-    Result, TagFE, BookTag, TagType,
+    TagFE, BookTag, TagType,
     MetadataItemCached,
     item::edit::{SharedEditModel, SharedEditVoteModel, BookEdit, NewOrCachedImage}, SharedConfig,
-    des_if_opt_str_not_empty, CollectionType, Collection, util::{serialize_naivedate_opt, deserialize_naivedate_opt},
+    CollectionType, Collection, util::{serialize_naivedate_opt, deserialize_naivedate_opt},
 };
 
 
@@ -225,52 +225,23 @@ pub struct GetBookListResponse {
     pub items: Vec<DisplayItem>
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct BookListQuery {
+    pub search: Option<QueryType>,
+
     pub offset: Option<usize>,
     pub limit: Option<usize>,
-    /// `SearchQuery`
-    #[serde(deserialize_with = "des_if_opt_str_not_empty")]
-    #[serde(default)] // TODO: Why is this needed for deserialize_with
-    pub search: Option<String>,
-    pub person_id: Option<PersonId>,
+
+    pub order: Option<OrderBy>,
 }
-
-impl BookListQuery {
-    pub fn new(
-        offset: Option<usize>,
-        limit: Option<usize>,
-        search: Option<SearchQuery>,
-        person_id: Option<PersonId>,
-    ) -> Result<Self> {
-        let search = search.map(serde_urlencoded::to_string)
-            .transpose()?;
-
-        Ok(Self {
-            offset,
-            limit,
-            search,
-            person_id,
-        })
-    }
-
-    pub fn search_query(&self) -> Option<Result<SearchQuery>> {
-        self.search.as_deref().map(|v| Ok(serde_urlencoded::from_str(v)?))
-    }
-}
-
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct SearchQuery {
-    #[serde(deserialize_with = "des_if_opt_str_not_empty")]
-    #[serde(default)]
-    pub query: Option<String>,
-    #[serde(deserialize_with = "des_if_opt_str_not_empty")]
-    #[serde(default)]
-    pub source: Option<String>,
+#[serde(tag = "t", content = "v")]
+pub enum QueryType {
+    Query(String),
+    Person(PersonId),
 
-    #[serde(default)]
-    pub order: Option<OrderBy>,
+    HasPerson(bool),
 }
 
 

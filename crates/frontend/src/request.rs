@@ -343,15 +343,10 @@ pub async fn new_book(value: NewBookBody) -> WrappingResponse<Option<DisplayMeta
 }
 
 
-pub async fn get_books(
-    offset: Option<usize>,
-    limit: Option<usize>,
-    search: Option<SearchQuery>,
-    person_id: Option<PersonId>,
-) -> WrappingResponse<GetBookListResponse> {
+pub async fn get_books(value: BookListQuery) -> WrappingResponse<GetBookListResponse> {
     let url = format!(
         "/api/v1/books?{}",
-        serde_urlencoded::to_string(BookListQuery::new(offset, limit, search, person_id).unwrap()).unwrap()
+        serde_qs::to_string(&value).unwrap()
     );
 
     fetch("GET", &url, Option::<&()>::None).await.unwrap_or_else(def)

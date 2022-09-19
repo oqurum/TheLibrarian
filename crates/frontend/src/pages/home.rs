@@ -1,9 +1,10 @@
 use std::{rc::Rc, sync::Mutex};
 
 use common::{BookId, api::WrappingResponse};
-use common_local::{api::{self, NewBookBody, OrderBy}, DisplayItem, SearchType};
+use common_local::{api::{self, NewBookBody, BookListQuery, QueryType}, DisplayItem, SearchType};
+use gloo_utils::window;
 use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
-use web_sys::{HtmlElement, UrlSearchParams, HtmlInputElement};
+use web_sys::{HtmlElement, HtmlInputElement};
 use yew::prelude::*;
 use yew_router::prelude::Link;
 
@@ -115,16 +116,12 @@ impl Component for HomePage {
 
                 self.is_fetching_media_items = true;
 
-                let offset = Some(self.media_items.as_ref().map(|v| v.len()).unwrap_or_default()).filter(|v| *v != 0);
+                let mut query = get_query().unwrap_or_default();
+                query.offset = Some(self.media_items.as_ref().map(|v| v.len()).unwrap_or_default()).filter(|v| *v != 0);
 
                 ctx.link()
                 .send_future(async move {
-                    Msg::MediaListResults(request::get_books(
-                        offset,
-                        None,
-                        get_search_query(),
-                        None,
-                    ).await)
+                    Msg::MediaListResults(request::get_books(query).await)
                 });
             }
 
@@ -393,18 +390,11 @@ impl PartialEq for DisplayOverlay {
     }
 }
 
-fn get_search_query() -> Option<api::SearchQuery> {
-    let search_params = UrlSearchParams::new_with_str(
-        &gloo_utils::window().location().search().ok()?
-    ).ok()?;
-
-    let query = search_params.get("query");
-    let source = search_params.get("source");
-    let order = search_params.get("order").and_then(|v| OrderBy::from_string(&v));
-
-    Some(api::SearchQuery {
-        query,
-        source,
-        order,
-    })
+fn get_query() -> Option<BookListQuery> {
+    serde_qs::from_str(
+        &gloo_utils::window()
+            .location()
+            .search()
+            .ok()?[1..]
+    ).ok()
 }

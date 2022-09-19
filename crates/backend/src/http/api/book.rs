@@ -2,9 +2,10 @@ use actix_web::{get, web, HttpResponse, post, HttpRequest, delete};
 
 use chrono::{Utc, TimeZone};
 use common::api::WrappingResponse;
-use common::{Either, ThumbnailStore, BookId, PersonId, ImageType};
+use common::{Either, ThumbnailStore, BookId, ImageType};
 use common_local::item::edit::{BookEdit, NewOrCachedImage};
 use common_local::{api, DisplayItem, MetadataItemCached, DisplayMetaItem};
+use serde_qs::actix::QsQuery;
 use tokio_postgres::Client;
 
 use crate::http::{MemberCookie, JsonResponse};
@@ -181,22 +182,26 @@ pub async fn add_new_book(
 
 #[get("/books")]
 pub async fn load_book_list(
-    query: web::Query<api::BookListQuery>,
+    query: QsQuery<api::BookListQuery>,
     db: web::Data<Client>,
 ) -> WebResult<JsonResponse<api::GetBookListResponse>> {
-    let (items, count) = if let Some(search) = query.search_query().transpose()? {
-        let count = BookModel::count_search_book(search.query.as_deref(), false, query.person_id.map(PersonId::from), &db).await?;
+    let query = query.into_inner();
+
+    let offset = query.offset.unwrap_or(0);
+    let limit = query.limit.unwrap_or(50);
+
+    let (items, count) = if let Some(queries) = query.search {
+        let count = BookModel::count_search_book(&queries, false, &db).await?;
 
         let items = if count == 0 {
             Vec::new()
         } else {
             BookModel::search_book_list(
-                search.query.as_deref(),
-                query.offset.unwrap_or(0),
-                query.limit.unwrap_or(50),
-                search.order.unwrap_or(api::OrderBy::Asc),
+                &queries,
+                offset,
+                limit,
+                query.order.unwrap_or(api::OrderBy::Asc),
                 false,
-                query.person_id.map(PersonId::from),
                 &db
             ).await?
                 .into_iter()
@@ -216,11 +221,11 @@ pub async fn load_book_list(
         let count = BookModel::get_book_count(&db).await?;
 
         let items = BookModel::get_book_by(
-            query.offset.unwrap_or(0),
-            query.limit.unwrap_or(50),
+            offset,
+            limit,
             api::OrderBy::Asc,
             false,
-            query.person_id.map(PersonId::from),
+            None,
             &db,
         ).await?
             .into_iter()

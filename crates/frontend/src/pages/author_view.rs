@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use chrono::NaiveDate;
 use common::{component::upload::UploadModule, Either, PersonId, ImageIdType, api::WrappingResponse};
-use common_local::{api::{self, GetPostersResponse, GetPersonResponse}, TagType};
+use common_local::{api::{self, GetPostersResponse, GetPersonResponse, BookListQuery}, TagType};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::{prelude::*, html::Scope};
@@ -56,12 +56,10 @@ impl Component for AuthorView {
 
         ctx.link()
         .send_future(async move {
-            let resp = request::get_books(
-                None,
-                None,
-                None,
-                Some(person_id),
-            ).await;
+            let resp = request::get_books(BookListQuery {
+                search: Some(api::QueryType::Person(person_id)),
+                .. Default::default()
+            }).await;
 
             Msg::BooksListResults(resp)
         });
