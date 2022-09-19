@@ -23,7 +23,7 @@ use crate::{
 
 #[derive(Clone)]
 pub enum Msg {
-    // Retrive
+    // Retrieve
     RetrieveMediaView(Box<WrappingResponse<MediaViewResponse>>),
     RetrievePosters(WrappingResponse<GetPostersResponse>),
 
@@ -669,120 +669,7 @@ impl BookView {
                         </section>
                     </div>
 
-                    {
-                        if let Some(overlay_type) = self.media_popup.as_ref() {
-                            match overlay_type {
-                                &DisplayOverlay::More { mouse_pos, .. } => {
-                                    html! {
-                                        <Popup type_of={ PopupType::AtPoint(mouse_pos.0, mouse_pos.1) } on_close={ctx.link().callback(|_| Msg::ClosePopup)}>
-                                            <div class="menu-list">
-                                                // <div class="menu-item" yew-close-popup="" onclick={
-                                                //     Self::on_click_prevdef(ctx.link(), Msg::UpdateBook(book_id))
-                                                // }>{ "Refresh Metadata" }</div>
-                                                <div class="menu-item" yew-close-popup="" onclick={
-                                                    Self::on_click_prevdef_stopprop(ctx.link(), Msg::ShowPopup(DisplayOverlay::SearchForBook { input_value: None }))
-                                                }>{ "Search New Metadata" }</div>
-                                                <div class="menu-item" yew-close-popup="" onclick={ ctx.link().callback_future(move |_| async move {
-                                                    Msg::OnDelete(request::delete_book(book_id).await)
-                                                }) }>{ "Delete" }</div>
-                                            </div>
-                                        </Popup>
-                                    }
-                                }
-
-                                DisplayOverlay::Edit(resp) => {
-                                    match resp.as_ok() {
-                                        Ok(resp) => html! {
-                                            <PopupEditMetadata
-                                                on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
-                                                classes={ classes!("popup-book-edit") }
-                                                media_resp={ resp.clone() }
-                                            />
-                                        },
-
-                                        Err(e) => html! {
-                                            <h2>{ e }</h2>
-                                        }
-                                    }
-                                }
-
-                                DisplayOverlay::EditFromMetadata(new_meta) => {
-                                    html! {
-                                        <PopupComparison
-                                            on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
-                                            on_submit={ ctx.link().callback_future(move |v| async move {
-                                                request::update_book(book_id, &BookEdit::create_from_comparison(v).unwrap_throw()).await;
-                                                Msg::Ignore
-                                            }) }
-                                            classes={ classes!("popup-book-edit") }
-                                            compare={ BookEdit::from(book_resp.metadata.clone()).create_comparison_with(&**new_meta).unwrap_throw() }
-                                        />
-                                    }
-                                }
-
-                                DisplayOverlay::SearchForBook { input_value } => {
-                                    let input_value = if let Some(v) = input_value {
-                                        v.to_string()
-                                    } else {
-                                        format!(
-                                            "{} {}",
-                                            book_model.title.as_deref().unwrap_or_default(),
-                                            book_model.cached.author.as_deref().unwrap_or_default()
-                                        )
-                                    };
-
-                                    let input_value = input_value.trim().to_string();
-
-                                    html! {
-                                        <PopupSearch
-                                            {input_value}
-                                            type_of={ SearchBy::External }
-                                            search_for={ SearchType::Book }
-                                            on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
-                                            on_select={ ctx.link().callback_future(|value: SearchSelectedValue| async {
-                                                Msg::ShowPopup(DisplayOverlay::EditFromMetadata(
-                                                    match value.into_external() {
-                                                        Either::Left(source) => {
-                                                            let resp = request::get_external_source_item(source).await.ok().unwrap_throw();
-
-                                                            Box::new(resp.item.unwrap().into())
-                                                        }
-
-                                                        Either::Right(book) => Box::new(book),
-                                                    }
-                                                ))
-                                            }) }
-                                        />
-                                    }
-                                }
-
-                                DisplayOverlay::AddAuthor => {
-                                    html! {
-                                        <PopupSearchPerson
-                                            type_of={ SearchBy::Local }
-                                            on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
-                                            on_select={ ctx.link().callback_future(move |value: PersonSearchSelectedValue| async move {
-                                                if let PersonSearchSelectedValue::PersonId(id) = value {
-                                                    request::update_book(
-                                                        book_id,
-                                                        &BookEdit {
-                                                            added_people: Some(vec![id]),
-
-                                                            .. Default::default()
-                                                        }
-                                                    ).await;
-                                                }
-
-                                                Msg::Ignore
-                                            }) }
-                                        />
-                                    }
-                                }
-                            }
-                        } else {
-                            html! {}
-                        }
-                    }
+                    { self.render_popup(book_resp, ctx) }
                 </div>
             }
         } else {
@@ -923,124 +810,130 @@ impl BookView {
                         </section>
                     </div>
 
-                    {
-                        if let Some(overlay_type) = self.media_popup.as_ref() {
-                            match overlay_type {
-                                &DisplayOverlay::More { mouse_pos, .. } => {
-                                    html! {
-                                        <Popup type_of={ PopupType::AtPoint(mouse_pos.0, mouse_pos.1) } on_close={ctx.link().callback(|_| Msg::ClosePopup)}>
-                                            <div class="menu-list">
-                                                // <div class="menu-item" yew-close-popup="" onclick={
-                                                //     Self::on_click_prevdef(ctx.link(), Msg::UpdateBook(book_id))
-                                                // }>{ "Refresh Metadata" }</div>
-                                                <div class="menu-item" yew-close-popup="" onclick={
-                                                    Self::on_click_prevdef_stopprop(ctx.link(), Msg::ShowPopup(DisplayOverlay::SearchForBook { input_value: None }))
-                                                }>{ "Search New Metadata" }</div>
-                                                <div class="menu-item" yew-close-popup="">{ "Delete" }</div>
-                                            </div>
-                                        </Popup>
-                                    }
-                                }
-
-                                DisplayOverlay::Edit(resp) => {
-                                    match resp.as_ok() {
-                                        Ok(resp) => html! {
-                                            <PopupEditMetadata
-                                                on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
-                                                classes={ classes!("popup-book-edit") }
-                                                media_resp={ resp.clone() }
-                                            />
-                                        },
-
-                                        Err(e) => html! {
-                                            <h2>{ e }</h2>
-                                        }
-                                    }
-                                }
-
-                                DisplayOverlay::EditFromMetadata(new_meta) => {
-                                    html! {
-                                        <PopupComparison
-                                            on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
-                                            on_submit={ ctx.link().callback_future(move |v| async move {
-                                                request::update_book(book_id, &BookEdit::create_from_comparison(v).unwrap_throw()).await;
-                                                Msg::Ignore
-                                            }) }
-                                            classes={ classes!("popup-book-edit") }
-                                            compare={ BookEdit::from(book_resp.metadata.clone()).create_comparison_with(&**new_meta).unwrap_throw() }
-                                        />
-                                    }
-                                }
-
-                                DisplayOverlay::SearchForBook { input_value } => {
-                                    let input_value = if let Some(v) = input_value {
-                                        v.to_string()
-                                    } else {
-                                        format!(
-                                            "{} {}",
-                                            book_model.title.as_deref().unwrap_or_default(),
-                                            book_model.cached.author.as_deref().unwrap_or_default()
-                                        )
-                                    };
-
-                                    let input_value = input_value.trim().to_string();
-
-                                    html! {
-                                        <PopupSearch
-                                            {input_value}
-                                            type_of={ SearchBy::External }
-                                            search_for={ SearchType::Book }
-                                            on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
-                                            on_select={ ctx.link().callback_future(|value: SearchSelectedValue| async {
-                                                Msg::ShowPopup(DisplayOverlay::EditFromMetadata(
-                                                    match value.into_external() {
-                                                        Either::Left(source) => {
-                                                            let resp = request::get_external_source_item(source).await.ok().unwrap_throw();
-
-                                                            Box::new(resp.item.unwrap().into())
-                                                        }
-
-                                                        Either::Right(book) => Box::new(book),
-                                                    }
-                                                ))
-                                            }) }
-                                        />
-                                    }
-                                }
-
-                                DisplayOverlay::AddAuthor => {
-                                    html! {
-                                        <PopupSearchPerson
-                                            type_of={ SearchBy::Local }
-                                            on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
-                                            on_select={ ctx.link().callback_future(move |value: PersonSearchSelectedValue| async move {
-                                                if let PersonSearchSelectedValue::PersonId(id) = value {
-                                                    request::update_book(
-                                                        book_id,
-                                                        &BookEdit {
-                                                            added_people: Some(vec![id]),
-
-                                                            .. Default::default()
-                                                        }
-                                                    ).await;
-                                                }
-
-                                                Msg::Ignore
-                                            }) }
-                                        />
-                                    }
-                                }
-                            }
-                        } else {
-                            html! {}
-                        }
-                    }
+                    { self.render_popup(book_resp, ctx) }
                 </div>
             }
         } else {
             html! {
                 <h1>{ "Loading..." }</h1>
             }
+        }
+    }
+
+    fn render_popup(&self, MediaViewResponse { metadata: book_model, .. }: &MediaViewResponse, ctx: &Context<Self>) -> Html {
+        if let Some(overlay_type) = self.media_popup.as_ref() {
+            let book_id = book_model.id;
+
+            match overlay_type {
+                &DisplayOverlay::More { mouse_pos, .. } => {
+                    html! {
+                        <Popup type_of={ PopupType::AtPoint(mouse_pos.0, mouse_pos.1) } on_close={ctx.link().callback(|_| Msg::ClosePopup)}>
+                            <div class="menu-list">
+                                // <div class="menu-item" yew-close-popup="" onclick={
+                                //     Self::on_click_prevdef(ctx.link(), Msg::UpdateBook(book_id))
+                                // }>{ "Refresh Metadata" }</div>
+                                <div class="menu-item" yew-close-popup="" onclick={
+                                    Self::on_click_prevdef_stopprop(ctx.link(), Msg::ShowPopup(DisplayOverlay::SearchForBook { input_value: None }))
+                                }>{ "Search New Metadata" }</div>
+                                <div class="menu-item" yew-close-popup="" onclick={ ctx.link().callback_future(move |_| async move {
+                                    Msg::OnDelete(request::delete_book(book_id).await)
+                                }) }>{ "Delete" }</div>
+                            </div>
+                        </Popup>
+                    }
+                }
+
+                DisplayOverlay::Edit(resp) => {
+                    match resp.as_ok() {
+                        Ok(resp) => html! {
+                            <PopupEditMetadata
+                                on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
+                                classes={ classes!("popup-book-edit") }
+                                media_resp={ resp.clone() }
+                            />
+                        },
+
+                        Err(e) => html! {
+                            <h2>{ e }</h2>
+                        }
+                    }
+                }
+
+                DisplayOverlay::EditFromMetadata(new_meta) => {
+                    html! {
+                        <PopupComparison
+                            on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
+                            on_submit={ ctx.link().callback_future(move |v| async move {
+                                request::update_book(book_id, &BookEdit::create_from_comparison(v).unwrap_throw()).await;
+                                Msg::Ignore
+                            }) }
+                            classes={ classes!("popup-book-edit") }
+                            compare={ BookEdit::from(book_model.clone()).create_comparison_with(&**new_meta).unwrap_throw() }
+                        />
+                    }
+                }
+
+                DisplayOverlay::SearchForBook { input_value } => {
+                    let input_value = if let Some(v) = input_value {
+                        v.to_string()
+                    } else {
+                        format!(
+                            "{} {}",
+                            book_model.title.as_deref().unwrap_or_default(),
+                            book_model.cached.author.as_deref().unwrap_or_default()
+                        )
+                    };
+
+                    let input_value = input_value.trim().to_string();
+
+                    html! {
+                        <PopupSearch
+                            {input_value}
+                            type_of={ SearchBy::External }
+                            search_for={ SearchType::Book }
+                            on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
+                            on_select={ ctx.link().callback_future(|value: SearchSelectedValue| async {
+                                Msg::ShowPopup(DisplayOverlay::EditFromMetadata(
+                                    match value.into_external() {
+                                        Either::Left(source) => {
+                                            let resp = request::get_external_source_item(source).await.ok().unwrap_throw();
+
+                                            Box::new(resp.item.unwrap().into())
+                                        }
+
+                                        Either::Right(book) => Box::new(book),
+                                    }
+                                ))
+                            }) }
+                        />
+                    }
+                }
+
+                DisplayOverlay::AddAuthor => {
+                    html! {
+                        <PopupSearchPerson
+                            type_of={ SearchBy::Local }
+                            on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
+                            on_select={ ctx.link().callback_future(move |value: PersonSearchSelectedValue| async move {
+                                if let PersonSearchSelectedValue::PersonId(id) = value {
+                                    request::update_book(
+                                        book_id,
+                                        &BookEdit {
+                                            added_people: Some(vec![id]),
+
+                                            .. Default::default()
+                                        }
+                                    ).await;
+                                }
+
+                                Msg::Ignore
+                            }) }
+                        />
+                    }
+                }
+            }
+        } else {
+            html! {}
         }
     }
 
