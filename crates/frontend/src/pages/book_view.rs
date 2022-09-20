@@ -220,7 +220,6 @@ impl Component for BookView {
 
             Msg::SaveEdits => if let Some(curr_book) = self.media.as_ref().and_then(|v| v.as_ok().ok()) {
                 let edit = self.editing_item.clone();
-                self.editing_item = BookEdit::default();
 
                 let book_id = curr_book.metadata.id;
 
