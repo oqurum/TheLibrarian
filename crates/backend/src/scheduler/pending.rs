@@ -2,7 +2,7 @@ use chrono::Utc;
 use common_local::edit::*;
 use tokio_postgres::Client;
 
-use crate::{Result, model::{NewEditCommentModel, EditModel, SYSTEM_MEMBER, TableRow}};
+use crate::{Result, model::{NewEditCommentModel, EditModel, SYSTEM_MEMBER_ID, TableRow}};
 
 
 
@@ -25,7 +25,7 @@ pub async fn task_update_pending(client: &Client) -> Result<()> {
         for item in items {
             NewEditCommentModel::new(
                 item.id,
-                SYSTEM_MEMBER.id,
+                *SYSTEM_MEMBER_ID,
                 String::from(r#"SYSTEM: Auto denied."#)
             ).insert(client).await?;
         }
@@ -46,12 +46,11 @@ pub async fn task_update_pending(client: &Client) -> Result<()> {
         };
 
         for mut item in items {
-            println!("{:#?}", item);
             item.process_status_change(EditStatus::Accepted, client).await?;
 
             NewEditCommentModel::new(
                 item.id,
-                SYSTEM_MEMBER.id,
+                *SYSTEM_MEMBER_ID,
                 String::from(r#"SYSTEM: Auto accepted."#)
             ).insert(client).await?;
         }

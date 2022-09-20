@@ -1,6 +1,6 @@
 use lazy_static::lazy_static;
 use common_local::{util::serialize_datetime, Permissions};
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Utc};
 use common::MemberId;
 use serde::Serialize;
 use tokio_postgres::Client;
@@ -10,18 +10,8 @@ use crate::Result;
 use super::{TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize};
 
 lazy_static! {
-    pub static ref SYSTEM_MEMBER: MemberModel = MemberModel {
-        id: MemberId::from(0),
-        name: String::from("System"),
-        email: None,
-        password: None,
-        permissions: Permissions::empty(),
-        localsettings: None,
-        created_at: Utc.timestamp(0, 0),
-        updated_at: Utc.timestamp(0, 0),
-    };
+    pub static ref SYSTEM_MEMBER_ID: MemberId = MemberId::from(0);
 }
-
 
 pub struct NewMemberModel {
     pub name: String,
@@ -115,14 +105,10 @@ impl MemberModel {
     }
 
     pub async fn get_by_id(id: MemberId, db: &Client) -> Result<Option<Self>> {
-        if id == 0 {
-            Ok(Some(SYSTEM_MEMBER.clone()))
-        } else {
-            db.query_opt(
-                "SELECT * FROM member WHERE id = $1",
-                params![ *id as i32 ],
-            ).await?.map(Self::from_row).transpose()
-        }
+        db.query_opt(
+            "SELECT * FROM member WHERE id = $1",
+            params![ *id as i32 ],
+        ).await?.map(Self::from_row).transpose()
     }
 
     pub async fn get_count(db: &Client) -> Result<usize> {

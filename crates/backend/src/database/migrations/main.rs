@@ -383,5 +383,11 @@ pub async fn init(client: &Client) -> Result<()> {
     // Fingerprints
     // Custom Book (Fingerprint) Stylings
 
+
+    client.execute(
+        "INSERT INTO member VALUES (0, 'System', NULL, NULL, '0-0', NULL, '1970-01-01 00:00:00-08', '1970-01-01 00:00:00-08')",
+        &[]
+    ).await?;
+
     Ok(())
 }
