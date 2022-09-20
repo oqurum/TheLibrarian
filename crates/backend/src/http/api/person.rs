@@ -106,9 +106,11 @@ pub async fn add_new_person(
 #[get("/person/{id}")]
 async fn load_person(person_id: web::Path<PersonId>, db: web::Data<tokio_postgres::Client>) -> WebResult<JsonResponse<api::GetPersonResponse>> {
     let person = PersonModel::get_by_id(*person_id, &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
+    let person_alts = PersonAltModel::find_all_by_person_id(*person_id, &db).await?;
 
     Ok(web::Json(WrappingResponse::okay(api::GetPersonResponse {
-        person: person.into()
+        person: person.into(),
+        other_names: person_alts.into_iter().map(|v| v.name).collect(),
     })))
 }
 

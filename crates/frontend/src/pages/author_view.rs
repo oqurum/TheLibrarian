@@ -161,7 +161,7 @@ impl Component for AuthorView {
 
         let resp = self.editing_item.as_ref().or(media);
 
-        if let Some(GetPersonResponse { person }) = resp {
+        if let Some(GetPersonResponse { person, other_names }) = resp {
             html! {
                 <div class="outer-view-container">
                     <div class="sidebar-container">
@@ -275,6 +275,26 @@ impl Component for AuthorView {
                                 }
                             </div>
                         </div>
+
+                        {
+                            if self.is_editing() {
+                                html! {}
+                            } else {
+                                html! {
+                                    <>
+                                        <h4>{ "Other Names" }</h4>
+                                        <div class="label-group">
+                                        {
+                                            for other_names.iter()
+                                                .map(|name| html! {
+                                                    <div class="label">{ name.clone() }</div>
+                                                })
+                                        }
+                                        </div>
+                                    </>
+                                }
+                            }
+                        }
 
                         { // Posters
                             if self.is_editing() {
