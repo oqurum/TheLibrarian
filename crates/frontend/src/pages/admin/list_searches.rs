@@ -60,7 +60,7 @@ impl Component for ListSearchesPage {
                     log::info!("starting auto find all");
 
                     for value in searching_queries {
-                        request::new_book(NewBookBody::FindAndAdd(value)).await;
+                        request::update_one_or_more_books(NewBookBody::FindAndAdd(value)).await;
                     }
 
                     log::info!("finished auto find all");
@@ -126,7 +126,7 @@ impl Component for ListSearchesPage {
                                     on_close={ ctx.link().callback(|_| Msg::CloseSearch) }
                                     on_select={ ctx.link().callback_future(move |v: SearchSelectedValue| async move {
                                         // TODO: Handle Errors and responses
-                                        if let WrappingResponse::Resp(Some(book)) = request::new_book(NewBookBody::Value(Box::new(v.into_external()))).await {
+                                        if let WrappingResponse::Resp(Some(book)) = request::update_one_or_more_books(NewBookBody::Value(Box::new(v.into_external()))).await {
                                             request::update_search_item(
                                                 id,
                                                 PostUpdateSearchIdBody {
@@ -168,7 +168,7 @@ impl ListSearchesPage {
             scope.callback_future(move |_| {
                 let value = value.clone();
                 async move {
-                    request::new_book(NewBookBody::FindAndAdd(value)).await;
+                    request::update_one_or_more_books(NewBookBody::FindAndAdd(value)).await;
 
                     Msg::Ignore
                 }

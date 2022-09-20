@@ -334,7 +334,7 @@ pub async fn new_person(value: Source) -> WrappingResponse<String> {
 
 // Books
 
-pub async fn new_book(value: NewBookBody) -> WrappingResponse<Option<DisplayMetaItem>> {
+pub async fn update_one_or_more_books(value: NewBookBody) -> WrappingResponse<Option<DisplayMetaItem>> {
     fetch(
         "POST",
         "/api/v1/book",

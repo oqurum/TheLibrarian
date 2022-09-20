@@ -12,7 +12,7 @@ use crate::{
     TagFE, BookTag, TagType,
     MetadataItemCached,
     item::edit::{SharedEditModel, SharedEditVoteModel, BookEdit, NewOrCachedImage}, SharedConfig,
-    CollectionType, Collection, util::{serialize_naivedate_opt, deserialize_naivedate_opt},
+    CollectionType, Collection, util::{serialize_naivedate_opt, deserialize_naivedate_opt}, edit::ModifyValuesBy,
 };
 
 
@@ -191,10 +191,21 @@ pub struct GetLibrariesResponse {
 
 // Book
 
+#[derive(Default, Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
+pub struct MassEditBooks {
+    pub book_ids: Vec<BookId>,
+
+    // People
+    pub people_list: Vec<PersonId>,
+    pub people_list_mod: ModifyValuesBy,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum NewBookBody {
     FindAndAdd(String),
     Value(Box<Either<Source, BookEdit>>),
+
+    UpdateMultiple(MassEditBooks),
 }
 
 

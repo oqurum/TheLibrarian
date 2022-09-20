@@ -1,0 +1,50 @@
+.filter-bar {
+	user-select: none;
+    min-height: 3em;
+
+	> .bar-container {
+		display: flex;
+        height: 100%;
+        padding: 0 10px;
+        justify-content: space-between;
+        align-items: center;
+        background-color: var(--surface-1);
+
+		> .left-content {
+			display: flex;
+			flex-direction: row;
+
+			> * {
+				margin: 0 5px;
+			}
+		}
+
+
+		> .center-content {
+			display: flex;
+			flex-direction: row;
+
+			> * {
+				margin: 0 5px;
+			}
+
+			.button-popup-group .menu-list {
+				display: block;
+				position: absolute;
+				bottom: 2.5em;
+				width: 13em;
+			}
+		}
+
+
+		> .right-content {
+			display: flex;
+			flex-direction: row;
+			justify-content: flex-end;
+
+			> * {
+				margin: 0 5px;
+			}
+		}
+	}
+}

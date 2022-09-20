@@ -3,6 +3,7 @@ use actix_web::{get, web, HttpResponse, post, HttpRequest, delete};
 use chrono::{Utc, TimeZone};
 use common::api::WrappingResponse;
 use common::{Either, ThumbnailStore, BookId, ImageType};
+use common_local::edit::ModifyValuesBy;
 use common_local::item::edit::{BookEdit, NewOrCachedImage};
 use common_local::{api, DisplayItem, MetadataItemCached, DisplayMetaItem};
 use serde_qs::actix::QsQuery;
@@ -28,7 +29,66 @@ pub async fn add_new_book(
         return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
     }
 
+    // TODO: Cleanup. We have one statement which doesn't utilize "value" field.
     let value = match body.into_inner() {
+        api::NewBookBody::UpdateMultiple(edit) => {
+            // TODO: Optimize instead of using loops.
+            // People
+            match edit.people_list_mod {
+                // TODO: Utilize Edit
+                ModifyValuesBy::Overwrite => {
+                    for book_id in edit.book_ids {
+                        BookPersonModel::remove_by_book_id(book_id, &db).await?;
+
+                        for person_id in edit.people_list.iter().copied() {
+                            BookPersonModel { book_id, person_id }.insert(&db).await?;
+                        }
+
+                        // Update the cached author name
+                        if let Some(person_id) = edit.people_list.first().copied() {
+                            let person = PersonModel::get_by_id(person_id, &db).await?;
+                            let book = BookModel::get_by_id(book_id, &db).await?;
+
+                            if let Some((person, mut book)) = person.zip(book) {
+                                book.cached.author = Some(person.name);
+                                book.update_book(&db).await?;
+                            }
+                        }
+                    }
+                }
+
+                ModifyValuesBy::Append => {
+                    for book_id in edit.book_ids {
+                        for person_id in edit.people_list.iter().copied() {
+                            BookPersonModel { book_id, person_id }.insert(&db).await?;
+                        }
+                    }
+                }
+
+                ModifyValuesBy::Remove => {
+                    for book_id in edit.book_ids {
+                        for person_id in edit.people_list.iter().copied() {
+                            BookPersonModel { book_id, person_id }.remove(&db).await?;
+                        }
+
+                        // TODO: Check if we removed cached author
+                        // If book has no other people referenced we'll update the cached author name.
+                        // TODO: Exists instead of getting all items
+                        if BookPersonModel::get_all_by_book_id(book_id, &db).await?.is_empty() {
+                            let book = BookModel::get_by_id(book_id, &db).await?;
+
+                            if let Some(mut book) = book {
+                                book.cached.author = None;
+                                book.update_book(&db).await?;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return Ok(web::Json(WrappingResponse::Resp(None)));
+        }
+
         // Used for the Search Item "Auto Find" Button
         api::NewBookBody::FindAndAdd(mut find_str) => {
             use metadata::{google_books, Metadata};

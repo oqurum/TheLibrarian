@@ -44,7 +44,7 @@ pub struct HomePage {
 
     library_list_ref: NodeRef,
 
-    editing_items: Rc<Mutex<Vec<usize>>>, // TODO: Change to BookId
+    editing_items: Rc<Mutex<Vec<BookId>>>,
 }
 
 impl Component for HomePage {
@@ -87,7 +87,7 @@ impl Component for HomePage {
 
                 if value {
                     if !items.iter().any(|v| id == *v) {
-                        items.push(*id);
+                        items.push(id);
                     }
                 } else if let Some(index) = items.iter().position(|v| id == *v) {
                     items.swap_remove(index);
@@ -156,6 +156,46 @@ impl Component for HomePage {
         let content = if let Some(items) = self.media_items.as_deref() {
             html! {
                 <div class="view-container">
+                    // Filter Bar
+                    <div class="filter-bar">
+                        <div class="bar-container">
+                            <div class="left-content">
+                                <button class="slim"
+                                    onclick={ ctx.link().callback(|_| {
+                                        let mut query = get_query().unwrap_or_default();
+                                        query.search = Some(QueryType::HasPerson(false));
+
+                                        let loc = window().location();
+
+                                        let _ = loc.set_href(&loc.pathname().unwrap());
+
+                                        Msg::Ignore
+                                    }) }
+                                >{ "Unset Filter" }</button>
+                                <button class="slim"
+                                    onclick={ ctx.link().callback(|_| {
+                                        let mut query = get_query().unwrap_or_default();
+                                        query.search = Some(QueryType::HasPerson(false));
+
+                                        let loc = window().location();
+
+                                        let _ = loc.set_href(&format!(
+                                            "{}?{}",
+                                            loc.pathname().unwrap(),
+                                            serde_qs::to_string(&query).unwrap_throw()
+                                        ));
+
+                                        Msg::Ignore
+                                    }) }
+                                >{ "Filter Missing Person" }</button>
+                            </div>
+                            <div class="right-content">
+                                <span>{ "Total: " } { self.total_media_count }</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    // Book List
                     <div class="book-list normal" ref={ self.library_list_ref.clone() }>
                         {
                             for items.iter().map(|item| {
@@ -188,7 +228,7 @@ impl Component for HomePage {
                                         search_for={ SearchType::Book }
                                         on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
                                         on_select={ ctx.link().callback_future(|value: SearchSelectedValue| async {
-                                            request::new_book(NewBookBody::Value(Box::new(value.into_external()))).await;
+                                            request::update_one_or_more_books(NewBookBody::Value(Box::new(value.into_external()))).await;
 
                                             Msg::Ignore
                                         }) }
@@ -391,10 +431,14 @@ impl PartialEq for DisplayOverlay {
 }
 
 fn get_query() -> Option<BookListQuery> {
-    serde_qs::from_str(
-        &gloo_utils::window()
-            .location()
-            .search()
-            .ok()?[1..]
-    ).ok()
+    let query = gloo_utils::window()
+        .location()
+        .search()
+        .ok()?;
+
+    if query.is_empty() {
+        None
+    } else {
+        serde_qs::from_str(&query[1..]).ok()
+    }
 }

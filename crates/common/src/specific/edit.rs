@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use num_enum::{IntoPrimitive, TryFromPrimitive};
+use num_enum::{IntoPrimitive, TryFromPrimitive, FromPrimitive};
 use serde::{Serialize, Deserialize};
 
 #[cfg(feature = "backend")]
@@ -85,6 +85,22 @@ impl EditType {
             Self::Tag => "Tag",
             Self::Collection => "Collection",
         }
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, FromPrimitive, IntoPrimitive)]
+#[repr(u8)]
+pub enum ModifyValuesBy {
+    #[num_enum(default)]
+    Overwrite,
+    Append,
+    Remove,
+}
+
+impl Default for ModifyValuesBy {
+    fn default() -> Self {
+        Self::Overwrite
     }
 }
 
