@@ -11,7 +11,7 @@ use crate::{
     SearchType, Member, Poster,
     TagFE, BookTag, TagType,
     MetadataItemCached,
-    item::edit::{SharedEditModel, SharedEditVoteModel, BookEdit, NewOrCachedImage}, SharedConfig,
+    item::edit::{SharedEditModel, SharedEditVoteModel, BookEdit, NewOrCachedImage, PersonEdit}, SharedConfig,
     CollectionType, Collection, util::{serialize_naivedate_opt, deserialize_naivedate_opt}, edit::ModifyValuesBy,
 };
 
@@ -273,6 +273,8 @@ pub enum PostPersonBody {
     UpdateBySource(Source),
 
     CombinePersonWith(PersonId),
+
+    Edit(PersonEdit),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

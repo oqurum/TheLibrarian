@@ -151,6 +151,10 @@ pub async fn update_person_data(
         api::PostPersonBody::AutoMatchById => (),
         api::PostPersonBody::UpdateBySource(_) => (),
 
+        api::PostPersonBody::Edit(edit) => {
+            //
+        }
+
         api::PostPersonBody::CombinePersonWith(into_person_id) => {
             // TODO: Tests for this to ensure it's correct.
 

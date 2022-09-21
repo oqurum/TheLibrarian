@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use chrono::NaiveDate;
 use common::{component::upload::UploadModule, Either, PersonId, ImageIdType, api::WrappingResponse};
-use common_local::{api::{self, GetPostersResponse, GetPersonResponse, BookListQuery}, TagType};
+use common_local::{api::{self, GetPostersResponse, GetPersonResponse, BookListQuery}, TagType, item::edit::PersonEdit};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::{prelude::*, html::Scope};
@@ -43,8 +43,8 @@ pub struct AuthorView {
 
     media_popup: Option<DisplayOverlay>,
 
-    /// If we're currently editing. This'll be set.
-    editing_item: Option<GetPersonResponse>,
+    editing_item: PersonEdit,
+    is_editing: bool,
 }
 
 impl Component for AuthorView {
@@ -70,7 +70,8 @@ impl Component for AuthorView {
             cached_books: None,
 
             media_popup: None,
-            editing_item: None,
+            editing_item: PersonEdit::default(),
+            is_editing: false,
         }
     }
 
@@ -95,50 +96,61 @@ impl Component for AuthorView {
 
             // Edits
             Msg::ToggleEdit => if let Some(book) = self.media.as_ref().and_then(|v| v.as_ok().ok()) {
-                if self.editing_item.is_none() {
-                    self.editing_item = Some(book.clone());
+                self.is_editing = !self.is_editing;
+                self.editing_item = PersonEdit::default();
 
-                    if self.cached_posters.is_none() {
-                        let person_id = ImageIdType::new_person(book.person.id);
+                if self.is_editing && self.cached_posters.is_none() {
+                    let person_id = ImageIdType::new_person(book.person.id);
 
-                        ctx.link()
-                        .send_future(async move {
-                            Msg::RetrievePosters(request::get_posters_for_meta(person_id, None).await)
-                        });
-                    }
-                } else {
-                    self.editing_item = None;
+                    ctx.link()
+                    .send_future(async move {
+                        Msg::RetrievePosters(request::get_posters_for_meta(person_id, None).await)
+                    });
                 }
             }
 
             Msg::SaveEdits => {
-                self.media = self.editing_item.clone().map(WrappingResponse::okay);
+                let person = &self.media.as_ref().and_then(|v| v.as_ok().ok()).unwrap().person;
 
-                // let metadata = self.media.as_ref().and_then(|v| v.resp.as_ref()).unwrap().person.clone();
-                // let meta_id = metadata.id;
+                let edit = self.editing_item.clone();
+                let person_id = person.id;
 
-                // ctx.link()
-                // .send_future(async move {
-                //     request::update_book(meta_id, &api::UpdateBookBody {
-                //         metadata: Some(metadata),
-                //         people: None,
-                //     }).await;
+                ctx.link()
+                .send_future(async move {
+                    request::update_person(person_id, &api::PostPersonBody::Edit(edit)).await;
 
-                //     Msg::Ignore
-                // });
+                    Msg::RetrieveMediaView(Box::new(request::get_person(person_id).await))
+                });
             }
 
             Msg::UpdateEditing(type_of, value) => {
-                let mut updating = self.editing_item.as_mut().unwrap();
-
-                let value = Some(value).filter(|v| !v.is_empty());
+                let value = Some(value).filter(|v| !v.trim().is_empty());
 
                 match type_of {
-                    ChangingType::Name => updating.person.name = value.unwrap_or_default(),
-                    ChangingType::Description => updating.person.description = value,
-                    ChangingType::BirthDate => updating.person.birth_date = value.and_then(|v| NaiveDate::from_str(&v).ok()),
-                    ChangingType::ThumbPath => todo!(),
+                    ChangingType::Name => self.editing_item.name = value,
+                    ChangingType::Description => self.editing_item.description = value,
+                    ChangingType::BirthDate => {
+                        let value = value.map(|mut v| {
+                            // TODO: Separate into own function, handle errors properly.
+
+                            let dashes = v.chars().filter(|v|  *v == '-').count();
+
+                            if dashes == 0 {
+                                v.push_str("-01");
+                            }
+
+                            if dashes <= 1 {
+                                v.push_str("-01");
+                            }
+
+                            v
+                        });
+
+                        self.editing_item.birth_date = value.and_then(|v| NaiveDate::from_str(&v).ok()).map(|v| v.to_string());
+                    }
+                    ChangingType::ThumbPath => unimplemented!(),
                 }
+
             }
 
             Msg::RetrievePosters(value) => {
@@ -159,9 +171,9 @@ impl Component for AuthorView {
             None => None,
         };
 
-        let resp = self.editing_item.as_ref().or(media);
+        if let Some(GetPersonResponse { person, other_names }) = media {
+            let editing = &self.editing_item;
 
-        if let Some(GetPersonResponse { person, other_names }) = resp {
             html! {
                 <div class="outer-view-container">
                     <div class="sidebar-container">
@@ -170,11 +182,11 @@ impl Component for AuthorView {
                             html! {
                                 <>
                                     <div class="sidebar-item">
-                                        <button class="button" onclick={ctx.link().callback(|_| Msg::ToggleEdit)}>{"Stop Editing"}</button>
+                                        <button class="button" onclick={ctx.link().callback(|_| Msg::ToggleEdit)}>{ "Stop Editing" }</button>
                                     </div>
                                     <div class="sidebar-item">
                                         <button class="button proceed" onclick={ctx.link().callback(|_| Msg::SaveEdits)}>
-                                            {"Save"}
+                                            { "Save" }
                                         </button>
                                     </div>
                                 </>
@@ -183,7 +195,7 @@ impl Component for AuthorView {
                             html! {
                                 <LoginBarrier>
                                     <div class="sidebar-item">
-                                        <button class="button" onclick={ctx.link().callback(|_| Msg::ToggleEdit)}>{"Start Editing"}</button>
+                                        <button class="button" onclick={ctx.link().callback(|_| Msg::ToggleEdit)}>{ "Start Editing" }</button>
                                     </div>
                                 </LoginBarrier>
                             }
@@ -205,19 +217,19 @@ impl Component for AuthorView {
                                                 <>
                                                     <h5>{ "Book Display Info" }</h5>
 
-                                                    <span class="sub-title">{"Name"}</span>
+                                                    <span class="sub-title">{ "Name" }</span>
                                                     <input class="title" type="text"
-                                                        onchange={Self::on_change_input(ctx.link(), ChangingType::Name)}
-                                                        value={ person.name.clone() }
+                                                        onchange={ Self::on_change_input(ctx.link(), ChangingType::Name) }
+                                                        value={ editing.name.clone().unwrap_or_else(|| person.name.clone()) }
                                                     />
 
-                                                    <span class="sub-title">{"Description"}</span>
+                                                    <span class="sub-title">{ "Description" }</span>
                                                     <textarea
                                                         rows="9"
                                                         cols="30"
                                                         class="description"
-                                                        onchange={Self::on_change_textarea(ctx.link(), ChangingType::Description)}
-                                                        value={ person.description.clone().unwrap_or_default() }
+                                                        onchange={ Self::on_change_textarea(ctx.link(), ChangingType::Description) }
+                                                        value={ editing.description.clone().or_else(|| person.description.clone()).unwrap_or_default() }
                                                     />
                                                 </>
                                             }
@@ -238,11 +250,13 @@ impl Component for AuthorView {
                                             <div class="metadata">
                                                 <h5>{ "Book Info" }</h5>
 
-                                                <span class="sub-title">{"Birth Date"}</span>
+                                                <span class="sub-title">{ "Birth Date" }</span>
                                                 <input class="title" type="text"
-                                                    placeholder="YYYY"
-                                                    onchange={Self::on_change_input(ctx.link(), ChangingType::BirthDate)}
-                                                    value={ person.birth_date.map(|v| v.to_string()).unwrap_or_default() }
+                                                    placeholder="YYYY-MM-DD"
+                                                    onfocusout={ ctx.link().callback(move |e: FocusEvent| {
+                                                        Msg::UpdateEditing(ChangingType::BirthDate, e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap().value())
+                                                    }) }
+                                                    value={ editing.birth_date.clone().or_else(|| person.birth_date.map(|v| v.to_string())).unwrap_or_default() }
                                                 />
                                             </div>
                                         }
@@ -419,7 +433,7 @@ impl Component for AuthorView {
 
 impl AuthorView {
     fn is_editing(&self) -> bool {
-        self.editing_item.is_some()
+        self.is_editing
     }
 
     fn on_change_input(scope: &Scope<Self>, updating: ChangingType) -> Callback<Event> {

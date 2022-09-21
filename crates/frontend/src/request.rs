@@ -280,12 +280,12 @@ pub async fn get_external_source_item(value: Source) -> WrappingResponse<Externa
 // People
 
 
-pub async fn update_person(id: PersonId, body: &PostPersonBody) {
-    let _: Option<String> = fetch(
+pub async fn update_person(id: PersonId, body: &PostPersonBody) -> WrappingResponse<String> {
+    fetch(
         "POST",
         &format!("/api/v1/person/{}", id),
         Some(body)
-    ).await.ok();
+    ).await.unwrap_or_else(def)
 }
 
 pub async fn get_people(query: Option<&str>, offset: Option<usize>, limit: Option<usize>) -> WrappingResponse<GetPeopleResponse> {
