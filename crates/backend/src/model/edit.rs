@@ -1,4 +1,6 @@
-use chrono::{DateTime, Utc, Duration};
+use std::str::FromStr;
+
+use chrono::{DateTime, Utc, Duration, NaiveDate};
 use common::{BookId, PersonId, TagId, MemberId};
 use common_local::{edit::*, EditId, item::edit::*};
 
@@ -8,10 +10,11 @@ mod edit_vote;
 
 pub use edit_comment::*;
 pub use edit_vote::*;
+use tokio_postgres::Client;
 
 use crate::{Result, edit_translate};
 
-use super::{BookModel, MemberModel, BookTagModel, BookPersonModel, TagModel, PersonModel, ImageLinkModel, TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize};
+use super::{BookModel, MemberModel, BookTagModel, BookPersonModel, TagModel, PersonModel, ImageLinkModel, TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize, PersonAltModel};
 
 
 #[derive(Debug)]
@@ -92,7 +95,7 @@ impl TableRow for EditModel {
 
 
 impl NewEditModel {
-    pub async fn from_book_modify(member_id: MemberId, current: BookModel, updated: BookEdit, db: &tokio_postgres::Client) -> Result<Self> {
+    pub async fn from_book_modify(member_id: MemberId, current: BookModel, updated: BookEdit, db: &Client) -> Result<Self> {
         let now = Utc::now();
 
         Ok(Self {
@@ -111,7 +114,26 @@ impl NewEditModel {
         })
     }
 
-    pub async fn insert(self, db: &tokio_postgres::Client) -> Result<EditModel> {
+    pub async fn from_person_modify(member_id: MemberId, current: PersonModel, updated: PersonEdit) -> Result<Self> {
+        let now = Utc::now();
+
+        Ok(Self {
+            type_of: EditType::Person,
+            operation: EditOperation::Modify,
+            status: EditStatus::Pending,
+            member_id,
+            model_id: Some(*current.id),
+            is_applied: false,
+            vote_count: 0,
+            data: convert_data_to_string(EditType::Person, &new_edit_data_from_person(current, updated).await?)?,
+            ended_at: None,
+            expires_at: Some(now + Duration::days(7)),
+            created_at: now,
+            updated_at: now,
+        })
+    }
+
+    pub async fn insert(self, db: &Client) -> Result<EditModel> {
         let row = db.query_one(r#"
             INSERT INTO edit (
                 type_of, operation, status,
@@ -152,7 +174,7 @@ impl NewEditModel {
 
 
 impl EditModel {
-    pub async fn get_all(offset: usize, limit: usize, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
+    pub async fn get_all(offset: usize, limit: usize, db: &Client) -> Result<Vec<Self>> {
         let values = db.query(
             "SELECT * FROM edit LIMIT $1 OFFSET $2",
             params![ limit as i64, offset as i64 ]
@@ -161,14 +183,14 @@ impl EditModel {
         values.into_iter().map(Self::from_row).collect()
     }
 
-    pub async fn get_by_id(id: EditId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
+    pub async fn get_by_id(id: EditId, db: &Client) -> Result<Option<Self>> {
         db.query_opt(
             "SELECT * FROM edit WHERE id = $1",
             params![ id ],
         ).await?.map(Self::from_row).transpose()
     }
 
-    pub async fn find_by_status(offset: usize, limit: usize, status: Option<EditStatus>, is_expired: Option<bool>, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
+    pub async fn find_by_status(offset: usize, limit: usize, status: Option<EditStatus>, is_expired: Option<bool>, db: &Client) -> Result<Vec<Self>> {
         let mut expired_str = String::new();
 
         if let Some(expired) = is_expired {
@@ -202,11 +224,11 @@ impl EditModel {
         }
     }
 
-    pub async fn get_count(db: &tokio_postgres::Client) -> Result<usize> {
+    pub async fn get_count(db: &Client) -> Result<usize> {
         row_bigint_to_usize(db.query_one("SELECT COUNT(*) FROM edit", &[]).await?)
     }
 
-    pub async fn update_by_id(id: EditId, edit: UpdateEditModel, db: &tokio_postgres::Client) -> Result<u64> {
+    pub async fn update_by_id(id: EditId, edit: UpdateEditModel, db: &Client) -> Result<u64> {
         let mut items = Vec::new();
         // We have to Box because DateTime doesn't return a borrow.
         let mut values = vec![
@@ -274,7 +296,7 @@ impl EditModel {
         })
     }
 
-    pub async fn update_end_data_and_status(&mut self, value: Option<EditData>, db: &tokio_postgres::Client) -> Result<()> {
+    pub async fn update_end_data_and_status(&mut self, value: Option<EditData>, db: &Client) -> Result<()> {
         if let Some(value) = value {
             match (self.type_of, value) {
                 (EditType::Book, EditData::Book(v)) => self.data = serde_json::to_string(&v)?,
@@ -321,7 +343,7 @@ impl EditModel {
     }
 
 
-    pub async fn process_status_change(&mut self, new_status: EditStatus, db: &tokio_postgres::Client) -> Result<()> {
+    pub async fn process_status_change(&mut self, new_status: EditStatus, db: &Client) -> Result<()> {
         self.status = new_status;
 
         if !self.status.is_pending() {
@@ -340,13 +362,27 @@ impl EditModel {
                             }
                         }
 
-                        EditOperation::Create => (),
-                        EditOperation::Delete => (),
-                        EditOperation::Merge => (),
+                        EditOperation::Create => todo!(),
+                        EditOperation::Delete => todo!(),
+                        EditOperation::Merge => todo!(),
                     }
                 }
 
-                EditData::Person(_) => todo!(),
+                EditData::Person(mut person_data) => {
+                    match self.operation {
+                        EditOperation::Modify => {
+                            if let Some(book_model) = PersonModel::get_by_id(PersonId::from(self.model_id.unwrap()), db).await? {
+                                accept_register_person_data_overwrites(book_model, &mut person_data, db).await?;
+
+                                self.update_end_data_and_status(Some(EditData::Person(person_data)), db).await?;
+                            }
+                        }
+
+                        EditOperation::Create => todo!(),
+                        EditOperation::Delete => todo!(),
+                        EditOperation::Merge => todo!(),
+                    }
+                }
                 EditData::Tag => todo!(),
                 EditData::Collection => todo!(),
             }
@@ -359,7 +395,7 @@ impl EditModel {
 }
 
 
-pub async fn new_edit_data_from_book(current: BookModel, updated: BookEdit, db: &tokio_postgres::Client) -> Result<EditData> {
+pub async fn new_edit_data_from_book(current: BookModel, updated: BookEdit, db: &Client) -> Result<EditData> {
     // TODO: Cleaner, less complicated way?
 
     let current_people = if updated.added_people.is_some() || updated.removed_people.is_some() {
@@ -430,11 +466,46 @@ pub async fn new_edit_data_from_book(current: BookModel, updated: BookEdit, db: 
 }
 
 
+pub async fn new_edit_data_from_person(current: PersonModel, updated: PersonEdit) -> Result<EditData> {
+    // TODO: Cleaner, less complicated way?
+
+    let (name_old, name) = edit_translate::cmp_opt_string(Some(current.name), updated.name);
+    let (description_old, description) = edit_translate::cmp_opt_string(current.description, updated.description);
+    let (birth_date_old, birth_date) = edit_translate::cmp_opt_partial_eq(
+        current.birth_date.map(|v| v.to_string()), // TODO: Use NaiveDate
+        updated.birth_date
+    );
+
+    let new = PersonEdit {
+        name,
+        description,
+        birth_date,
+        added_images: None,
+        removed_images: None,
+    };
+
+    let old = PersonEdit {
+        name: name_old,
+        description: description_old,
+        birth_date: birth_date_old,
+        added_images: None,
+        removed_images: None,
+    };
+
+    Ok(EditData::Person(PersonEditData {
+        current: None,
+        new: Some(new).filter(|v| !v.is_empty()),
+        old: Some(old).filter(|v| !v.is_empty()),
+        updated: None,
+    }))
+}
+
 
 // We use EditType to double check that we're using the correct EditData.
 pub fn convert_data_to_string(type_of: EditType, value: &EditData) -> Result<String> {
     Ok(match (type_of, value) {
         (EditType::Book, EditData::Book(book)) => serde_json::to_string(&book)?,
+        (EditType::Person, EditData::Person(book)) => serde_json::to_string(&book)?,
 
         v => todo!("convert_data_to_string: {:?}", v),
     })
@@ -448,7 +519,7 @@ pub fn convert_data_to_string(type_of: EditType, value: &EditData) -> Result<Str
 pub async fn accept_register_book_data_overwrites(
     mut book_model: BookModel,
     edit: &mut BookEditData,
-    db: &tokio_postgres::Client
+    db: &Client
 ) -> Result<()> {
     let (old, new) = match (edit.old.clone().unwrap_or_default(), edit.new.clone()) {
         (a, Some(b)) => (a, b),
@@ -539,6 +610,46 @@ pub async fn accept_register_book_data_overwrites(
 
     Ok(())
 }
+
+pub async fn accept_register_person_data_overwrites(
+    mut person_model: PersonModel,
+    edit: &mut PersonEditData,
+    db: &Client
+) -> Result<()> {
+    let (old, new) = match (edit.old.clone().unwrap_or_default(), edit.new.clone()) {
+        (a, Some(b)) => (a, b),
+        _ => return Ok(())
+    };
+
+    let mut person_edits = UpdatedPersonEdit::default();
+
+    // Update Person
+    cmp_old_and_new_return(&mut person_edits.name, &mut person_model.name, old.name, new.name);
+    cmp_opt_old_and_new_return(&mut person_edits.description, &mut person_model.description, old.description, new.description);
+    cmp_opt_old_and_new_return(&mut person_edits.birth_date, &mut person_model.birth_date, old.birth_date.and_then(|v| NaiveDate::from_str(&v).ok()), new.birth_date.and_then(|v| NaiveDate::from_str(&v).ok()));
+
+    let update_name = person_edits.name;
+
+    edit.updated = Some(person_edits).filter(|v| !v.is_empty());
+
+    person_model.update(db).await?;
+
+    // Update Book Name
+    if update_name {
+        BookPersonModel::update_book_caches(person_model.id, Some(person_model.name.clone()), db).await?;
+        // If the Person Alt Table contains the name + id then we'll remove it.
+        // TODO: Possibly add previous name to table.
+        PersonAltModel {
+            person_id: person_model.id,
+            name: person_model.name,
+        }.remove(db).await?;
+    }
+
+    Ok(())
+}
+
+
+
 
 /// Returns the new value if current and old are equal.
 fn cmp_old_and_new_return<V: PartialEq + Default>(edited: &mut bool, current: &mut V, old: Option<V>, new: Option<V>) {

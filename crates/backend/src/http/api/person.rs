@@ -4,7 +4,7 @@ use common::{PersonId, api::{WrappingResponse, ApiErrorResponse}, Source, Thumbn
 use common_local::api;
 use tokio_postgres::Client;
 
-use crate::{WebResult, model::{PersonModel, NewPersonModel, PersonAltModel, BookPersonModel, BookModel}, http::{JsonResponse, MemberCookie}, storage::get_storage, metadata, InternalError, Error};
+use crate::{WebResult, model::{PersonModel, NewPersonModel, PersonAltModel, BookPersonModel, BookModel, NewEditModel}, http::{JsonResponse, MemberCookie}, storage::get_storage, metadata, InternalError, Error};
 
 
 // Get List Of People and Search For People
@@ -151,8 +151,19 @@ pub async fn update_person_data(
         api::PostPersonBody::AutoMatchById => (),
         api::PostPersonBody::UpdateBySource(_) => (),
 
-        api::PostPersonBody::Edit(edit) => {
-            //
+        api::PostPersonBody::Edit(person_edit) => {
+            let current_book = PersonModel::get_by_id(person_id, &db).await?;
+
+            if let Some((updated_book, current_book)) = Some(person_edit).zip(current_book) {
+                // Make sure we have something we're updating.
+                if !updated_book.is_empty() {
+                    let model = NewEditModel::from_person_modify(member.id, current_book, updated_book).await?;
+
+                    if !model.data.is_empty() {
+                        model.insert(&db).await?;
+                    }
+                }
+            }
         }
 
         api::PostPersonBody::CombinePersonWith(into_person_id) => {

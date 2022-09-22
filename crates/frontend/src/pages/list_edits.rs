@@ -351,7 +351,7 @@ impl EditListPage {
 
         html! {
             <>
-                { Self::display_row("Title", &new_data.name, &old_data.name, current.map(|v| &v.name), updated.name, status, operation) }
+                { Self::display_row("Name", &new_data.name, &old_data.name, current.map(|v| &v.name), updated.name, status, operation) }
                 { Self::display_row("Description", &new_data.description, &old_data.description, current.and_then(|v| v.description.as_ref()), updated.description, status, operation) }
                 { Self::display_row("Birth Date", &new_data.birth_date, &old_data.birth_date, current.and_then(|v| v.birth_date.map(|v| v.to_string())).as_ref(), updated.birth_date, status, operation) }
 

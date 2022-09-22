@@ -3,7 +3,7 @@ use common::{BookId, PersonId};
 use serde::Serialize;
 
 use crate::Result;
-use super::{AdvRow, TableRow};
+use super::{AdvRow, TableRow, BookModel, PersonModel};
 
 #[derive(Debug, Serialize)]
 pub struct BookPersonModel {
@@ -89,5 +89,39 @@ impl BookPersonModel {
         ).await?;
 
         conn.into_iter().map(Self::from_row).collect()
+    }
+
+    pub async fn update_book_caches(id: PersonId, person_name: Option<String>, db: &tokio_postgres::Client) -> Result<()> {
+        let person_name = if let Some(v) = person_name {
+            v
+        } else {
+            PersonModel::get_by_id(id, db).await?.unwrap().name
+        };
+
+        let books = db.query(
+            r#"
+                SELECT book.*
+                FROM book_person
+                JOIN book ON book.id = book_person.book_id
+                WHERE person_id = $1
+            "#,
+            params![*id as i32]
+        ).await?.into_iter().map(BookModel::from_row);
+
+        for book in books {
+            let mut book = book?;
+
+            book.cached = book.cached.author_id(id).author(person_name.clone());
+
+            db.execute(
+                "UPDATE book SET cached = $2 WHERE id = $1",
+                params![
+                    *book.id as i32,
+                    book.cached.as_string()
+                ]
+            ).await?;
+        }
+
+        Ok(())
     }
 }
