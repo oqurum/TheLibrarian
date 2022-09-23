@@ -400,12 +400,12 @@ pub async fn get_settings() -> WrappingResponse<GetSettingsResponse> {
     fetch("GET", "/api/v1/settings", Option::<&()>::None).await.unwrap_or_else(def)
 }
 
-pub async fn update_settings(value: OptionsUpdate) {
-    let _: Option<String> = fetch(
+pub async fn update_settings(value: OptionsUpdate) -> WrappingResponse<String> {
+    fetch(
         "POST",
         "/api/v1/settings",
         Some(&value)
-    ).await.ok();
+    ).await.unwrap_or_else(def)
 }
 
 pub async fn run_task() { // TODO: Use common::api::RunTaskBody

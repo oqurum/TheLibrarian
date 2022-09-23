@@ -29,15 +29,23 @@ async fn get_settings(member: MemberCookie, db: web::Data<tokio_postgres::Client
 
 
 #[post("/settings")]
-async fn update_settings(modify: web::Json<OptionsUpdate>, member: MemberCookie, db: web::Data<tokio_postgres::Client>) -> WebResult<JsonResponse<String>> {
+async fn update_settings(modify: web::Json<OptionsUpdate>, member: MemberCookie, db: web::Data<tokio_postgres::Client>) -> WebResult<JsonResponse<&'static str>> {
     let update = modify.into_inner();
 
-    let member = member.fetch_or_error(&db).await?;
+    let mut member = member.fetch_or_error(&db).await?;
 
+    // Member Changes
+    if let Some(settings) = update.member {
+        member.set_settings(settings)?;
+        member.update(&db).await?;
+
+        return Ok(web::Json(WrappingResponse::okay("ok")));
+    }
+
+    // Admin Changes
     if !member.permissions.is_admin() {
         return Err(ApiErrorResponse::new("Admin perms needed").into());
     }
-
 
     let mut config = config::get_config();
 
@@ -52,5 +60,5 @@ async fn update_settings(modify: web::Json<OptionsUpdate>, member: MemberCookie,
     config::update_config(move |v| { *v = config; Ok(()) })?;
     config::save_config().await?;
 
-    Ok(web::Json(WrappingResponse::okay(String::from("ok"))))
+    Ok(web::Json(WrappingResponse::okay("ok")))
 }

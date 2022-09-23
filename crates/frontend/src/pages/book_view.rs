@@ -16,7 +16,7 @@ use yew::{prelude::*, html::Scope};
 
 use crate::{
     components::{LoginBarrier, PopupEditMetadata, PopupSearch, PopupSearchPerson, popup::{SearchBy, search::SearchSelectedValue, search_person::SearchSelectedValue as PersonSearchSelectedValue}},
-    request
+    request, get_member_self
 };
 
 
@@ -322,7 +322,23 @@ impl Component for BookView {
             ctx.link().send_future(async move {
                 Msg::RetrieveMediaView(Box::new(request::get_media_view(metadata_id).await))
             });
+
+            if let Some(member) = get_member_self() {
+                if member.localsettings.get_page_view_default().is_editing() {
+                    self.is_editing = true;
+                }
+            }
         }
+    }
+
+    fn changed(&mut self, _ctx: &Context<Self>) -> bool {
+        if let Some(member) = get_member_self() {
+            if member.localsettings.get_page_view_default().is_editing() {
+                self.is_editing = true;
+            }
+        }
+
+        true
     }
 }
 

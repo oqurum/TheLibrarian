@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use chrono::{DateTime, Utc, Date, NaiveDate};
 use common::{TagId, BookTagId, BookId, MemberId, PersonId, Source, ThumbnailStore, ImageId, ImageIdType};
-use item::edit::BookEdit;
+use item::{edit::BookEdit, member::MemberSettings};
 use num_enum::{FromPrimitive, IntoPrimitive};
 use serde::{Serialize, Deserialize};
 
@@ -197,6 +197,8 @@ pub struct Member {
     pub email: Option<String>,
 
     pub permissions: Permissions,
+
+    pub localsettings: MemberSettings,
 
     #[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]
     pub created_at: DateTime<Utc>,

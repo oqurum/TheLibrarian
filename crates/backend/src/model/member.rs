@@ -1,5 +1,5 @@
 use lazy_static::lazy_static;
-use common_local::{util::serialize_datetime, Permissions};
+use common_local::{util::serialize_datetime, Permissions, item::member::MemberSettings};
 use chrono::{DateTime, Utc};
 use common::MemberId;
 use serde::Serialize;
@@ -65,6 +65,7 @@ impl From<MemberModel> for common_local::Member {
             name: value.name,
             email: value.email,
             permissions: value.permissions,
+            localsettings: value.localsettings.and_then(|v| serde_json::from_str(&v).ok()).unwrap_or_default(),
             created_at: value.created_at,
             updated_at: value.updated_at,
         }
@@ -122,5 +123,34 @@ impl MemberModel {
         ).await?;
 
         values.into_iter().map(Self::from_row).collect()
+    }
+
+    pub async fn update(&mut self, db: &tokio_postgres::Client) -> Result<()> {
+        self.updated_at = Utc::now();
+
+        db.execute(r#"
+            UPDATE member SET
+                name = $2,
+                email = $3,
+                password = $4,
+                permissions = $5,
+                localsettings = $6,
+                updated_at = $7
+            WHERE id = $1"#,
+            params![
+                *self.id as i32,
+                &self.name, &self.email, &self.password, &self.permissions, &self.localsettings,
+                self.updated_at,
+            ]
+        ).await?;
+
+        Ok(())
+    }
+
+
+    pub fn set_settings(&mut self, value: MemberSettings) -> Result<()> {
+        self.localsettings = Some(serde_json::to_string(&value)?);
+
+        Ok(())
     }
 }

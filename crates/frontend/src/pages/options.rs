@@ -1,13 +1,14 @@
 use common::api::WrappingResponse;
-use common_local::{api, update::OptionsUpdate};
+use common_local::{api, update::OptionsUpdate, item::member::{MemberSettings, PageView}};
+use wasm_bindgen::UnwrapThrowExt;
 use web_sys::HtmlSelectElement;
 use yew::prelude::*;
 
-use crate::request;
+use crate::{request, get_member_self};
 
 pub enum Msg {
     // Request Results
-    SettingsResults(WrappingResponse<api::GetSettingsResponse>),
+    SettingsResults(Box<WrappingResponse<api::GetSettingsResponse>>),
 
     UpdateSettings,
 }
@@ -29,13 +30,13 @@ impl Component for OptionsPage {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::SettingsResults(resp) => {
-                self.resp = Some(resp);
+                self.resp = Some(*resp);
             }
 
             Msg::UpdateSettings => {
                 ctx.link()
                 .send_future(async {
-                    Msg::SettingsResults(request::get_settings().await)
+                    Msg::SettingsResults(Box::new(request::get_settings().await))
                 });
             }
         }
@@ -46,6 +47,8 @@ impl Component for OptionsPage {
     fn view(&self, ctx: &Context<Self>) -> Html {
         if let Some(resp) = self.resp.as_ref() {
             let resp = crate::continue_or_html_err!(resp);
+
+            let member = get_member_self().unwrap_throw();
 
             html! {
                 <div class="settings-view-container">
@@ -82,6 +85,36 @@ impl Component for OptionsPage {
                         </div>
 
 
+                        <h3>{ "My Settings" }</h3>
+
+                        <div class="form-container shrink-width-to-content">
+                            <label for="page-view-type">{ "Default Page View Type" }</label>
+                            <select
+                                id="page-view-type"
+                                onchange={
+                                    ctx.link().callback_future(|e: Event| {
+                                        let index = e.target_unchecked_into::<HtmlSelectElement>().selected_index();
+
+                                        async move {
+                                            request::update_settings(OptionsUpdate {
+                                                member: Some(MemberSettings {
+                                                    page_view: Some(if index == 0 { PageView::Viewing } else { PageView::Editing }),
+                                                }),
+
+                                                .. Default::default()
+                                            }).await;
+
+                                            Msg::UpdateSettings
+                                        }
+                                    })
+                                }
+                            >
+                                <option selected={ member.localsettings.page_view.map(|v| v.is_viewing()).unwrap_or(true) }>{ "Viewing" }</option>
+                                <option selected={ member.localsettings.page_view.map(|v| v.is_editing()).unwrap_or(false) }>{ "Editing" }</option>
+                            </select>
+                        </div>
+
+
                         // <button class="button" onclick={ ctx.link().callback_future(|_| async {
                         //     request::run_task().await;
                         //     Msg::Ignore
@@ -99,9 +132,7 @@ impl Component for OptionsPage {
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
         if first_render {
             ctx.link()
-            .send_future(async {
-                Msg::SettingsResults(request::get_settings().await)
-            });
+            .send_message(Msg::UpdateSettings);
         }
     }
 }

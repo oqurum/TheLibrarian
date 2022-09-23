@@ -10,7 +10,7 @@ use wasm_bindgen::JsCast;
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
 use yew::{prelude::*, html::Scope};
 
-use crate::{components::LoginBarrier, request, pages::home::MediaItem};
+use crate::{components::LoginBarrier, request, pages::home::MediaItem, get_member_self};
 
 
 
@@ -420,6 +420,16 @@ impl Component for AuthorView {
         }
     }
 
+    fn changed(&mut self, _ctx: &Context<Self>) -> bool {
+        if let Some(member) = get_member_self() {
+            if member.localsettings.get_page_view_default().is_editing() {
+                self.is_editing = true;
+            }
+        }
+
+        true
+    }
+
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
         if first_render {
             let person_id = ctx.props().id;
@@ -427,6 +437,12 @@ impl Component for AuthorView {
             ctx.link().send_future(async move {
                 Msg::RetrieveMediaView(Box::new(request::get_person(person_id).await))
             });
+
+            if let Some(member) = get_member_self() {
+                if member.localsettings.get_page_view_default().is_editing() {
+                    self.is_editing = true;
+                }
+            }
         }
     }
 }
