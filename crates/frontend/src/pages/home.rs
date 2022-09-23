@@ -3,7 +3,7 @@ use std::{rc::Rc, sync::Mutex};
 use common::{BookId, api::WrappingResponse};
 use common_local::{api::{self, NewBookBody, BookListQuery, QueryType}, DisplayItem, SearchType};
 use gloo_utils::window;
-use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
+use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt, JsValue};
 use web_sys::{HtmlElement, HtmlInputElement};
 use yew::prelude::*;
 use yew_router::prelude::Link;
@@ -28,6 +28,8 @@ pub enum Msg {
 
     AddOrRemoveItemFromEditing(BookId, bool),
     DeselectAllEditing,
+
+    Reload,
 
     Ignore
 }
@@ -146,6 +148,16 @@ impl Component for HomePage {
                 }
             }
 
+            Msg::Reload => {
+                self.total_media_count = 0;
+                self.media_items = None;
+
+                self.media_popup = None;
+                self.editing_items.lock().unwrap().clear();
+
+                return self.update(ctx, Msg::RequestMediaItems);
+            }
+
             Msg::Ignore => return false,
         }
 
@@ -162,30 +174,39 @@ impl Component for HomePage {
                             <div class="left-content">
                                 <button class="slim"
                                     onclick={ ctx.link().callback(|_| {
-                                        let mut query = get_query().unwrap_or_default();
-                                        query.search = Some(QueryType::HasPerson(false));
-
                                         let loc = window().location();
 
-                                        let _ = loc.set_href(&loc.pathname().unwrap());
+                                        let history = window().history().unwrap_throw();
 
-                                        Msg::Ignore
+                                        history.push_state_with_url(
+                                            &JsValue::NULL,
+                                            "",
+                                            Some(&loc.pathname().unwrap())
+                                        ).expect_throw("failed to push state");
+
+                                        Msg::Reload
                                     }) }
                                 >{ "Unset Filter" }</button>
                                 <button class="slim"
-                                    onclick={ ctx.link().callback(|_| {
+                                    onclick={ ctx.link().callback(move |_| {
                                         let mut query = get_query().unwrap_or_default();
                                         query.search = Some(QueryType::HasPerson(false));
 
                                         let loc = window().location();
 
-                                        let _ = loc.set_href(&format!(
-                                            "{}?{}",
-                                            loc.pathname().unwrap(),
-                                            serde_qs::to_string(&query).unwrap_throw()
-                                        ));
+                                        let history = window().history().unwrap_throw();
 
-                                        Msg::Ignore
+                                        history.push_state_with_url(
+                                            &JsValue::NULL,
+                                            "",
+                                            Some(&format!(
+                                                "{}?{}",
+                                                loc.pathname().unwrap(),
+                                                serde_qs::to_string(&query).unwrap_throw()
+                                            ))
+                                        ).expect_throw("failed to push state");
+
+                                        Msg::Reload
                                     }) }
                                 >{ "Filter Missing Person" }</button>
                             </div>
