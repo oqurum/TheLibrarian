@@ -595,7 +595,7 @@ pub async fn accept_register_book_data_overwrites(
     if let Some(values) = new.added_people {
         for person_id in values {
             if PersonModel::get_by_id(person_id, db).await?.is_some() {
-                BookPersonModel::new(book_model.id, person_id)
+                BookPersonModel::new(book_model.id, person_id, None)
                     .insert(db).await?;
             }
         }
@@ -603,7 +603,7 @@ pub async fn accept_register_book_data_overwrites(
 
     if let Some(values) = new.removed_people {
         for person_id in values {
-            BookPersonModel::new(book_model.id, person_id)
+            BookPersonModel::new(book_model.id, person_id, None)
                 .remove(db).await?;
         }
     }

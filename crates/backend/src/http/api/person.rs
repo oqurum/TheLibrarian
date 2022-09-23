@@ -194,6 +194,7 @@ pub async fn update_person_data(
                 let _ = BookPersonModel {
                     book_id: met_per.book_id,
                     person_id: into_person.id,
+                    info: None,
                 }.insert(&db).await;
             }
 

@@ -41,7 +41,7 @@ pub async fn add_new_book(
                         BookPersonModel::remove_by_book_id(book_id, &db).await?;
 
                         for person_id in edit.people_list.iter().copied() {
-                            BookPersonModel { book_id, person_id }.insert(&db).await?;
+                            BookPersonModel { book_id, person_id, info: None, }.insert(&db).await?;
                         }
 
                         // Update the cached author name
@@ -60,7 +60,7 @@ pub async fn add_new_book(
                 ModifyValuesBy::Append => {
                     for book_id in edit.book_ids {
                         for person_id in edit.people_list.iter().copied() {
-                            BookPersonModel { book_id, person_id }.insert(&db).await?;
+                            BookPersonModel { book_id, person_id, info: None, }.insert(&db).await?;
                         }
                     }
                 }
@@ -68,7 +68,7 @@ pub async fn add_new_book(
                 ModifyValuesBy::Remove => {
                     for book_id in edit.book_ids {
                         for person_id in edit.people_list.iter().copied() {
-                            BookPersonModel { book_id, person_id }.remove(&db).await?;
+                            BookPersonModel { book_id, person_id, info: None, }.remove(&db).await?;
                         }
 
                         // TODO: Check if we removed cached author
@@ -158,6 +158,7 @@ pub async fn add_new_book(
                     let model = BookPersonModel {
                         book_id: db_book.id,
                         person_id,
+                        info: Some(String::from("Author")).filter(|_| Some(person_id) == db_book.cached.author_id),
                     };
 
                     model.insert(&db).await?;

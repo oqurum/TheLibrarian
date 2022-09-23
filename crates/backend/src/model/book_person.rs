@@ -9,6 +9,8 @@ use super::{AdvRow, TableRow, BookModel, PersonModel};
 pub struct BookPersonModel {
     pub book_id: BookId,
     pub person_id: PersonId,
+
+    pub info: Option<String>,
 }
 
 impl TableRow for BookPersonModel {
@@ -16,22 +18,24 @@ impl TableRow for BookPersonModel {
         Ok(Self {
             book_id: BookId::from(row.next::<i32>()? as usize),
             person_id: PersonId::from(row.next::<i32>()? as usize),
+            info: row.next_opt()?,
         })
     }
 }
 
 
 impl BookPersonModel {
-    pub fn new(book_id: BookId, person_id: PersonId) -> Self {
-        Self { book_id, person_id }
+    pub fn new(book_id: BookId, person_id: PersonId, info: Option<String>) -> Self {
+        Self { book_id, person_id, info }
     }
 
     pub async fn insert(&self, db: &tokio_postgres::Client) -> Result<()> {
         db.execute(
-            "INSERT INTO book_person (book_id, person_id) VALUES ($1, $2) ON CONFLICT (book_id, person_id) DO NOTHING",
+            "INSERT INTO book_person (book_id, person_id, info) VALUES ($1, $2, $3) ON CONFLICT (book_id, person_id) DO NOTHING",
             params![
                 *self.book_id as i32,
-                *self.person_id as i32
+                *self.person_id as i32,
+                self.info.as_deref(),
             ]
         ).await?;
 
@@ -103,7 +107,7 @@ impl BookPersonModel {
                 SELECT book.*
                 FROM book_person
                 JOIN book ON book.id = book_person.book_id
-                WHERE person_id = $1
+                WHERE person_id = $1 AND info = 'Author'
             "#,
             params![*id as i32]
         ).await?.into_iter().map(BookModel::from_row);

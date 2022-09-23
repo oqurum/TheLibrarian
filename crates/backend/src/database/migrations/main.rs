@@ -87,6 +87,8 @@ pub async fn init(client: &Client) -> Result<()> {
             book_id     INT NOT NULL references book(id) ON DELETE CASCADE,
             person_id   INT NOT NULL references person(id) ON DELETE CASCADE,
 
+            info        VARCHAR(32),
+
             UNIQUE(book_id, person_id)
         );"#,
         &[]
