@@ -1,10 +1,10 @@
 use std::{rc::Rc, sync::Mutex};
 
-use common::{BookId, api::WrappingResponse};
+use common::{BookId, api::WrappingResponse, component::{InfiniteScroll, InfiniteScrollEvent}};
 use common_local::{api::{self, NewBookBody, BookListQuery, QueryType}, DisplayItem, SearchType};
 use gloo_utils::window;
-use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt, JsValue};
-use web_sys::{HtmlElement, HtmlInputElement};
+use wasm_bindgen::{UnwrapThrowExt, JsValue};
+use web_sys::HtmlInputElement;
 use yew::prelude::*;
 use yew_router::prelude::Link;
 
@@ -20,11 +20,9 @@ pub enum Msg {
     MediaListResults(WrappingResponse<api::GetBookListResponse>),
 
     // Events
-    OnScroll(i32),
+    OnScrollEvent(InfiniteScrollEvent),
     ClosePopup,
     OpenPopup(DisplayOverlay),
-
-    InitEventListenerAfterMediaItems,
 
     AddOrRemoveItemFromEditing(BookId, bool),
     DeselectAllEditing,
@@ -35,8 +33,6 @@ pub enum Msg {
 }
 
 pub struct HomePage {
-    on_scroll_fn: Option<Closure<dyn FnMut()>>,
-
     media_items: Option<Vec<DisplayItem>>,
     total_media_count: usize,
 
@@ -55,8 +51,6 @@ impl Component for HomePage {
 
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
-            on_scroll_fn: None,
-
             media_items: None,
             total_media_count: 0,
 
@@ -96,21 +90,6 @@ impl Component for HomePage {
                 }
             }
 
-            Msg::InitEventListenerAfterMediaItems => {
-                let lib_list_ref = self.library_list_ref.clone();
-                let link = ctx.link().clone();
-
-                let func = Closure::wrap(Box::new(move || {
-                    let lib_list = lib_list_ref.cast::<HtmlElement>().unwrap();
-
-                    link.send_message(Msg::OnScroll(lib_list.client_height() + lib_list.scroll_top()));
-                }) as Box<dyn FnMut()>);
-
-                let _ = self.library_list_ref.cast::<HtmlElement>().unwrap().add_event_listener_with_callback("scroll", func.as_ref().unchecked_ref());
-
-                self.on_scroll_fn = Some(func);
-            }
-
             Msg::RequestMediaItems => {
                 if self.is_fetching_media_items {
                     return false;
@@ -140,12 +119,12 @@ impl Component for HomePage {
                 }
             }
 
-            Msg::OnScroll(scroll_y) => {
-                let scroll_height = self.library_list_ref.cast::<HtmlElement>().unwrap().scroll_height();
-
-                if scroll_height - scroll_y < 600 && self.can_req_more() {
+            Msg::OnScrollEvent(event) => {
+                if event.scroll_height - event.scroll_pos < 600 && self.can_req_more() {
                     ctx.link().send_message(Msg::RequestMediaItems);
                 }
+
+                return false;
             }
 
             Msg::Reload => {
@@ -217,7 +196,11 @@ impl Component for HomePage {
                     </div>
 
                     // Book List
-                    <div class="book-list normal" ref={ self.library_list_ref.clone() }>
+                    <InfiniteScroll
+                        class="book-list normal"
+                        ref={ self.library_list_ref.clone() }
+                        event={ ctx.link().callback(Msg::OnScrollEvent) }
+                    >
                         {
                             for items.iter().map(|item| {
                                 let is_editing = self.editing_items.lock().unwrap().contains(&item.id);
@@ -259,7 +242,7 @@ impl Component for HomePage {
                                 html! {}
                             }
                         }
-                    </div>
+                    </InfiniteScroll>
 
                     <MassSelectBar
                         on_deselect_all={ctx.link().callback(|_| Msg::DeselectAllEditing)}
@@ -289,17 +272,8 @@ impl Component for HomePage {
     }
 
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
-        if self.on_scroll_fn.is_none() && self.library_list_ref.get().is_some() {
-            ctx.link().send_message(Msg::InitEventListenerAfterMediaItems);
-        } else if first_render {
+        if first_render {
             ctx.link().send_message(Msg::RequestMediaItems);
-        }
-    }
-
-    fn destroy(&mut self, _ctx: &Context<Self>) {
-        // TODO: Determine if still needed.
-        if let Some(f) = self.on_scroll_fn.take() {
-            let _ = self.library_list_ref.cast::<HtmlElement>().unwrap().remove_event_listener_with_callback("scroll", f.as_ref().unchecked_ref());
         }
     }
 }
