@@ -3,6 +3,7 @@ use std::{rc::Rc, sync::Mutex};
 use common::{BookId, api::WrappingResponse, component::{InfiniteScroll, InfiniteScrollEvent}};
 use common_local::{api::{self, NewBookBody, BookListQuery, QueryType}, DisplayItem, SearchType};
 use gloo_utils::window;
+use js_sys::decode_uri_component;
 use wasm_bindgen::{UnwrapThrowExt, JsValue};
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
@@ -434,6 +435,11 @@ fn get_query() -> Option<BookListQuery> {
     if query.is_empty() {
         None
     } else {
-        serde_qs::from_str(&query[1..]).ok()
+        serde_qs::from_str(
+            &decode_uri_component(&query[1..])
+                .unwrap_throw()
+                .as_string()
+                .unwrap_throw()
+        ).ok()
     }
 }
