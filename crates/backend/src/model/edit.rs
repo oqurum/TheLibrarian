@@ -548,8 +548,15 @@ pub async fn accept_register_book_data_overwrites(
     cmp_old_and_new_return(&mut book_edits.rating, &mut book_model.rating, old.rating, new.rating);
     cmp_old_and_new_return(&mut book_edits.is_public, &mut book_model.is_public, old.is_public, new.is_public);
 
-    if let Some(cached_id) = book_model.cached.author_id.as_mut() {
-        cmp_old_and_new_return(&mut book_edits.display_person_id, cached_id, old.display_person_id, new.display_person_id);
+    cmp_old_and_new_return(&mut book_edits.display_person_id, book_model.cached.author_id.get_or_insert_with(Default::default), old.display_person_id, new.display_person_id);
+
+    // If we updated display id then we'll also update the author name.
+    if book_edits.display_person_id {
+        if let Some(person_id) = book_model.cached.author_id {
+            if let Some(model) = PersonModel::get_by_id(person_id, db).await? {
+                book_model.cached.author = Some(model.name);
+            }
+        }
     }
 
     // TODO: publisher
