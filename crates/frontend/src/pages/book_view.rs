@@ -1028,24 +1028,28 @@ fn _person_item(props: &PersonItemProps) -> Html {
                 <img src={ props.person.get_thumb_url() } />
 
                 {
-                    if props.display_id.filter(|v| *v == props.person.id).is_some() {
-                        html! {
-                            <div class="top-right">
-                                <span class="material-icons" title="Current Display User">{ "check_circle" }</span>
-                            </div>
+                    if props.editing {
+                        if props.display_id.filter(|v| *v == props.person.id).is_some() {
+                            html! {
+                                <div class="top-right">
+                                    <span class="material-icons" title="Current Display User">{ "check_circle" }</span>
+                                </div>
+                            }
+                        } else {
+                            let id = props.person.id;
+
+                            html! {
+                                <div class="top-right hover">
+                                    <span
+                                        class="material-icons"
+                                        title="Set as Display User"
+                                        onclick={ props.scope.callback(move |_| Msg::UpdateEditing(ChangingType::PersonDisplayed(id), String::new())) }
+                                    >{ "upgrade" }</span>
+                                </div>
+                            }
                         }
                     } else {
-                        let id = props.person.id;
-
-                        html! {
-                            <div class="top-right hover">
-                                <span
-                                    class="material-icons"
-                                    title="Set as Display User"
-                                    onclick={ props.scope.callback(move |_| Msg::UpdateEditing(ChangingType::PersonDisplayed(id), String::new())) }
-                                >{ "upgrade" }</span>
-                            </div>
-                        }
+                        html! {}
                     }
                 }
             </div>

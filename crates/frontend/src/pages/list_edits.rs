@@ -509,61 +509,93 @@ impl EditListPage {
         match operation {
             EditOperation::Modify => {
                 if let Some((new_value, old_value)) = determine_new_old(new_data, old_data) {
-                    html! {
-                        <div class="comparison-row">
-                            <div class="row-title"><span>{ title }</span></div>
-                            // Old Value
-                            {
-                                if let Some(val) = old_value {
-                                    html! {
-                                        for val.iter()
-                                            .map(|val| html! {
-                                                <div class="row-grow"><div class="label red">{ map(val) }</div></div>
-                                            })
-                                    }
-                                } else {
-                                    html! {
-                                        <div class="row-grow"><div class="label red">{ "(Empty)" }</div></div>
-                                    }
-                                }
-                            }
+                    if let Some(val) = old_value {
+                        html! {
+                            for val.iter().zip(new_value).enumerate()
+                                .map(|(index, (old_val, new_val))| html! {
+                                    <div class="comparison-row">
+                                        {
+                                            if index == 0 {
+                                                html! {
+                                                    <div class="row-title"><span>{ title }</span></div>
+                                                }
+                                            } else {
+                                                html! {
+                                                    <div class="row-title"></div>
+                                                }
+                                            }
+                                        }
 
-                            // New Value
-                            {
-                                if status.is_accepted() && is_updated {
-                                    html! {
-                                        for new_value.iter()
-                                            .map(|val| html! {
+                                        // Old Value
+                                        <div class="row-grow"><div class="label red">{ map(old_val) }</div></div>
+
+                                        // New Value
+                                        {
+                                            if status.is_accepted() && is_updated {
+                                                html! {
+                                                    <div class="row-grow">
+                                                        <div class="label green" title={ "Updated Model with value." }>
+                                                            { map(new_val) }
+                                                        </div>
+                                                    </div>
+                                                }
+                                            } else if current.is_some() && current != old_value.as_ref() {
+                                                html! {
+                                                    <div class="row-grow">
+                                                        <div class="label yellow" title={ "Current Model has a different value than wanted. It'll not be used if approved." }>
+                                                            { map(new_val) }
+                                                        </div>
+                                                    </div>
+                                                }
+                                            } else {
+                                                html! {
+                                                    <div class="row-grow">
+                                                        <div class="label green">{ map(new_val) }</div>
+                                                    </div>
+                                                }
+                                            }
+                                        }
+                                    </div>
+                                })
+                        }
+                    } else {
+                        html! {
+                            <div class="comparison-row">
+                                <div class="row-title"><span>{ title }</span></div>
+
+                                // Old Value
+                                <div class="row-grow"><div class="label red">{ "(Empty)" }</div></div>
+
+                                // New Value
+                                {
+                                    for new_value.iter().map(|new_val| {
+                                        if status.is_accepted() && is_updated {
+                                            html! {
                                                 <div class="row-grow">
                                                     <div class="label green" title={ "Updated Model with value." }>
-                                                        { map(val) }
+                                                        { map(new_val) }
                                                     </div>
                                                 </div>
-                                            })
-                                    }
-                                } else if current.is_some() && current != old_value.as_ref() {
-                                    html! {
-                                        for new_value.iter()
-                                            .map(|val| html! {
+                                            }
+                                        } else if current.is_some() && current != old_value.as_ref() {
+                                            html! {
                                                 <div class="row-grow">
                                                     <div class="label yellow" title={ "Current Model has a different value than wanted. It'll not be used if approved." }>
-                                                        { map(val) }
+                                                        { map(new_val) }
                                                     </div>
                                                 </div>
-                                            })
-                                    }
-                                } else {
-                                    html! {
-                                        for new_value.iter()
-                                            .map(|val| html! {
+                                            }
+                                        } else {
+                                            html! {
                                                 <div class="row-grow">
-                                                    <div class="label green">{ map(val) }</div>
+                                                    <div class="label green">{ map(new_val) }</div>
                                                 </div>
-                                            })
-                                    }
+                                            }
+                                        }
+                                    })
                                 }
-                            }
-                        </div>
+                            </div>
+                        }
                     }
                 } else {
                     html! {}
