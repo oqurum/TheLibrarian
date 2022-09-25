@@ -109,7 +109,7 @@ impl PersonModel {
             name: self.name,
             description: self.description,
             birth_date: self.birth_date,
-            thumb_url: format!("{}/api/v1/image/{}", host, self.thumb_url.as_value().unwrap()),
+            thumb_url: self.thumb_url.as_value().map(|v| format!("{}/api/v1/image/{v}", host)),
             updated_at: self.updated_at,
             created_at: self.created_at,
         }

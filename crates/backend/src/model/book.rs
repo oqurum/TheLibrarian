@@ -126,7 +126,7 @@ impl BookModel {
             clean_title: self.clean_title,
             description: self.description,
             rating: self.rating,
-            thumb_url: format!("{}/api/v1/image/{}", host, self.thumb_path.as_value().unwrap()),
+            thumb_url: self.thumb_path.as_value().map(|v| format!("{}/api/v1/image/{v}", host)),
             display_author_id: self.cached.author_id.map(|v| *v),
             publisher: self.cached.publisher,
             isbn_10: self.isbn_10,
@@ -147,7 +147,7 @@ impl BookModel {
             title: self.title,
             description: self.description,
             rating: self.rating,
-            thumb_url: format!("{}/api/v1/image/{}", host, self.thumb_path.as_value().unwrap()),
+            thumb_url: self.thumb_path.as_value().map(|v| format!("{}/api/v1/image/{v}", host)),
             isbn_10: self.isbn_10,
             isbn_13: self.isbn_13,
             is_public: self.is_public,
@@ -283,7 +283,7 @@ impl BookModel {
                 // TODO: Separate from here.
                 // Check for possible isbn.
                 let isbn = if let Some(isbn) = common::parse_book_id(orig_query).into_possible_isbn_value() {
-                    format!(" OR isbn_10 = {isbn} OR isbn_13 = {isbn}")
+                    format!(" OR isbn_10 = '{isbn}' OR isbn_13 = '{isbn}'")
                 } else {
                     String::new()
                 };
