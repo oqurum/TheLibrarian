@@ -661,7 +661,7 @@ impl BookView {
                         <section>
                             <h2>{ "Characters" }</h2>
                             <div class="characters-container">
-                                <div class="person-item new-container" title="Add Book Character">
+                                <div class="person-container new-container" title="Add Book Character">
                                     <span class="material-icons">{ "add" }</span>
                                 </div>
                             </div>
@@ -670,7 +670,7 @@ impl BookView {
                         <section>
                             <h2>{ "People" }</h2>
                             <div class="authors-container">
-                                <div class="person-item new-container" title="Add Person">
+                                <div class="person-container new-container" title="Add Person">
                                     <span class="material-icons" onclick={ ctx.link().callback(|_| Msg::ShowPopup(DisplayOverlay::AddAuthor)) }>{ "add" }</span>
                                 </div>
 
@@ -1009,7 +1009,7 @@ impl PartialEq for PersonItemProps {
 #[function_component(PersonItem)]
 fn _person_item(props: &PersonItemProps) -> Html {
     html! {
-        <div class="person-item">
+        <div class="person-container">
             <div class="photo"><img src={ props.person.get_thumb_url() } /></div>
             <span class="title">{ props.person.name.clone() }</span>
             {
