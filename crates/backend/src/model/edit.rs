@@ -421,7 +421,7 @@ pub async fn new_edit_data_from_book(current: BookModel, updated: BookEdit, db: 
     let (display_person_id_old, display_person_id) = edit_translate::cmp_opt_partial_eq(current.cached.author_id, updated.display_person_id);
 
     let (updated_people_old, updated_people) = edit_translate::cmp_opt_partial_eq(curr_people_info, updated.updated_people);
-    let (added_people_old, added_people) = edit_translate::cmp_opt_partial_eq(current_people.clone(), updated.added_people);
+    // TODO: Will need to fix
     let (removed_people_old, removed_people) = edit_translate::cmp_opt_partial_eq(current_people, updated.removed_people);
 
     let new = BookEdit {
@@ -437,7 +437,7 @@ pub async fn new_edit_data_from_book(current: BookModel, updated: BookEdit, db: 
         display_person_id,
         publisher: None, // TODO
         updated_people,
-        added_people,
+        added_people: updated.added_people,
         removed_people,
         added_tags: None,
         removed_tags: None,
@@ -458,7 +458,7 @@ pub async fn new_edit_data_from_book(current: BookModel, updated: BookEdit, db: 
         display_person_id: display_person_id_old,
         publisher: None,
         updated_people: updated_people_old,
-        added_people: added_people_old,
+        added_people: None,
         removed_people: removed_people_old,
         added_tags: None,
         removed_tags: None,
