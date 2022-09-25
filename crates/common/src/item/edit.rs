@@ -180,6 +180,9 @@ mod book_edit {
         pub publisher: Option<String>,
 
         #[serde(skip_serializing_if = "Option::is_none")]
+        pub updated_people: Option<Vec<(PersonId, Option<String>)>>,
+
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub added_people: Option<Vec<PersonId>>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub removed_people: Option<Vec<PersonId>>,
@@ -221,6 +224,9 @@ mod book_edit {
         pub language: bool,
 
         #[serde(default, skip_serializing_if = "is_false")]
+        pub updated_people: bool,
+
+        #[serde(default, skip_serializing_if = "is_false")]
         pub added_people: bool,
 
         #[serde(default, skip_serializing_if = "is_false")]
@@ -260,12 +266,24 @@ mod book_edit {
             self.available_at.is_none() &&
             self.language.is_none() &&
             self.publisher.is_none() &&
+            self.updated_people.is_none() &&
             self.added_people.is_none() &&
             self.removed_people.is_none() &&
             self.added_tags.is_none() &&
             self.removed_tags.is_none() &&
             self.added_images.is_none() &&
             self.removed_images.is_none()
+        }
+
+        pub fn insert_updated_person(&mut self, id: PersonId, value: Option<String>) {
+            // TODO: Replace with get_or_insert_default (unstable currently)
+            let list = self.updated_people.get_or_insert_with(Default::default);
+
+            if let Some(found) = list.iter_mut().find(|v| v.0 == id) {
+                found.1 = value;
+            } else {
+                list.push((id, value));
+            }
         }
 
         pub fn insert_added_tag(&mut self, value: TagId) {
@@ -325,6 +343,7 @@ mod book_edit {
                         ("language", "Language", CompareDisplay::Text),
                         ("publisher", "Publisher", CompareDisplay::Text),
 
+                        ("updated_people", "Updated People", CompareDisplay::Text),
                         ("added_people", "Added People", CompareDisplay::Text),
                         ("removed_people", "Removed People", CompareDisplay::Text),
                         ("added_tags", "Added Tags", CompareDisplay::Text),
@@ -350,6 +369,7 @@ mod book_edit {
                     language: map.remove("language").map(serde_json::from_value).transpose()?,
                     publisher: map.remove("publisher").map(serde_json::from_value).transpose()?,
 
+                    updated_people: map.remove("updated_people").map(serde_json::from_value).transpose()?,
                     added_people: map.remove("added_people").map(serde_json::from_value).transpose()?,
                     removed_people: map.remove("removed_people").map(serde_json::from_value).transpose()?,
                     added_tags: map.remove("added_tags").map(serde_json::from_value).transpose()?,

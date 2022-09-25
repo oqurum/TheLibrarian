@@ -20,7 +20,7 @@ pub async fn load_author_list(
     if let Some(query) = query.query.as_deref() {
         let items = PersonModel::search(query, offset, limit, &db).await?
             .into_iter()
-            .map(|v| v.into())
+            .map(|v| v.into_public_person(None))
             .collect();
 
         Ok(web::Json(WrappingResponse::okay(api::GetPeopleResponse {
@@ -35,7 +35,7 @@ pub async fn load_author_list(
     else {
         let items = PersonModel::get_all(offset, limit, &db).await?
             .into_iter()
-            .map(|v| v.into())
+            .map(|v| v.into_public_person(None))
             .collect();
 
         Ok(web::Json(WrappingResponse::okay(api::GetPeopleResponse {
@@ -109,7 +109,7 @@ async fn load_person(person_id: web::Path<PersonId>, db: web::Data<tokio_postgre
     let person_alts = PersonAltModel::find_all_by_person_id(*person_id, &db).await?;
 
     Ok(web::Json(WrappingResponse::okay(api::GetPersonResponse {
-        person: person.into(),
+        person: person.into_public_person(None),
         other_names: person_alts.into_iter().map(|v| v.name).collect(),
     })))
 }

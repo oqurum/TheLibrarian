@@ -128,4 +128,17 @@ impl BookPersonModel {
 
         Ok(())
     }
+
+    pub async fn update(&self, db: &tokio_postgres::Client) -> Result<()> {
+        db.execute(
+            "UPDATE book_person SET info = $3 WHERE book_id = $1 AND person_id = $2",
+            params![
+                *self.book_id as i32,
+                *self.person_id as i32,
+                &self.info
+            ]
+        ).await?;
+
+        Ok(())
+    }
 }

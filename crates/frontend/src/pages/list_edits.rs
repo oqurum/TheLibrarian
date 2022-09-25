@@ -386,6 +386,10 @@ impl EditListPage {
                 { Self::display_row("Available At", &new_data.available_at, &old_data.available_at, current.and_then(|v| v.available_at.map(|v| v.and_hms(0, 0, 0).timestamp())).as_ref(), updated.available_at, status, operation) }
                 { Self::display_row("Language", &new_data.language, &old_data.language, current.map(|v| &v.language), updated.language, status, operation) }
 
+                { Self::display_row_array_map(
+                    "Updated People", &new_data.updated_people, &old_data.updated_people, None, updated.updated_people, status, operation,
+                    |v| format!("{} - {}", v.0, v.1.as_deref().unwrap_or("(Empty)"))
+                ) }
                 { Self::display_row_array("Added People", &new_data.added_people, &old_data.added_people, None, updated.added_people, status, operation) }
                 { Self::display_row_array("Removed People", &new_data.removed_people, &old_data.removed_people, None, updated.removed_people, status, operation) }
                 // { Self::display_row("Publisher", &new_data.publisher, &old_data.publisher, current.and_then(|v| v.publisher.as_ref())) }
@@ -479,6 +483,28 @@ impl EditListPage {
         status: EditStatus,
         operation: EditOperation,
     ) -> Html {
+        Self::display_row_array_map::<V, V, _>(
+            title, new_data, old_data, current, is_updated, status, operation,
+            |a| a.clone(),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn display_row_array_map<A, V, F>(
+        title: &'static str,
+        new_data: &Option<Vec<A>>,
+        old_data: &Option<Vec<A>>,
+        current: Option<&Vec<A>>,
+        is_updated: bool,
+        status: EditStatus,
+        operation: EditOperation,
+        map: F
+    ) -> Html
+        where
+            A: PartialEq,
+            V: Clone + Default + fmt::Display + fmt::Debug,
+            F: Fn(&A) -> V
+    {
         match operation {
             EditOperation::Modify => {
                 if let Some((new_value, old_value)) = determine_new_old(new_data, old_data) {
@@ -491,7 +517,7 @@ impl EditListPage {
                                     html! {
                                         for val.iter()
                                             .map(|val| html! {
-                                                <div class="row-grow"><div class="label red">{ val }</div></div>
+                                                <div class="row-grow"><div class="label red">{ map(val) }</div></div>
                                             })
                                     }
                                 } else {
@@ -509,7 +535,7 @@ impl EditListPage {
                                             .map(|val| html! {
                                                 <div class="row-grow">
                                                     <div class="label green" title={ "Updated Model with value." }>
-                                                        { val.clone() }
+                                                        { map(val) }
                                                     </div>
                                                 </div>
                                             })
@@ -520,7 +546,7 @@ impl EditListPage {
                                             .map(|val| html! {
                                                 <div class="row-grow">
                                                     <div class="label yellow" title={ "Current Model has a different value than wanted. It'll not be used if approved." }>
-                                                        { val.clone() }
+                                                        { map(val) }
                                                     </div>
                                                 </div>
                                             })
@@ -530,7 +556,7 @@ impl EditListPage {
                                         for new_value.iter()
                                             .map(|val| html! {
                                                 <div class="row-grow">
-                                                    <div class="label green">{ val.clone() }</div>
+                                                    <div class="label green">{ map(val) }</div>
                                                 </div>
                                             })
                                     }

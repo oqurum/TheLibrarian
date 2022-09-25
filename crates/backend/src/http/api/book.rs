@@ -314,13 +314,13 @@ pub async fn load_book_list(
 #[get("/book/{id}")]
 pub async fn get_book_info(book_id: web::Path<BookId>, db: web::Data<Client>) -> WebResult<JsonResponse<api::MediaViewResponse>> {
     let book = BookModel::get_by_id(*book_id, &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
-    let people = PersonModel::get_all_by_book_id(book.id, &db).await?;
+    let people = PersonModel::get_all_by_book_id_w_info(book.id, &db).await?;
     let tags = BookTagWithTagModel::get_by_book_id(book.id, &db).await?;
 
     Ok(web::Json(WrappingResponse::okay(api::MediaViewResponse {
         metadata: book.into(),
         people: people.into_iter()
-            .map(|p| p.into())
+            .map(|(model, info)| model.into_public_person(info))
             .collect(),
         tags: tags.into_iter()
             .map(|t| t.into())

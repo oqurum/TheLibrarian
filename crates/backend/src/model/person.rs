@@ -61,22 +61,6 @@ impl TableRow for PersonModel {
     }
 }
 
-impl From<PersonModel> for Person {
-    fn from(val: PersonModel) -> Self {
-        Person {
-            id: val.id,
-            source: val.source,
-            name: val.name,
-            description: val.description,
-            birth_date: val.birth_date,
-            thumb_url: val.thumb_url,
-            updated_at: val.updated_at,
-            created_at: val.created_at,
-        }
-    }
-}
-
-
 impl NewPersonModel {
     pub async fn insert(self, db: &tokio_postgres::Client) -> Result<PersonModel> {
         let row = db.query_one(
@@ -102,6 +86,21 @@ impl NewPersonModel {
 
 
 impl PersonModel {
+    pub fn into_public_person(self, info: Option<String>) -> Person {
+        Person {
+            info,
+
+            id: self.id,
+            source: self.source,
+            name: self.name,
+            description: self.description,
+            birth_date: self.birth_date,
+            thumb_url: self.thumb_url,
+            updated_at: self.updated_at,
+            created_at: self.created_at,
+        }
+    }
+
     pub fn into_public_author(self, host: &str, other_names: Vec<String>) -> PublicAuthor {
         PublicAuthor {
             other_names,
@@ -137,6 +136,29 @@ impl PersonModel {
         ).await?;
 
         values.into_iter().map(Self::from_row).collect()
+    }
+
+    pub async fn get_all_by_book_id_w_info(book_id: BookId, db: &tokio_postgres::Client) -> Result<Vec<(Self, Option<String>)>> {
+        let values = db.query(
+            r#"
+                SELECT person.*, book_person.info FROM book_person
+                LEFT JOIN
+                    person ON person.id = book_person.person_id
+                WHERE book_id = $1
+            "#,
+            params![ *book_id as i32 ]
+        ).await?;
+
+        values.into_iter()
+            .map(|v| {
+                let mut v = AdvRow {
+                    index: 0,
+                    row: v
+                };
+
+                Result::Ok((Self::create(&mut v)?, v.next_opt()?))
+            })
+            .collect()
     }
 
     pub async fn search_count(query: &str, db: &tokio_postgres::Client) -> Result<usize> {

@@ -5,9 +5,9 @@ use common::{
         multi_select::{MultiSelectEvent, MultiSelectModule, MultiSelectItem, MultiSelectNewItem},
         popup::{Popup, PopupType, compare::{PopupComparison, Comparable}},
     },
-    Either, LANGUAGES, ImageIdType, BookId, TagId, api::WrappingResponse, util::upper_case_first_char, ImageId, ThumbnailStore
+    Either, LANGUAGES, ImageIdType, BookId, TagId, api::WrappingResponse, util::upper_case_first_char, ImageId, ThumbnailStore, PersonId
 };
-use common_local::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse, GetPostersQuery}, TagType, item::edit::BookEdit, TagFE, SearchType};
+use common_local::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse, GetPostersQuery}, TagType, item::edit::BookEdit, TagFE, SearchType, Person};
 
 use js_sys::Date;
 use wasm_bindgen::{JsCast, JsValue, UnwrapThrowExt};
@@ -234,7 +234,7 @@ impl Component for BookView {
             Msg::UpdateEditing(type_of, value) => {
                 let mut updating = &mut self.editing_item;
 
-                let value = Some(value).filter(|v| !v.is_empty());
+                let value = Some(value).filter(|v| !v.trim().is_empty());
 
                 match type_of {
                     ChangingType::Title => updating.title = value,
@@ -250,6 +250,10 @@ impl Component for BookView {
                     ChangingType::Isbn10 => updating.isbn_10 = value,
                     ChangingType::Isbn13 => updating.isbn_13 = value,
                     ChangingType::Publicity => updating.is_public = value.and_then(|v| v.parse().ok()),
+
+                    ChangingType::PersonRelation(id) => {
+                        updating.insert_updated_person(id, value);
+                    }
                 }
             }
 
@@ -671,13 +675,16 @@ impl BookView {
                                 </div>
 
                                 {
-                                    for people.iter().map(|person| {
-                                        html! {
-                                            <div class="person-item">
-                                                <div class="photo"><img src={ person.get_thumb_url() } /></div>
-                                                <span class="title">{ person.name.clone() }</span>
-                                            </div>
-                                        }
+                                    for people.iter().cloned().map(|person| html! {
+                                        <PersonItem
+                                            edited_info={ match editing.updated_people.as_ref() {
+                                                Some(v) => v.iter().find_map(|v| if v.0 == person.id { Some(v.1.clone()) } else { None }).flatten(),
+                                                None => None
+                                            } }
+                                            {person}
+                                            editing={ true }
+                                            scope={ ctx.link() }
+                                        />
                                     })
                                 }
                             </div>
@@ -812,12 +819,9 @@ impl BookView {
                             <h2>{ "People" }</h2>
                             <div class="authors-container">
                             {
-                                for people.iter().map(|person| {
+                                for people.iter().cloned().map(|person| {
                                     html! {
-                                        <div class="person-item">
-                                            <div class="photo"><img src={ person.get_thumb_url() } /></div>
-                                            <span class="title">{ person.name.clone() }</span>
-                                        </div>
+                                        <PersonItem {person} editing={ false } scope={ ctx.link() } />
                                     }
                                 })
                             }
@@ -981,6 +985,55 @@ impl BookView {
 }
 
 
+#[derive(Properties)]
+struct PersonItemProps {
+    person: Person,
+
+    #[prop_or_default]
+    edited_info: Option<String>,
+
+    #[prop_or_default]
+    editing: bool,
+
+    scope: Scope<BookView>,
+}
+
+impl PartialEq for PersonItemProps {
+    fn eq(&self, other: &Self) -> bool {
+        self.person == other.person &&
+        self.edited_info == other.edited_info
+    }
+}
+
+
+#[function_component(PersonItem)]
+fn _person_item(props: &PersonItemProps) -> Html {
+    html! {
+        <div class="person-item">
+            <div class="photo"><img src={ props.person.get_thumb_url() } /></div>
+            <span class="title">{ props.person.name.clone() }</span>
+            {
+                if props.editing {
+                    html! {
+                        <input
+                            type="text"
+                            placeholder="Relation"
+                            onchange={ BookView::on_change_input(&props.scope, ChangingType::PersonRelation(props.person.id)) }
+                            value={ props.edited_info.clone().or_else(|| props.person.info.clone()).unwrap_or_default() }
+                        />
+                    }
+                } else {
+                    html! {
+                        <span class="title">{ props.person.info.clone().unwrap_or_default() }</span>
+                    }
+                }
+            }
+        </div>
+    }
+}
+
+
+
 #[derive(Debug, Clone)]
 pub struct CachedTag {
     type_of: TagType,
@@ -1002,6 +1055,7 @@ pub enum ChangingType {
     Isbn10,
     Isbn13,
     Publicity,
+    PersonRelation(PersonId),
 }
 
 

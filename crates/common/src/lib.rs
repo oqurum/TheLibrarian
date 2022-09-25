@@ -210,7 +210,7 @@ pub struct Member {
 
 // Used for People View
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct Person {
     pub id: PersonId,
 
@@ -222,6 +222,8 @@ pub struct Person {
     pub birth_date: Option<NaiveDate>,
 
     pub thumb_url: ThumbnailStore,
+
+    pub info: Option<String>,
 
     #[serde(serialize_with = "serialize_datetime", deserialize_with = "deserialize_datetime")]
     pub updated_at: DateTime<Utc>,
@@ -236,12 +238,6 @@ impl Person {
         } else {
             String::from("/images/missingperson.jpg")
         }
-    }
-}
-
-impl PartialEq for Person {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
     }
 }
 

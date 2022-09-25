@@ -398,13 +398,15 @@ impl EditModel {
 pub async fn new_edit_data_from_book(current: BookModel, updated: BookEdit, db: &Client) -> Result<EditData> {
     // TODO: Cleaner, less complicated way?
 
-    let current_people = if updated.added_people.is_some() || updated.removed_people.is_some() {
-        Some(BookPersonModel::get_all_by_book_id(current.id, db).await?
-            .into_iter()
-            .map(|v| v.person_id)
-            .collect())
+    let (current_people, curr_people_info) = if updated.added_people.is_some() || updated.removed_people.is_some() || updated.updated_people.is_some() {
+        let bp = BookPersonModel::get_all_by_book_id(current.id, db).await?;
+
+        (
+            Some(bp.iter().map(|v| v.person_id).collect()),
+            Some(bp.into_iter().map(|v| (v.person_id, v.info)).collect()),
+        )
     } else {
-        None
+        (None, None)
     };
 
     let (title_old, title) = edit_translate::cmp_opt_string(current.title, updated.title);
@@ -416,6 +418,8 @@ pub async fn new_edit_data_from_book(current: BookModel, updated: BookEdit, db: 
     let (is_public_old, is_public) = edit_translate::cmp_opt_bool(Some(current.is_public), updated.is_public);
     let (available_at_old, available_at) = edit_translate::cmp_opt_partial_eq(current.available_at.map(|v| v.and_hms(0, 0, 0).timestamp()), updated.available_at);
     let (language_old, language) = edit_translate::cmp_opt_partial_eq(Some(current.language), updated.language);
+
+    let (updated_people_old, updated_people) = edit_translate::cmp_opt_partial_eq(curr_people_info, updated.updated_people);
     let (added_people_old, added_people) = edit_translate::cmp_opt_partial_eq(current_people.clone(), updated.added_people);
     let (removed_people_old, removed_people) = edit_translate::cmp_opt_partial_eq(current_people, updated.removed_people);
 
@@ -430,6 +434,7 @@ pub async fn new_edit_data_from_book(current: BookModel, updated: BookEdit, db: 
         available_at,
         language,
         publisher: None, // TODO
+        updated_people,
         added_people,
         removed_people,
         added_tags: None,
@@ -449,6 +454,7 @@ pub async fn new_edit_data_from_book(current: BookModel, updated: BookEdit, db: 
         available_at: available_at_old,
         language: language_old,
         publisher: None,
+        updated_people: updated_people_old,
         added_people: added_people_old,
         removed_people: removed_people_old,
         added_tags: None,
@@ -592,6 +598,13 @@ pub async fn accept_register_book_data_overwrites(
 
 
     // People
+    if let Some(values) = new.updated_people {
+        for (person_id, info) in values {
+            BookPersonModel::new(book_model.id, person_id, info)
+                .update(db).await?;
+        }
+    }
+
     if let Some(values) = new.added_people {
         for person_id in values {
             if PersonModel::get_by_id(person_id, db).await?.is_some() {
