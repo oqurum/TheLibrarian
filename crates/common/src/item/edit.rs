@@ -283,6 +283,15 @@ mod book_edit {
             self.removed_images.is_none()
         }
 
+        pub fn insert_added_person(&mut self, id: PersonId) {
+            // TODO: Replace with get_or_insert_default (unstable currently)
+            let list = self.added_people.get_or_insert_with(Default::default);
+
+            if !list.iter_mut().any(|v| *v == id) {
+                list.push(id);
+            }
+        }
+
         pub fn insert_updated_person(&mut self, id: PersonId, value: Option<String>) {
             // TODO: Replace with get_or_insert_default (unstable currently)
             let list = self.updated_people.get_or_insert_with(Default::default);

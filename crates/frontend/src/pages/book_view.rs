@@ -258,6 +258,11 @@ impl Component for BookView {
                     ChangingType::PersonDisplayed(id) => {
                         updating.display_person_id = Some(id);
                     }
+
+                    ChangingType::PersonAdding(id) => {
+                        updating.insert_added_person(id);
+                        self.media_popup = None;
+                    }
                 }
             }
 
@@ -949,17 +954,10 @@ impl BookView {
                             on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
                             on_select={ ctx.link().callback_future(move |value: PersonSearchSelectedValue| async move {
                                 if let PersonSearchSelectedValue::PersonId(id) = value {
-                                    request::update_book(
-                                        book_id,
-                                        &BookEdit {
-                                            added_people: Some(vec![id]),
-
-                                            .. Default::default()
-                                        }
-                                    ).await;
+                                    Msg::UpdateEditing(ChangingType::PersonAdding(id), String::new())
+                                } else {
+                                    Msg::Ignore
                                 }
-
-                                Msg::Ignore
                             }) }
                         />
                     }
@@ -1098,6 +1096,7 @@ pub enum ChangingType {
 
     PersonDisplayed(PersonId),
     PersonRelation(PersonId),
+    PersonAdding(PersonId),
 }
 
 
