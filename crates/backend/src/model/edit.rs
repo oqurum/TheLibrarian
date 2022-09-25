@@ -418,6 +418,7 @@ pub async fn new_edit_data_from_book(current: BookModel, updated: BookEdit, db: 
     let (is_public_old, is_public) = edit_translate::cmp_opt_bool(Some(current.is_public), updated.is_public);
     let (available_at_old, available_at) = edit_translate::cmp_opt_partial_eq(current.available_at.map(|v| v.and_hms(0, 0, 0).timestamp()), updated.available_at);
     let (language_old, language) = edit_translate::cmp_opt_partial_eq(Some(current.language), updated.language);
+    let (display_person_id_old, display_person_id) = edit_translate::cmp_opt_partial_eq(current.cached.author_id, updated.display_person_id);
 
     let (updated_people_old, updated_people) = edit_translate::cmp_opt_partial_eq(curr_people_info, updated.updated_people);
     let (added_people_old, added_people) = edit_translate::cmp_opt_partial_eq(current_people.clone(), updated.added_people);
@@ -433,6 +434,7 @@ pub async fn new_edit_data_from_book(current: BookModel, updated: BookEdit, db: 
         is_public,
         available_at,
         language,
+        display_person_id,
         publisher: None, // TODO
         updated_people,
         added_people,
@@ -453,6 +455,7 @@ pub async fn new_edit_data_from_book(current: BookModel, updated: BookEdit, db: 
         is_public: is_public_old,
         available_at: available_at_old,
         language: language_old,
+        display_person_id: display_person_id_old,
         publisher: None,
         updated_people: updated_people_old,
         added_people: added_people_old,
@@ -544,6 +547,11 @@ pub async fn accept_register_book_data_overwrites(
     cmp_old_and_new_return(&mut book_edits.language, &mut book_model.language, old.language, new.language);
     cmp_old_and_new_return(&mut book_edits.rating, &mut book_model.rating, old.rating, new.rating);
     cmp_old_and_new_return(&mut book_edits.is_public, &mut book_model.is_public, old.is_public, new.is_public);
+
+    if let Some(cached_id) = book_model.cached.author_id.as_mut() {
+        cmp_old_and_new_return(&mut book_edits.display_person_id, cached_id, old.display_person_id, new.display_person_id);
+    }
+
     // TODO: publisher
 
     edit.updated = Some(book_edits).filter(|v| !v.is_empty());

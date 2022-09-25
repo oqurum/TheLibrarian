@@ -254,6 +254,10 @@ impl Component for BookView {
                     ChangingType::PersonRelation(id) => {
                         updating.insert_updated_person(id, value);
                     }
+
+                    ChangingType::PersonDisplayed(id) => {
+                        updating.display_person_id = Some(id);
+                    }
                 }
             }
 
@@ -305,6 +309,10 @@ impl Component for BookView {
 
             Msg::RetrieveMediaView(value) => {
                 self.media = Some(*value);
+
+                if self.is_editing && self.cached_posters.is_none() {
+                    ctx.link().send_message(Msg::ReloadPosters);
+                }
             }
         }
 
@@ -682,6 +690,7 @@ impl BookView {
                                                 None => None
                                             } }
                                             {person}
+                                            display_id={ book_model.cached.author_id }
                                             editing={ true }
                                             scope={ ctx.link() }
                                         />
@@ -821,7 +830,12 @@ impl BookView {
                             {
                                 for people.iter().cloned().map(|person| {
                                     html! {
-                                        <PersonItem {person} editing={ false } scope={ ctx.link() } />
+                                        <PersonItem
+                                            {person}
+                                            display_id={ book_model.cached.author_id }
+                                            editing={ false }
+                                            scope={ ctx.link() }
+                                        />
                                     }
                                 })
                             }
@@ -989,6 +1003,8 @@ impl BookView {
 struct PersonItemProps {
     person: Person,
 
+    display_id: Option<PersonId>,
+
     #[prop_or_default]
     edited_info: Option<String>,
 
@@ -1010,7 +1026,31 @@ impl PartialEq for PersonItemProps {
 fn _person_item(props: &PersonItemProps) -> Html {
     html! {
         <div class="person-container">
-            <div class="photo"><img src={ props.person.get_thumb_url() } /></div>
+            <div class="photo">
+                <img src={ props.person.get_thumb_url() } />
+
+                {
+                    if props.display_id.filter(|v| *v == props.person.id).is_some() {
+                        html! {
+                            <div class="top-right">
+                                <span class="material-icons" title="Current Display User">{ "check_circle" }</span>
+                            </div>
+                        }
+                    } else {
+                        let id = props.person.id;
+
+                        html! {
+                            <div class="top-right hover">
+                                <span
+                                    class="material-icons"
+                                    title="Set as Display User"
+                                    onclick={ props.scope.callback(move |_| Msg::UpdateEditing(ChangingType::PersonDisplayed(id), String::new())) }
+                                >{ "upgrade" }</span>
+                            </div>
+                        }
+                    }
+                }
+            </div>
             <span class="title">{ props.person.name.clone() }</span>
             {
                 if props.editing {
@@ -1055,6 +1095,8 @@ pub enum ChangingType {
     Isbn10,
     Isbn13,
     Publicity,
+
+    PersonDisplayed(PersonId),
     PersonRelation(PersonId),
 }
 

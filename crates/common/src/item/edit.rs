@@ -177,6 +177,9 @@ mod book_edit {
         pub language: Option<u16>,
 
         #[serde(skip_serializing_if = "Option::is_none")]
+        pub display_person_id: Option<PersonId>,
+
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub publisher: Option<String>,
 
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -233,6 +236,9 @@ mod book_edit {
         pub removed_people: bool,
 
         #[serde(default, skip_serializing_if = "is_false")]
+        pub display_person_id: bool,
+
+        #[serde(default, skip_serializing_if = "is_false")]
         pub publisher: bool,
     }
 
@@ -249,6 +255,7 @@ mod book_edit {
             !self.available_at &&
             !self.language &&
             !self.publisher &&
+            !self.display_person_id &&
             !self.added_people &&
             !self.removed_people
         }
@@ -266,6 +273,7 @@ mod book_edit {
             self.available_at.is_none() &&
             self.language.is_none() &&
             self.publisher.is_none() &&
+            self.display_person_id.is_none() &&
             self.updated_people.is_none() &&
             self.added_people.is_none() &&
             self.removed_people.is_none() &&
@@ -342,6 +350,7 @@ mod book_edit {
                         ("available_at", "Available At", CompareDisplay::Text),
                         ("language", "Language", CompareDisplay::Text),
                         ("publisher", "Publisher", CompareDisplay::Text),
+                        ("display_person_id", "Display Author ID", CompareDisplay::Text),
 
                         ("updated_people", "Updated People", CompareDisplay::Text),
                         ("added_people", "Added People", CompareDisplay::Text),
@@ -368,6 +377,7 @@ mod book_edit {
                     available_at: map.remove("available_at").map(serde_json::from_value).transpose()?,
                     language: map.remove("language").map(serde_json::from_value).transpose()?,
                     publisher: map.remove("publisher").map(serde_json::from_value).transpose()?,
+                    display_person_id: map.remove("display_person_id").map(serde_json::from_value).transpose()?,
 
                     updated_people: map.remove("updated_people").map(serde_json::from_value).transpose()?,
                     added_people: map.remove("added_people").map(serde_json::from_value).transpose()?,
@@ -392,6 +402,7 @@ mod book_edit {
                 self.available_at.map(|v| Ok(map.insert("available_at", morph_map_value(v)?))).transpose()?;
                 self.language.map(|v| Ok(map.insert("language", morph_map_value(v)?))).transpose()?;
                 self.publisher.clone().map(|v| Ok(map.insert("publisher", morph_map_value(v)?))).transpose()?;
+                // self.display_person_id.clone().map(|v| Ok(map.insert("display_person_id", morph_map_value(v)?))).transpose()?;
 
                 // TODO:
                 // self.added_people.clone().map(|v| Ok(map.insert("added_people", morph_map_value(v)?))).transpose()?;
