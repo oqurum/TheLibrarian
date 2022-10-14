@@ -1,14 +1,16 @@
 use std::{path::PathBuf, sync::Arc};
 use tokio::sync::{RwLock, RwLockReadGuard};
 
-use actix_web::{HttpResponse, HttpRequest};
+use actix_web::{HttpRequest, HttpResponse};
 use lazy_static::lazy_static;
 
-use crate::{Result, config::{ConfigStores, ConfigStoreFileSystem, ConfigStoreB2}};
+use crate::{
+    config::{ConfigStoreB2, ConfigStoreFileSystem, ConfigStores},
+    Result,
+};
 
 pub mod b2;
 pub mod filesystem;
-
 
 lazy_static! {
     pub static ref STORE: Arc<RwLock<Storage>> = Arc::new(RwLock::new(Storage::None));
@@ -17,7 +19,6 @@ lazy_static! {
 pub async fn get_storage<'a>() -> RwLockReadGuard<'a, Storage> {
     STORE.read().await
 }
-
 
 pub enum Storage {
     None,
@@ -28,13 +29,10 @@ pub enum Storage {
 
 impl Storage {
     pub async fn pick_service_from_config(config: &ConfigStores) -> Result<Self> {
-        let enabled_count = [
-            config.filesystem.enabled,
-            config.b2.enabled,
-        ]
-        .iter()
-        .filter(|v| **v)
-        .count();
+        let enabled_count = [config.filesystem.enabled, config.b2.enabled]
+            .iter()
+            .filter(|v| **v)
+            .count();
 
         if enabled_count == 0 {
             panic!("Please enable a service.");
@@ -63,7 +61,6 @@ impl Storage {
         Ok(Self::FileSystem(filesystem::FsService::new(config)))
     }
 
-
     //
 
     pub fn get_full_file_path(&self, file_name: &str) -> PathBuf {
@@ -73,7 +70,7 @@ impl Storage {
                 path.push(format!("{file_name}.jpg"));
 
                 path
-            },
+            }
 
             Self::FileSystem(v) => {
                 let mut path = v.directory.clone();
@@ -88,28 +85,29 @@ impl Storage {
         }
     }
 
-    pub async fn get_http_response(&self, file_name: &str, req: &HttpRequest) -> Result<HttpResponse> {
+    pub async fn get_http_response(
+        &self,
+        file_name: &str,
+        req: &HttpRequest,
+    ) -> Result<HttpResponse> {
         let file_path = self.get_full_file_path(file_name);
 
         match self {
-            Self::B2(v) => {
-                Ok(HttpResponse::Ok().streaming(reqwest::get(v.get_http_url(&file_path.display().to_string())?).await?.bytes_stream()))
-            }
+            Self::B2(v) => Ok(HttpResponse::Ok().streaming(
+                reqwest::get(v.get_http_url(&file_path.display().to_string())?)
+                    .await?
+                    .bytes_stream(),
+            )),
 
-            Self::FileSystem(_) => {
-                Ok(actix_files::NamedFile::open_async(file_path).await?.into_response(req))
-            }
+            Self::FileSystem(_) => Ok(actix_files::NamedFile::open_async(file_path)
+                .await?
+                .into_response(req)),
 
             Self::None => panic!("Storage not Initiated"),
         }
     }
 
-
-    pub async fn upload(
-        &self,
-        file_name: &str,
-        contents: Vec<u8>,
-    ) -> Result<()> {
+    pub async fn upload(&self, file_name: &str, contents: Vec<u8>) -> Result<()> {
         let file_path = self.get_full_file_path(file_name);
 
         match self {
@@ -119,10 +117,7 @@ impl Storage {
         }
     }
 
-    pub async fn delete(
-        &self,
-        file_name: &str,
-    ) -> Result<()> {
+    pub async fn delete(&self, file_name: &str) -> Result<()> {
         let file_path = self.get_full_file_path(file_name);
 
         match self {

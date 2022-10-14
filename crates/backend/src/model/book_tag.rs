@@ -1,12 +1,11 @@
-use common::{BookId, TagId, BookTagId};
 use chrono::{DateTime, Utc};
+use common::{BookId, BookTagId, TagId};
 use common_local::BookTag;
 use tokio_postgres::Client;
 
-
 use crate::Result;
 
-use super::{TagModel, AdvRow, TableRow, row_int_to_usize, row_bigint_to_usize};
+use super::{row_bigint_to_usize, row_int_to_usize, AdvRow, TableRow, TagModel};
 
 pub struct BookTagModel {
     pub id: BookTagId,
@@ -34,8 +33,6 @@ impl TableRow for BookTagModel {
     }
 }
 
-
-
 pub struct BookTagWithTagModel {
     pub id: BookTagId,
 
@@ -58,7 +55,7 @@ impl TableRow for BookTagWithTagModel {
 
             created_at: row.next()?,
 
-            tag: TagModel::create(row)?
+            tag: TagModel::create(row)?,
         })
     }
 }
@@ -75,24 +72,29 @@ impl From<BookTagWithTagModel> for BookTag {
     }
 }
 
-
-
 impl BookTagModel {
     pub async fn get_by_id(id: BookTagId, db: &Client) -> Result<Option<Self>> {
-        db.query_opt(
-            "SELECT * FROM book_tag WHERE id = $1",
-            params![ *id as i32 ],
-        ).await?.map(Self::from_row).transpose()
+        db.query_opt("SELECT * FROM book_tag WHERE id = $1", params![*id as i32])
+            .await?
+            .map(Self::from_row)
+            .transpose()
     }
 
     pub async fn remove(book_id: BookId, tag_id: TagId, db: &Client) -> Result<u64> {
-        Ok(db.execute(
-            "DELETE FROM book_tag WHERE book_id = $1 AND tag_id = $2",
-            params![ *book_id as i32, *tag_id as i32 ],
-        ).await?)
+        Ok(db
+            .execute(
+                "DELETE FROM book_tag WHERE book_id = $1 AND tag_id = $2",
+                params![*book_id as i32, *tag_id as i32],
+            )
+            .await?)
     }
 
-    pub async fn insert(book_id: BookId, tag_id: TagId, index: Option<usize>, db: &Client) -> Result<Self> {
+    pub async fn insert(
+        book_id: BookId,
+        tag_id: TagId,
+        index: Option<usize>,
+        db: &Client,
+    ) -> Result<Self> {
         let index = if let Some(index) = index {
             db.execute(
                 "UPDATE book_tag SET idx = idx + 1 WHERE book_id = $1 AND tag_id = $2 AND idx >= $3",
@@ -125,44 +127,61 @@ impl BookTagModel {
         })
     }
 
-    pub async fn count_book_tags_by_bid_tid(book_id: BookId, tag_id: TagId, db: &Client) -> Result<usize> {
-        row_bigint_to_usize(db.query_one(
-            "SELECT COUNT(*) FROM book_tag WHERE book_id = $1 AND tag_id = $2",
-            params![ *book_id as i32, *tag_id as i32 ],
-        ).await?)
+    pub async fn count_book_tags_by_bid_tid(
+        book_id: BookId,
+        tag_id: TagId,
+        db: &Client,
+    ) -> Result<usize> {
+        row_bigint_to_usize(
+            db.query_one(
+                "SELECT COUNT(*) FROM book_tag WHERE book_id = $1 AND tag_id = $2",
+                params![*book_id as i32, *tag_id as i32],
+            )
+            .await?,
+        )
     }
 
     pub async fn get_books_by_book_id(book_id: BookId, db: &Client) -> Result<Vec<Self>> {
-        let conn = db.query(
-            "SELECT * FROM book_tag WHERE book_id = $1",
-            params![ *book_id as i32 ]
-        ).await?;
+        let conn = db
+            .query(
+                "SELECT * FROM book_tag WHERE book_id = $1",
+                params![*book_id as i32],
+            )
+            .await?;
 
         conn.into_iter().map(Self::from_row).collect()
     }
 }
 
-
 impl BookTagWithTagModel {
     pub async fn get_by_book_id(book_id: BookId, db: &Client) -> Result<Vec<Self>> {
-        let conn = db.query(
-            r#"SELECT book_tag.id, book_tag.book_id, idx, book_tag.created_at, tag.*
+        let conn = db
+            .query(
+                r#"SELECT book_tag.id, book_tag.book_id, idx, book_tag.created_at, tag.*
             FROM book_tag
             JOIN tag ON book_tag.tag_id = tag.id
             WHERE book_id = $1"#,
-            params![ *book_id as i32 ]
-        ).await?;
+                params![*book_id as i32],
+            )
+            .await?;
 
         conn.into_iter().map(Self::from_row).collect()
     }
 
-    pub async fn get_by_book_id_and_tag_id(book_id: BookId, tag_id: TagId, db: &Client) -> Result<Option<Self>> {
+    pub async fn get_by_book_id_and_tag_id(
+        book_id: BookId,
+        tag_id: TagId,
+        db: &Client,
+    ) -> Result<Option<Self>> {
         db.query_opt(
             r#"SELECT book_tag.id, book_tag.book_id, idx, book_tag.created_at, tag.*
             FROM book_tag
             JOIN tag ON book_tag.tag_id = tag.id
             WHERE book_id = $1 AND tag_id = $2"#,
-            params![ *book_id as i32, *tag_id as i32 ],
-        ).await?.map(Self::from_row).transpose()
+            params![*book_id as i32, *tag_id as i32],
+        )
+        .await?
+        .map(Self::from_row)
+        .transpose()
     }
 }

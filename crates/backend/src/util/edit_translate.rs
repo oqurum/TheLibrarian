@@ -1,6 +1,7 @@
-
-
-pub fn cmp_opt_string(old: Option<String>, new: Option<String>) -> (Option<String>, Option<String>) {
+pub fn cmp_opt_string(
+    old: Option<String>,
+    new: Option<String>,
+) -> (Option<String>, Option<String>) {
     let old_exists = old.is_some();
     let both_equal = new == old;
 
@@ -19,14 +20,20 @@ pub fn cmp_opt_string(old: Option<String>, new: Option<String>) -> (Option<Strin
     // - Some(new) = NEW & !empty & NEQ
 
     // TODO: use new.is_some_with
-    if new.is_some() && new.as_deref().map(|v| !v.is_empty()).unwrap_or_default() && (!old_exists || !both_equal) {
+    if new.is_some()
+        && new.as_deref().map(|v| !v.is_empty()).unwrap_or_default()
+        && (!old_exists || !both_equal)
+    {
         new_out = new;
     }
 
     (old_out, new_out)
 }
 
-pub fn cmp_opt_partial_eq<V: std::cmp::PartialEq>(old: Option<V>, new: Option<V>) -> (Option<V>, Option<V>) {
+pub fn cmp_opt_partial_eq<V: std::cmp::PartialEq>(
+    old: Option<V>,
+    new: Option<V>,
+) -> (Option<V>, Option<V>) {
     let old_exists = old.is_some();
     let both_equal = new == old;
 
@@ -75,8 +82,6 @@ pub fn cmp_opt_bool(old: Option<bool>, new: Option<bool>) -> (Option<bool>, Opti
 
     (old_out, new_out)
 }
-
-
 
 #[cfg(test)]
 mod tests {

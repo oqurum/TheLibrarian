@@ -1,6 +1,5 @@
 // TODO: Better security. Simple Proof of Concept.
 
-
 use actix_identity::Identity;
 use actix_web::web;
 
@@ -8,21 +7,18 @@ use chrono::Utc;
 use common::api::ApiErrorResponse;
 use common::api::WrappingResponse;
 use common_local::Permissions;
-use rand::Rng;
 use rand::prelude::ThreadRng;
-use serde::{Serialize, Deserialize};
+use rand::Rng;
+use serde::{Deserialize, Serialize};
 
-use crate::Error;
-use crate::WebResult;
 use crate::config::get_config;
 use crate::http::JsonResponse;
 use crate::model::MemberModel;
 use crate::model::NewMemberModel;
-
+use crate::Error;
+use crate::WebResult;
 
 pub static PASSWORD_PATH: &str = "/auth/password";
-
-
 
 #[derive(Serialize, Deserialize)]
 pub struct PostPasswordCallback {

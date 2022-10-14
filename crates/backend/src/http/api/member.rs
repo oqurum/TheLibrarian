@@ -1,10 +1,12 @@
 use actix_web::{get, web};
-use common::api::{WrappingResponse, QueryListResponse};
+use common::api::{QueryListResponse, WrappingResponse};
 use common_local::{api, Member};
 
-use crate::{http::{JsonResponse, MemberCookie}, WebResult, model::MemberModel};
-
-
+use crate::{
+    http::{JsonResponse, MemberCookie},
+    model::MemberModel,
+    WebResult,
+};
 
 // TODO: Add body requests for specifics
 #[get("/member")]
@@ -14,11 +16,12 @@ pub async fn load_member_self(
 ) -> WebResult<JsonResponse<api::GetMemberSelfResponse>> {
     let member = member.fetch_or_error(&db).await?;
 
-    Ok(web::Json(WrappingResponse::okay(api::GetMemberSelfResponse {
-        member: Some(member.into())
-    })))
+    Ok(web::Json(WrappingResponse::okay(
+        api::GetMemberSelfResponse {
+            member: Some(member.into()),
+        },
+    )))
 }
-
 
 #[get("/members")]
 pub async fn get_members(
@@ -36,7 +39,8 @@ pub async fn get_members(
     let limit = query.limit.unwrap_or(50);
 
     let total = MemberModel::get_count(&db).await?;
-    let items = MemberModel::find_all(offset, limit, &db).await?
+    let items = MemberModel::find_all(offset, limit, &db)
+        .await?
         .into_iter()
         .map(|v| v.into())
         .collect();

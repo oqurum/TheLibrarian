@@ -1,18 +1,19 @@
-use common::BookId;
-use common_local::{CollectionType, CollectionId, Collection, api::UpdateCollectionModel};
 use chrono::{DateTime, Utc};
+use common::BookId;
+use common_local::{api::UpdateCollectionModel, Collection, CollectionId, CollectionType};
 use tokio_postgres::types::ToSql;
 
 use crate::Result;
 
-use super::{AdvRow, TableRow, BookModel, CollectionItemModel, row_int_to_usize, row_bigint_to_usize};
+use super::{
+    row_bigint_to_usize, row_int_to_usize, AdvRow, BookModel, CollectionItemModel, TableRow,
+};
 
 pub struct NewCollectionModel {
     pub name: String,
     pub description: Option<String>,
     pub type_of: CollectionType,
 }
-
 
 pub struct CollectionModel {
     pub id: CollectionId,
@@ -25,7 +26,6 @@ pub struct CollectionModel {
     pub updated_at: DateTime<Utc>,
 }
 
-
 impl From<CollectionModel> for Collection {
     fn from(val: CollectionModel) -> Self {
         Collection {
@@ -34,11 +34,10 @@ impl From<CollectionModel> for Collection {
             description: val.description,
             type_of: val.type_of,
             created_at: val.created_at,
-            updated_at: val.updated_at
+            updated_at: val.updated_at,
         }
     }
 }
-
 
 impl TableRow for CollectionModel {
     fn create(row: &mut AdvRow) -> Result<Self> {
@@ -55,13 +54,16 @@ impl TableRow for CollectionModel {
 
 impl CollectionModel {
     pub async fn find_by_id(id: CollectionId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
-        db.query_opt(
-            "SELECT * FROM collection WHERE id = $1",
-            params![ id ],
-        ).await?.map(Self::from_row).transpose()
+        db.query_opt("SELECT * FROM collection WHERE id = $1", params![id])
+            .await?
+            .map(Self::from_row)
+            .transpose()
     }
 
-    pub async fn find_books_by_id(id: CollectionId, db: &tokio_postgres::Client) -> Result<Vec<BookModel>> {
+    pub async fn find_books_by_id(
+        id: CollectionId,
+        db: &tokio_postgres::Client,
+    ) -> Result<Vec<BookModel>> {
         let values = db.query(
             "SELECT * FROM book WHERE id IN (SELECT book_id FROM collection_item WHERE collection_id = $1)",
             params![ id ]
@@ -71,20 +73,19 @@ impl CollectionModel {
     }
 
     pub async fn get_all(db: &tokio_postgres::Client) -> Result<Vec<Self>> {
-        let values = db.query(
-            "SELECT * FROM collection",
-            &[]
-        ).await?;
+        let values = db.query("SELECT * FROM collection", &[]).await?;
 
         values.into_iter().map(Self::from_row).collect()
     }
 
-    pub async fn update_by_id(collection_id: CollectionId, edit: UpdateCollectionModel, db: &tokio_postgres::Client) -> Result<u64> {
+    pub async fn update_by_id(
+        collection_id: CollectionId,
+        edit: UpdateCollectionModel,
+        db: &tokio_postgres::Client,
+    ) -> Result<u64> {
         let mut items = Vec::new();
         // We have to Box because DateTime doesn't return a borrow.
-        let mut values = vec![
-            &collection_id as &(dyn tokio_postgres::types::ToSql + Sync)
-        ];
+        let mut values = vec![&collection_id as &(dyn tokio_postgres::types::ToSql + Sync)];
 
         if let Some(value) = edit.name.as_ref() {
             items.push("name");
@@ -105,7 +106,9 @@ impl CollectionModel {
                     collection_id,
                     book_id,
                     index: count + idx,
-                }.insert(db).await?;
+                }
+                .insert(db)
+                .await?;
             }
         }
 
@@ -113,21 +116,27 @@ impl CollectionModel {
             return Ok(0);
         }
 
-        Ok(db.execute(
-            &format!(
-                "UPDATE collection SET {} WHERE id = $1",
-                items.into_iter()
-                    .enumerate()
-                    .map(|(i, v)| format!("{v} = ${}", 2 + i))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
-            &values
-        ).await?)
+        Ok(db
+            .execute(
+                &format!(
+                    "UPDATE collection SET {} WHERE id = $1",
+                    items
+                        .into_iter()
+                        .enumerate()
+                        .map(|(i, v)| format!("{v} = ${}", 2 + i))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+                &values,
+            )
+            .await?)
     }
 
-
-    fn gen_search_query(query: Option<&str>, book_id: Option<BookId>, parameters: &mut Vec<Box<dyn ToSql + Sync>>) -> String {
+    fn gen_search_query(
+        query: Option<&str>,
+        book_id: Option<BookId>,
+        parameters: &mut Vec<Box<dyn ToSql + Sync>>,
+    ) -> String {
         let base_param_len = parameters.len();
 
         let mut sql = String::from("SELECT * FROM collection WHERE ");
@@ -142,7 +151,10 @@ impl CollectionModel {
             let mut escape_char = '\\';
             // Change our escape character if it's in the query.
             if orig_query.contains(escape_char) {
-                for car in [ '!', '@', '#', '$', '^', '&', '*', '-', '=', '+', '|', '~', '`', '/', '?', '>', '<', ',' ] {
+                for car in [
+                    '!', '@', '#', '$', '^', '&', '*', '-', '=', '+', '|', '~', '`', '/', '?', '>',
+                    '<', ',',
+                ] {
                     if !orig_query.contains(car) {
                         escape_char = car;
                         break;
@@ -150,7 +162,8 @@ impl CollectionModel {
                 }
             }
 
-            let query = orig_query.replace('%', &format!("{}%", escape_char))
+            let query = orig_query
+                .replace('%', &format!("{}%", escape_char))
                 .replace('_', &format!("{}_", escape_char));
 
             // TODO: Utilize title > description and sort
@@ -158,15 +171,17 @@ impl CollectionModel {
             parameters.push(Box::new(format!("%{}%", &query)) as Box<dyn ToSql + Sync>);
         }
 
-
         // Search with specific book
 
         if let Some(bid) = book_id {
-            sql_queries.push("id IN (SELECT collection_id FROM collection_item WHERE book_id = ??)".to_string());
+            sql_queries.push(
+                "id IN (SELECT collection_id FROM collection_item WHERE book_id = ??)".to_string(),
+            );
             parameters.push(Box::new(*bid as i32) as Box<dyn ToSql + Sync>);
         }
 
-        let sql_query = sql_queries.into_iter()
+        let sql_query = sql_queries
+            .into_iter()
             .enumerate()
             .map(|(i, v)| v.replace("??", &format!("${}", base_param_len + 1 + i)))
             .collect::<Vec<_>>()
@@ -187,22 +202,20 @@ impl CollectionModel {
         offset: usize,
         limit: usize,
         book_id: Option<BookId>,
-        db: &tokio_postgres::Client
+        db: &tokio_postgres::Client,
     ) -> Result<Vec<Self>> {
         let mut parameters = vec![
             Box::new(limit as i64) as Box<dyn ToSql + Sync>,
-            Box::new(offset as i64) as Box<dyn ToSql + Sync>
+            Box::new(offset as i64) as Box<dyn ToSql + Sync>,
         ];
 
         let mut sql = Self::gen_search_query(query, book_id, &mut parameters);
 
         sql += " LIMIT $1 OFFSET $2";
 
-
-        let values = db.query(
-            &sql,
-            &super::boxed_to_dyn_vec(&parameters)
-        ).await?;
+        let values = db
+            .query(&sql, &super::boxed_to_dyn_vec(&parameters))
+            .await?;
 
         values.into_iter().map(Self::from_row).collect()
     }
@@ -210,16 +223,19 @@ impl CollectionModel {
     pub async fn count(
         query: Option<&str>,
         book_id: Option<BookId>,
-        db: &tokio_postgres::Client
+        db: &tokio_postgres::Client,
     ) -> Result<usize> {
         let mut parameters = Vec::new();
 
-        let sql = Self::gen_search_query(query, book_id, &mut parameters).replace("SELECT *", "SELECT COUNT(*)");
+        let sql = Self::gen_search_query(query, book_id, &mut parameters)
+            .replace("SELECT *", "SELECT COUNT(*)");
 
-        row_bigint_to_usize(db.query_one(&sql, &super::boxed_to_dyn_vec(&parameters)).await?)
+        row_bigint_to_usize(
+            db.query_one(&sql, &super::boxed_to_dyn_vec(&parameters))
+                .await?,
+        )
     }
 }
-
 
 impl NewCollectionModel {
     pub async fn insert(self, db: &tokio_postgres::Client) -> Result<CollectionModel> {

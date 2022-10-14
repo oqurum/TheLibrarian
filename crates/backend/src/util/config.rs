@@ -1,14 +1,12 @@
 use std::sync::Mutex;
 
-use common_local::{ConfigEmail, AuthConfig, ConfigServer, SharedConfig};
+use common_local::{AuthConfig, ConfigEmail, ConfigServer, SharedConfig};
 use lazy_static::lazy_static;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use crate::Result;
 
-
 pub static CONFIG_PATH: &str = "./app/config.json";
-
 
 lazy_static! {
     static ref CONFIG_FILE: Mutex<Config> = {
@@ -21,7 +19,6 @@ lazy_static! {
     };
 }
 
-
 pub fn update_config<F: FnOnce(&mut Config) -> Result<()>>(value: F) -> Result<()> {
     let mut config = get_config();
 
@@ -32,22 +29,15 @@ pub fn update_config<F: FnOnce(&mut Config) -> Result<()>>(value: F) -> Result<(
     Ok(())
 }
 
-
 pub fn get_config() -> Config {
     CONFIG_FILE.lock().unwrap().clone()
 }
 
-
 pub async fn save_config() -> Result<()> {
-    tokio::fs::write(
-        CONFIG_PATH,
-        serde_json::to_string_pretty(&get_config())?,
-    ).await?;
+    tokio::fs::write(CONFIG_PATH, serde_json::to_string_pretty(&get_config())?).await?;
 
     Ok(())
 }
-
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
@@ -62,7 +52,9 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            database: DatabaseConfig { url: String::from("postgresql://127.0.0.1:5433") },
+            database: DatabaseConfig {
+                url: String::from("postgresql://127.0.0.1:5433"),
+            },
             server: ConfigServer::default(),
             auth: AuthConfig::default(),
             email: Some(ConfigEmail::default()),
@@ -83,15 +75,12 @@ impl From<Config> for SharedConfig {
     }
 }
 
-
 // Database
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatabaseConfig {
     pub url: String,
 }
-
-
 
 // Services
 
@@ -111,7 +100,7 @@ impl Default for ConfigStoreFileSystem {
     fn default() -> Self {
         Self {
             enabled: false,
-            directory: String::from("./app/thumbnails")
+            directory: String::from("./app/thumbnails"),
         }
     }
 }

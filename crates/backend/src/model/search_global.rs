@@ -1,16 +1,18 @@
 use std::str::FromStr;
 
 use bytes::BytesMut;
-use chrono::{DateTime, Utc, TimeZone, Datelike};
+use chrono::{DateTime, Datelike, TimeZone, Utc};
 use common::ImageIdType;
-use common_local::{SearchGroupId, util::serialize_datetime, SearchGroup};
+use common_local::{util::serialize_datetime, SearchGroup, SearchGroupId};
 use serde::Serialize;
-use tokio_postgres::{types::{to_sql_checked, ToSql, FromSql, IsNull, Type}, Client};
+use tokio_postgres::{
+    types::{to_sql_checked, FromSql, IsNull, ToSql, Type},
+    Client,
+};
 
 use crate::Result;
 
-use super::{TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize};
-
+use super::{row_bigint_to_usize, row_int_to_usize, AdvRow, TableRow};
 
 #[derive(Debug)]
 pub struct NewSearchGroupModel {
@@ -50,14 +52,16 @@ impl TableRow for SearchGroupModel {
             last_found_amount: row.next::<i16>()? as usize,
             timeframe: row.next()?,
 
-            found_id: row.next::<Option<String>>()?.map(|v| ImageIdType::from_str(&v)).transpose()?,
+            found_id: row
+                .next::<Option<String>>()?
+                .map(|v| ImageIdType::from_str(&v))
+                .transpose()?,
 
             created_at: row.next()?,
             updated_at: row.next()?,
         })
     }
 }
-
 
 impl NewSearchGroupModel {
     pub fn new(query: String, last_found_amount: usize) -> Self {
@@ -101,7 +105,10 @@ impl NewSearchGroupModel {
     }
 
     pub async fn insert_or_inc(self, db: &Client) -> Result<SearchGroupModel> {
-        if let Some(mut model) = SearchGroupModel::find_one_by_query_and_timeframe(&self.query, self.timeframe, db).await? {
+        if let Some(mut model) =
+            SearchGroupModel::find_one_by_query_and_timeframe(&self.query, self.timeframe, db)
+                .await?
+        {
             SearchGroupModel::increment_one_by_id(model.id, self.last_found_amount, db).await?;
 
             model.calls += 1;
@@ -117,48 +124,72 @@ impl NewSearchGroupModel {
 
 impl SearchGroupModel {
     pub async fn find_one_by_id(id: SearchGroupId, db: &Client) -> Result<Option<Self>> {
-        db.query_opt(
-            "SELECT * FROM search_group WHERE id = $1",
-            params![ id ],
-        ).await?.map(Self::from_row).transpose()
+        db.query_opt("SELECT * FROM search_group WHERE id = $1", params![id])
+            .await?
+            .map(Self::from_row)
+            .transpose()
     }
 
-    pub async fn find_one_by_query_and_timeframe(query: &str, timeframe: SearchTimeFrame, db: &Client) -> Result<Option<Self>> {
+    pub async fn find_one_by_query_and_timeframe(
+        query: &str,
+        timeframe: SearchTimeFrame,
+        db: &Client,
+    ) -> Result<Option<Self>> {
         db.query_opt(
             "SELECT * FROM search_group WHERE query = $1 AND timeframe = $2",
-            params![ query, timeframe ],
-        ).await?.map(Self::from_row).transpose()
+            params![query, timeframe],
+        )
+        .await?
+        .map(Self::from_row)
+        .transpose()
     }
 
-    pub async fn increment_one_by_id(id: SearchGroupId, last_found_amount: usize, db: &Client) -> Result<u64> {
+    pub async fn increment_one_by_id(
+        id: SearchGroupId,
+        last_found_amount: usize,
+        db: &Client,
+    ) -> Result<u64> {
         Ok(db.execute(
             "UPDATE search_group SET calls = calls + 1, updated_at = $2, last_found_amount = $3 WHERE id = $1",
             params![ id, Utc::now(), last_found_amount as i16 ],
         ).await?)
     }
 
-    pub async fn update_found_id(id: SearchGroupId, value: Option<ImageIdType>, db: &Client) -> Result<u64> {
-        Ok(db.execute(
-            "UPDATE search_group SET updated_at = $2, found_id = $3 WHERE id = $1",
-            params![ id, Utc::now(), value.map(|v| v.to_string()) ],
-        ).await?)
+    pub async fn update_found_id(
+        id: SearchGroupId,
+        value: Option<ImageIdType>,
+        db: &Client,
+    ) -> Result<u64> {
+        Ok(db
+            .execute(
+                "UPDATE search_group SET updated_at = $2, found_id = $3 WHERE id = $1",
+                params![id, Utc::now(), value.map(|v| v.to_string())],
+            )
+            .await?)
     }
 
     pub async fn get_count(db: &Client) -> Result<usize> {
-        row_bigint_to_usize(db.query_one("SELECT COUNT(*) FROM search_group", &[]).await?)
+        row_bigint_to_usize(
+            db.query_one("SELECT COUNT(*) FROM search_group", &[])
+                .await?,
+        )
     }
 
     pub async fn find_all(offset: usize, limit: usize, db: &Client) -> Result<Vec<Self>> {
-        let values = db.query(
-            "SELECT * FROM search_group ORDER BY calls DESC LIMIT $1 OFFSET $2",
-            params![ limit as i64, offset as i64 ]
-        ).await?;
+        let values = db
+            .query(
+                "SELECT * FROM search_group ORDER BY calls DESC LIMIT $1 OFFSET $2",
+                params![limit as i64, offset as i64],
+            )
+            .await?;
 
         values.into_iter().map(Self::from_row).collect()
     }
 
     pub async fn update(&self, db: &Client) -> Result<u64> {
-        Ok(db.execute(r#"
+        Ok(db
+            .execute(
+                r#"
             UPDATE search_group SET
                 query = $2,
                 calls = $3,
@@ -168,15 +199,20 @@ impl SearchGroupModel {
                 created_at = $7,
                 updated_at = $8
             WHERE id = $1"#,
-            params![
-                self.id,
-                &self.query, self.calls as i32, self.last_found_amount as i16, self.timeframe, self.found_id.as_ref().map(|v| v.to_string()),
-                self.created_at, self.updated_at
-            ]
-        ).await?)
+                params![
+                    self.id,
+                    &self.query,
+                    self.calls as i32,
+                    self.last_found_amount as i16,
+                    self.timeframe,
+                    self.found_id.as_ref().map(|v| v.to_string()),
+                    self.created_at,
+                    self.updated_at
+                ],
+            )
+            .await?)
     }
 }
-
 
 impl From<SearchGroupModel> for SearchGroup {
     fn from(model: SearchGroupModel) -> Self {
@@ -192,8 +228,6 @@ impl From<SearchGroupModel> for SearchGroup {
         }
     }
 }
-
-
 
 #[derive(Debug, Clone, Copy, Serialize)]
 pub struct SearchTimeFrame {
@@ -213,7 +247,10 @@ impl SearchTimeFrame {
 }
 
 impl<'a> FromSql<'a> for SearchTimeFrame {
-    fn from_sql(ty: &Type, raw: &'a [u8]) -> std::result::Result<Self, Box<dyn std::error::Error + Sync + Send>> {
+    fn from_sql(
+        ty: &Type,
+        raw: &'a [u8],
+    ) -> std::result::Result<Self, Box<dyn std::error::Error + Sync + Send>> {
         let value = i32::from_sql(ty, raw)?;
 
         Ok(Self {
@@ -228,7 +265,11 @@ impl<'a> FromSql<'a> for SearchTimeFrame {
 }
 
 impl ToSql for SearchTimeFrame {
-    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> std::result::Result<IsNull, Box<dyn std::error::Error + Sync + Send>> {
+    fn to_sql(
+        &self,
+        ty: &Type,
+        out: &mut BytesMut,
+    ) -> std::result::Result<IsNull, Box<dyn std::error::Error + Sync + Send>> {
         i32::from((self.year << 4) | self.month).to_sql(ty, out)
     }
 

@@ -1,16 +1,28 @@
 use std::{rc::Rc, sync::Mutex};
 
-use common::{BookId, api::WrappingResponse, component::{InfiniteScroll, InfiniteScrollEvent}};
-use common_local::{api::{self, NewBookBody, BookListQuery, QueryType}, DisplayItem, SearchType};
+use common::{
+    api::WrappingResponse,
+    component::{InfiniteScroll, InfiniteScrollEvent},
+    BookId,
+};
+use common_local::{
+    api::{self, BookListQuery, NewBookBody, QueryType},
+    DisplayItem, SearchType,
+};
 use gloo_utils::window;
 use js_sys::decode_uri_component;
-use wasm_bindgen::{UnwrapThrowExt, JsValue};
+use wasm_bindgen::{JsValue, UnwrapThrowExt};
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 use yew_router::prelude::Link;
 
-use crate::{Route, request, components::{LoginBarrier, MassSelectBar, PopupSearch, popup::{SearchBy, search::SearchSelectedValue}}, get_member_self};
-
+use crate::{
+    components::{
+        popup::{search::SearchSelectedValue, SearchBy},
+        LoginBarrier, MassSelectBar, PopupSearch,
+    },
+    get_member_self, request, Route,
+};
 
 #[derive(Clone)]
 pub enum Msg {
@@ -30,7 +42,7 @@ pub enum Msg {
 
     Reload,
 
-    Ignore
+    Ignore,
 }
 
 pub struct HomePage {
@@ -99,10 +111,15 @@ impl Component for HomePage {
                 self.is_fetching_media_items = true;
 
                 let mut query = get_query().unwrap_or_default();
-                query.offset = Some(self.media_items.as_ref().map(|v| v.len()).unwrap_or_default()).filter(|v| *v != 0);
+                query.offset = Some(
+                    self.media_items
+                        .as_ref()
+                        .map(|v| v.len())
+                        .unwrap_or_default(),
+                )
+                .filter(|v| *v != 0);
 
-                ctx.link()
-                .send_future(async move {
+                ctx.link().send_future(async move {
                     Msg::MediaListResults(request::get_books(query).await)
                 });
             }
@@ -293,13 +310,15 @@ impl HomePage {
     // }
 
     pub fn can_req_more(&self) -> bool {
-        let count = self.media_items.as_ref().map(|v| v.len()).unwrap_or_default();
+        let count = self
+            .media_items
+            .as_ref()
+            .map(|v| v.len())
+            .unwrap_or_default();
 
         count != 0 && count != self.total_media_count as usize
     }
 }
-
-
 
 // Media Item
 
@@ -312,11 +331,9 @@ pub struct MediaItemProps {
 
 impl PartialEq for MediaItemProps {
     fn eq(&self, other: &Self) -> bool {
-        self.item == other.item &&
-        self.is_editing == other.is_editing
+        self.item == other.item && self.is_editing == other.is_editing
     }
 }
-
 
 pub struct MediaItem;
 
@@ -337,14 +354,15 @@ impl Component for MediaItem {
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
-        let editing_perms = get_member_self().map(|v| v.permissions.has_editing_perms()).unwrap_or_default();
+        let editing_perms = get_member_self()
+            .map(|v| v.permissions.has_editing_perms())
+            .unwrap_or_default();
 
         let &MediaItemProps {
             is_editing,
             ref item,
             ..
         } = ctx.props();
-
 
         let meta_id = item.id;
 
@@ -407,30 +425,28 @@ impl Component for MediaItem {
     }
 }
 
-
 #[derive(Clone)]
 pub enum DisplayOverlay {
-    SearchForBook {
-        input_value: Option<String>,
-    },
+    SearchForBook { input_value: Option<String> },
 }
 
 impl PartialEq for DisplayOverlay {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (
-                Self::SearchForBook { input_value: l_val, .. },
-                Self::SearchForBook { input_value: r_val, .. }
-            ) => l_val == r_val
+                Self::SearchForBook {
+                    input_value: l_val, ..
+                },
+                Self::SearchForBook {
+                    input_value: r_val, ..
+                },
+            ) => l_val == r_val,
         }
     }
 }
 
 fn get_query() -> Option<BookListQuery> {
-    let query = gloo_utils::window()
-        .location()
-        .search()
-        .ok()?;
+    let query = gloo_utils::window().location().search().ok()?;
 
     if query.is_empty() {
         None
@@ -439,7 +455,8 @@ fn get_query() -> Option<BookListQuery> {
             &decode_uri_component(&query[1..])
                 .unwrap_throw()
                 .as_string()
-                .unwrap_throw()
-        ).ok()
+                .unwrap_throw(),
+        )
+        .ok()
     }
 }

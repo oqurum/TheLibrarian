@@ -1,12 +1,11 @@
-use common_local::util::serialize_datetime;
-use common::{ThumbnailStore, ImageId, BookId, PersonId, ImageType};
 use chrono::{DateTime, Utc};
+use common::{BookId, ImageId, ImageType, PersonId, ThumbnailStore};
+use common_local::util::serialize_datetime;
 use serde::Serialize;
 
-use crate::{Result};
+use crate::Result;
 
-use super::{TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize};
-
+use super::{row_bigint_to_usize, row_int_to_usize, AdvRow, TableRow};
 
 #[derive(Debug, Serialize)]
 pub struct ImageLinkModel {
@@ -15,7 +14,6 @@ pub struct ImageLinkModel {
     pub link_id: usize,
     pub type_of: ImageType,
 }
-
 
 #[derive(Serialize)]
 pub struct NewUploadedImageModel {
@@ -43,7 +41,6 @@ pub struct UploadedImageModel {
     pub created_at: DateTime<Utc>,
 }
 
-
 #[derive(Debug, Serialize)]
 pub struct ImageWithLink {
     pub image_id: ImageId,
@@ -57,7 +54,6 @@ pub struct ImageWithLink {
     pub created_at: DateTime<Utc>,
 }
 
-
 impl TableRow for ImageWithLink {
     fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
@@ -69,8 +65,6 @@ impl TableRow for ImageWithLink {
         })
     }
 }
-
-
 
 impl TableRow for UploadedImageModel {
     fn create(row: &mut AdvRow) -> Result<Self> {
@@ -97,8 +91,6 @@ impl TableRow for ImageLinkModel {
     }
 }
 
-
-
 impl NewUploadedImageModel {
     pub fn new(path: ThumbnailStore, width: u32, height: u32) -> Self {
         Self {
@@ -106,12 +98,14 @@ impl NewUploadedImageModel {
             width,
             height,
             ratio: height as f32 / width as f32,
-            created_at: Utc::now()
+            created_at: Utc::now(),
         }
     }
 
     pub async fn get_or_insert(self, db: &tokio_postgres::Client) -> Result<UploadedImageModel> {
-        if let Some(value) = UploadedImageModel::get_by_path(self.path.as_value().unwrap(), db).await? {
+        if let Some(value) =
+            UploadedImageModel::get_by_path(self.path.as_value().unwrap(), db).await?
+        {
             Ok(value)
         } else {
             self.insert(db).await
@@ -141,53 +135,65 @@ impl NewUploadedImageModel {
     }
 
     pub async fn path_exists(path: &str, db: &tokio_postgres::Client) -> Result<bool> {
-        Ok(row_bigint_to_usize(db.query_one(
-            "SELECT COUNT(*) FROM uploaded_image WHERE path = $1",
-            params![ path ],
-        ).await?)? != 0)
+        Ok(row_bigint_to_usize(
+            db.query_one(
+                "SELECT COUNT(*) FROM uploaded_image WHERE path = $1",
+                params![path],
+            )
+            .await?,
+        )? != 0)
     }
 }
 
-
 impl UploadedImageModel {
     pub async fn get_all(db: &tokio_postgres::Client) -> Result<Vec<Self>> {
-        db.query(
-            r#"SELECT * FROM uploaded_image"#,
-            &[],
-        ).await?.into_iter().map(Self::from_row).collect()
+        db.query(r#"SELECT * FROM uploaded_image"#, &[])
+            .await?
+            .into_iter()
+            .map(Self::from_row)
+            .collect()
     }
 
     pub async fn get_by_path(value: &str, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         db.query_opt(
             r#"SELECT * FROM uploaded_image WHERE path = $1"#,
-            params![ value ],
-        ).await?.map(Self::from_row).transpose()
+            params![value],
+        )
+        .await?
+        .map(Self::from_row)
+        .transpose()
     }
 
     pub async fn get_by_id(value: ImageId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
         db.query_opt(
             r#"SELECT * FROM uploaded_image WHERE id = $1"#,
-            params![ *value as i32 ],
-        ).await?.map(Self::from_row).transpose()
+            params![*value as i32],
+        )
+        .await?
+        .map(Self::from_row)
+        .transpose()
     }
 
     pub async fn remove_by_path(path: ThumbnailStore, db: &tokio_postgres::Client) -> Result<()> {
-        db.execute("DELETE FROM uploaded_image WHERE path = $1",
-            params![ path.as_value() ]
-        ).await?;
+        db.execute(
+            "DELETE FROM uploaded_image WHERE path = $1",
+            params![path.as_value()],
+        )
+        .await?;
 
         Ok(())
     }
 
     pub async fn remove_by_id(id: ImageId, db: &tokio_postgres::Client) -> Result<()> {
-        db.execute("DELETE FROM uploaded_image WHERE id = $1",
-            params![ *id as i32 ]
-        ).await?;
+        db.execute(
+            "DELETE FROM uploaded_image WHERE id = $1",
+            params![*id as i32],
+        )
+        .await?;
 
         Ok(())
     }
 }
-
 
 impl ImageLinkModel {
     pub fn new_book(image_id: ImageId, link_id: BookId) -> Self {
@@ -206,7 +212,6 @@ impl ImageLinkModel {
         }
     }
 
-
     pub async fn insert(&self, db: &tokio_postgres::Client) -> Result<()> {
         db.execute("INSERT INTO image_link (image_id, link_id, type_of) VALUES ($1, $2, $3) ON CONFLICT (image_id, link_id, type_of) DO NOTHING",
         params![
@@ -219,44 +224,61 @@ impl ImageLinkModel {
     }
 
     pub async fn remove(self, db: &tokio_postgres::Client) -> Result<()> {
-        db.execute("DELETE FROM image_link WHERE image_id = $1 AND link_id = $2 AND type_of = $3",
+        db.execute(
+            "DELETE FROM image_link WHERE image_id = $1 AND link_id = $2 AND type_of = $3",
             params![
                 *self.image_id as i32,
                 self.link_id as i32,
                 self.type_of.as_num() as i32,
-            ]
-        ).await?;
+            ],
+        )
+        .await?;
 
         Ok(())
     }
 
     pub async fn count_by_image_id(id: ImageId, db: &tokio_postgres::Client) -> Result<usize> {
-        row_bigint_to_usize(db.query_one(
-            "SELECT COUNT(*) FROM image_link WHERE image_id = $1",
-            params![ *id as i32 ]
-        ).await?)
+        row_bigint_to_usize(
+            db.query_one(
+                "SELECT COUNT(*) FROM image_link WHERE image_id = $1",
+                params![*id as i32],
+            )
+            .await?,
+        )
     }
 
-    pub async fn find_by_link_id(id: usize, type_of: ImageType, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
-        let values = db.query(
-            "SELECT * FROM image_link WHERE link_id = $1 AND type_of = $2",
-            params![ id as i32, type_of.as_num() as i32 ]
-        ).await?;
+    pub async fn find_by_link_id(
+        id: usize,
+        type_of: ImageType,
+        db: &tokio_postgres::Client,
+    ) -> Result<Vec<Self>> {
+        let values = db
+            .query(
+                "SELECT * FROM image_link WHERE link_id = $1 AND type_of = $2",
+                params![id as i32, type_of.as_num() as i32],
+            )
+            .await?;
 
         values.into_iter().map(Self::from_row).collect()
     }
 
     // TODO: Place into ImageWithLink struct?
-    pub async fn find_by_linked_id_w_image(id: usize, type_of: ImageType, db: &tokio_postgres::Client) -> Result<Vec<ImageWithLink>> {
-        let values = db.query(
-            r#"SELECT image_link.*, uploaded_image.path, uploaded_image.created_at
+    pub async fn find_by_linked_id_w_image(
+        id: usize,
+        type_of: ImageType,
+        db: &tokio_postgres::Client,
+    ) -> Result<Vec<ImageWithLink>> {
+        let values = db
+            .query(
+                r#"SELECT image_link.*, uploaded_image.path, uploaded_image.created_at
                 FROM image_link
                 INNER JOIN uploaded_image
                     ON uploaded_image.id = image_link.image_id
                 WHERE link_id = $1 AND type_of = $2
             "#,
-            params![ id as i32, type_of.as_num() as i32 ]
-        ).await?;
+                params![id as i32, type_of.as_num() as i32],
+            )
+            .await?;
 
         values.into_iter().map(ImageWithLink::from_row).collect()
     }

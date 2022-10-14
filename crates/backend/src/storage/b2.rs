@@ -8,23 +8,21 @@ use actix_web::web::Bytes;
 use concread::EbrCell;
 use lazy_static::lazy_static;
 use reqwest::Url;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sha1::{Sha1, Digest};
+use sha1::{Digest, Sha1};
 use tokio::runtime::Runtime;
 use tokio::time::sleep;
 
-use crate::{Error, InternalError};
 use crate::config::ConfigStoreB2;
 use crate::error::Result;
-
+use crate::{Error, InternalError};
 
 // const API_URL_V5: &str = "https://api.backblazeb2.com/b2api/v5";
 // const API_URL_V4: &str = "https://api.backblazeb2.com/b2api/v4";
 // const API_URL_V3: &str = "https://api.backblazeb2.com/b2api/v3";
 const API_URL_V2: &str = "https://api.backblazeb2.com/b2api/v2";
 // const API_URL_V1: &str = "https://api.backblazeb2.com/b2api/v1";
-
 
 #[derive(Clone)]
 struct AuthWrapper {
@@ -41,7 +39,6 @@ impl AuthWrapper {
         Ok(())
     }
 }
-
 
 lazy_static! {
     static ref AUTH: EbrCell<Option<AuthWrapper>> = EbrCell::new(None);
@@ -70,7 +67,6 @@ async fn check_and_update_auth() -> Result<()> {
 
     Ok(())
 }
-
 
 pub struct Service {
     bucket_id: String,
@@ -141,15 +137,13 @@ impl Service {
         Ok(url)
     }
 
-    pub async fn upload(
-        &self,
-        full_file_path: PathBuf,
-        contents: Vec<u8>,
-    ) -> Result<()> {
+    pub async fn upload(&self, full_file_path: PathBuf, contents: Vec<u8>) -> Result<()> {
         let auth = get_auth()?;
 
         upload_file_multi_try(
-            full_file_path.to_str().ok_or_else(|| Error::from(InternalError::ConvertPathBufToString))?,
+            full_file_path
+                .to_str()
+                .ok_or_else(|| Error::from(InternalError::ConvertPathBufToString))?,
             contents,
             &auth,
             &self.bucket_id,
@@ -159,17 +153,17 @@ impl Service {
         Ok(())
     }
 
-    pub async fn hide_file(
-        &self,
-        full_file_path: PathBuf,
-    ) -> Result<()> {
+    pub async fn hide_file(&self, full_file_path: PathBuf) -> Result<()> {
         let auth = get_auth()?;
 
         try_hide_file_multi(
-            full_file_path.to_str().ok_or_else(|| Error::from(InternalError::ConvertPathBufToString))?,
+            full_file_path
+                .to_str()
+                .ok_or_else(|| Error::from(InternalError::ConvertPathBufToString))?,
             &auth,
-            &self.bucket_id
-        ).await?;
+            &self.bucket_id,
+        )
+        .await?;
 
         Ok(())
     }

@@ -1,10 +1,14 @@
 use common::api::WrappingResponse;
-use common_local::{api, update::OptionsUpdate, item::member::{MemberSettings, PageView}};
+use common_local::{
+    api,
+    item::member::{MemberSettings, PageView},
+    update::OptionsUpdate,
+};
 use wasm_bindgen::UnwrapThrowExt;
 use web_sys::HtmlSelectElement;
 use yew::prelude::*;
 
-use crate::{request, get_member_self};
+use crate::{get_member_self, request};
 
 pub enum Msg {
     // Request Results
@@ -22,9 +26,7 @@ impl Component for OptionsPage {
     type Properties = ();
 
     fn create(_ctx: &Context<Self>) -> Self {
-        Self {
-            resp: None,
-        }
+        Self { resp: None }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
@@ -34,8 +36,7 @@ impl Component for OptionsPage {
             }
 
             Msg::UpdateSettings => {
-                ctx.link()
-                .send_future(async {
+                ctx.link().send_future(async {
                     Msg::SettingsResults(Box::new(request::get_settings().await))
                 });
             }
@@ -131,8 +132,7 @@ impl Component for OptionsPage {
 
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
         if first_render {
-            ctx.link()
-            .send_message(Msg::UpdateSettings);
+            ctx.link().send_message(Msg::UpdateSettings);
         }
     }
 }

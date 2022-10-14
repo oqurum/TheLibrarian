@@ -2,16 +2,14 @@ use std::fmt;
 
 use chrono::Utc;
 use common::api::WrappingResponse;
-use common_local::{api, item::edit::*, edit::*};
+use common_local::{api, edit::*, item::edit::*};
 use wasm_bindgen::UnwrapThrowExt;
-use yew::{prelude::*, html::Scope};
+use yew::{html::Scope, prelude::*};
 
-use crate::{request, get_member_self, components::LoginBarrier};
-
+use crate::{components::LoginBarrier, get_member_self, request};
 
 #[derive(Properties, PartialEq, Eq)]
-pub struct Property {
-}
+pub struct Property {}
 
 #[derive(Clone)]
 pub enum Msg {
@@ -35,16 +33,13 @@ impl Component for EditListPage {
     fn create(ctx: &Context<Self>) -> Self {
         ctx.link().send_message(Msg::RequestEdits);
 
-        Self {
-            items_resp: None,
-        }
+        Self { items_resp: None }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::RequestEdits => {
-                ctx.link()
-                .send_future(async move {
+                ctx.link().send_future(async move {
                     Msg::EditListResults(request::get_edit_list(None, None).await)
                 });
             }
@@ -52,13 +47,20 @@ impl Component for EditListPage {
             Msg::EditListResults(mut resp) => {
                 // Default old BookEdit (generate_person_rows checks for both new/old have Some)
                 if let WrappingResponse::Resp(resp) = &mut resp {
-                    resp.items.iter_mut()
-                        .for_each(|v| match &mut v.data {
-                            EditData::Book(v) => if v.old.is_none() { v.old = Some(Default::default()) },
-                            EditData::Person(v) => if v.old.is_none() { v.old = Some(Default::default()) },
-                            EditData::Tag => todo!(),
-                            EditData::Collection => todo!(),
-                        });
+                    resp.items.iter_mut().for_each(|v| match &mut v.data {
+                        EditData::Book(v) => {
+                            if v.old.is_none() {
+                                v.old = Some(Default::default())
+                            }
+                        }
+                        EditData::Person(v) => {
+                            if v.old.is_none() {
+                                v.old = Some(Default::default())
+                            }
+                        }
+                        EditData::Tag => todo!(),
+                        EditData::Collection => todo!(),
+                    });
                 }
 
                 self.items_resp = Some(resp);
@@ -73,24 +75,35 @@ impl Component for EditListPage {
                 };
 
                 // TODO: Replace match with as_mut_ok()
-                if let Some(all_edit_items) = self.items_resp.as_mut().and_then(|v| match v { WrappingResponse::Resp(v) => Some(v), _ => None }) {
-                    if let Some(curr_edit_model) = all_edit_items.items.iter_mut().find(|v| v.id == new_edit_model.id) {
+                if let Some(all_edit_items) = self.items_resp.as_mut().and_then(|v| match v {
+                    WrappingResponse::Resp(v) => Some(v),
+                    _ => None,
+                }) {
+                    if let Some(curr_edit_model) = all_edit_items
+                        .items
+                        .iter_mut()
+                        .find(|v| v.id == new_edit_model.id)
+                    {
                         // Get Our Upvote/Downvote
                         if let Some(my_vote) = item.vote.take() {
                             if let Some(votes) = curr_edit_model.votes.as_mut() {
                                 // Insert or Update Vote
-                                if let Some(curr_vote_pos) = votes.items.iter_mut().position(|v| v.id == my_vote.id) {
+                                if let Some(curr_vote_pos) =
+                                    votes.items.iter_mut().position(|v| v.id == my_vote.id)
+                                {
                                     if votes.items[curr_vote_pos].vote == my_vote.vote {
                                         votes.items.remove(curr_vote_pos);
                                     } else {
-                                        let _ = std::mem::replace(&mut votes.items[curr_vote_pos], my_vote);
+                                        let _ = std::mem::replace(
+                                            &mut votes.items[curr_vote_pos],
+                                            my_vote,
+                                        );
                                     }
                                 } else {
                                     votes.items.push(my_vote);
                                 }
                             }
                         }
-
                         // Just update model.
                         else {
                             *curr_edit_model = new_edit_model;
@@ -127,13 +140,12 @@ impl EditListPage {
         let id = item.id;
 
         let status_color = match item.status {
-            EditStatus::Accepted |
-            EditStatus::ForceAccepted => "green",
+            EditStatus::Accepted | EditStatus::ForceAccepted => "green",
             EditStatus::Pending => "yellow",
-            EditStatus::Rejected |
-            EditStatus::Failed |
-            EditStatus::Cancelled |
-            EditStatus::ForceRejected => "red",
+            EditStatus::Rejected
+            | EditStatus::Failed
+            | EditStatus::Cancelled
+            | EditStatus::ForceRejected => "red",
         };
 
         let my_vote = self.get_my_vote(item);
@@ -339,7 +351,7 @@ impl EditListPage {
         status: EditStatus,
         operation: EditOperation,
         person_edit_data: &PersonEditData,
-        _scope: &Scope<Self>
+        _scope: &Scope<Self>,
     ) -> Html {
         let current = person_edit_data.current.as_ref();
         let updated = person_edit_data.updated.clone().unwrap_or_default();
@@ -364,7 +376,7 @@ impl EditListPage {
         status: EditStatus,
         operation: EditOperation,
         book_edit_data: &BookEditData,
-        _scope: &Scope<Self>
+        _scope: &Scope<Self>,
     ) -> Html {
         let current = book_edit_data.current.as_ref();
         let updated = book_edit_data.updated.clone().unwrap_or_default();
@@ -403,7 +415,13 @@ impl EditListPage {
     fn get_my_vote(&self, item: &SharedEditModel) -> Option<bool> {
         let votes = item.votes.as_ref()?;
 
-        votes.items.iter().find_map(|v| if v.member_id? == get_member_self()?.id { Some(v.vote) } else { None })
+        votes.items.iter().find_map(|v| {
+            if v.member_id? == get_member_self()?.id {
+                Some(v.vote)
+            } else {
+                None
+            }
+        })
     }
 
     fn display_row<V: Clone + Default + PartialEq + fmt::Display + fmt::Debug>(
@@ -470,8 +488,9 @@ impl EditListPage {
             // EditOperation::Create => html! {},
             // EditOperation::Delete => html! {},
             // EditOperation::Merge => html! {},
-
-            _ => html! { <div class="comparison-row"><div class="row-title"><span>{ "Unimplemented Operation" }</span></div></div> }
+            _ => {
+                html! { <div class="comparison-row"><div class="row-title"><span>{ "Unimplemented Operation" }</span></div></div> }
+            }
         }
     }
 
@@ -485,7 +504,13 @@ impl EditListPage {
         operation: EditOperation,
     ) -> Html {
         Self::display_row_array_map::<V, V, _>(
-            title, new_data, old_data, current, is_updated, status, operation,
+            title,
+            new_data,
+            old_data,
+            current,
+            is_updated,
+            status,
+            operation,
             |a| a.clone(),
         )
     }
@@ -499,12 +524,12 @@ impl EditListPage {
         is_updated: bool,
         status: EditStatus,
         operation: EditOperation,
-        map: F
+        map: F,
     ) -> Html
-        where
-            A: PartialEq,
-            V: Clone + Default + fmt::Display + fmt::Debug,
-            F: Fn(&A) -> V
+    where
+        A: PartialEq,
+        V: Clone + Default + fmt::Display + fmt::Debug,
+        F: Fn(&A) -> V,
     {
         match operation {
             EditOperation::Modify => {
@@ -605,14 +630,17 @@ impl EditListPage {
             // EditOperation::Create => html! {},
             // EditOperation::Delete => html! {},
             // EditOperation::Merge => html! {},
-
-            _ => html! { <div class="comparison-row"><div class="row-title"><span>{ "Unimplemented Operation" }</span></div></div> }
+            _ => {
+                html! { <div class="comparison-row"><div class="row-title"><span>{ "Unimplemented Operation" }</span></div></div> }
+            }
         }
     }
 }
 
-
-fn determine_new_old<'a, V>(new: &'a Option<V>, old: &'a Option<V>) -> Option<(&'a V, &'a Option<V>)> {
+fn determine_new_old<'a, V>(
+    new: &'a Option<V>,
+    old: &'a Option<V>,
+) -> Option<(&'a V, &'a Option<V>)> {
     match (new, old) {
         (Some(n), o) => Some((n, o)),
         _ => None,

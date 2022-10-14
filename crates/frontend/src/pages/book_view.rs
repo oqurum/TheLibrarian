@@ -1,25 +1,38 @@
-use chrono::{Utc, TimeZone};
+use chrono::{TimeZone, Utc};
 use common::{
+    api::WrappingResponse,
     component::{
+        multi_select::{MultiSelectEvent, MultiSelectItem, MultiSelectModule, MultiSelectNewItem},
+        popup::{
+            compare::{Comparable, PopupComparison},
+            Popup, PopupType,
+        },
         upload::UploadModule,
-        multi_select::{MultiSelectEvent, MultiSelectModule, MultiSelectItem, MultiSelectNewItem},
-        popup::{Popup, PopupType, compare::{PopupComparison, Comparable}},
     },
-    Either, LANGUAGES, ImageIdType, BookId, TagId, api::WrappingResponse, util::upper_case_first_char, ImageId, ThumbnailStore, PersonId
+    util::upper_case_first_char,
+    BookId, Either, ImageId, ImageIdType, PersonId, TagId, ThumbnailStore, LANGUAGES,
 };
-use common_local::{api::{MediaViewResponse, GetPostersResponse, GetTagsResponse, GetPostersQuery}, TagType, item::edit::BookEdit, TagFE, SearchType, Person};
+use common_local::{
+    api::{GetPostersQuery, GetPostersResponse, GetTagsResponse, MediaViewResponse},
+    item::edit::BookEdit,
+    Person, SearchType, TagFE, TagType,
+};
 
 use js_sys::Date;
 use wasm_bindgen::{JsCast, JsValue, UnwrapThrowExt};
-use web_sys::{HtmlInputElement, HtmlTextAreaElement, HtmlSelectElement};
-use yew::{prelude::*, html::Scope};
+use web_sys::{HtmlInputElement, HtmlSelectElement, HtmlTextAreaElement};
+use yew::{html::Scope, prelude::*};
 
 use crate::{
-    components::{LoginBarrier, PopupEditMetadata, PopupSearch, PopupSearchPerson, popup::{SearchBy, search::SearchSelectedValue, search_person::SearchSelectedValue as PersonSearchSelectedValue}},
-    request, get_member_self
+    components::{
+        popup::{
+            search::SearchSelectedValue,
+            search_person::SearchSelectedValue as PersonSearchSelectedValue, SearchBy,
+        },
+        LoginBarrier, PopupEditMetadata, PopupSearch, PopupSearchPerson,
+    },
+    get_member_self, request,
 };
-
-
 
 #[derive(Clone)]
 pub enum Msg {
@@ -46,12 +59,12 @@ pub enum Msg {
     ShowPopup(DisplayOverlay),
     ClosePopup,
 
-    Ignore
+    Ignore,
 }
 
 #[derive(Properties, PartialEq, Eq)]
 pub struct Property {
-    pub id: BookId
+    pub id: BookId,
 }
 
 pub struct BookView {
@@ -75,9 +88,8 @@ impl Component for BookView {
     type Properties = Property;
 
     fn create(ctx: &Context<Self>) -> Self {
-        ctx.link().send_future(async {
-            Msg::AllTagsResponse(request::get_tags().await)
-        });
+        ctx.link()
+            .send_future(async { Msg::AllTagsResponse(request::get_tags().await) });
 
         Self {
             media: None,
@@ -97,53 +109,51 @@ impl Component for BookView {
             Msg::Ignore => return false,
 
             // Multiselect
-            Msg::MultiselectToggle(inserted, tag_id) => if let Some(curr_book) = self.media.as_ref().and_then(|v| v.as_ok().ok()) {
-                if inserted {
-                    // If the tag is in the db model.
-                    if curr_book.tags.iter().any(|bt| bt.tag.id == tag_id) {
-                        // We have to make sure it's on in the "removed_tags" vec
-                        self.editing_item.remove_tag(tag_id);
+            Msg::MultiselectToggle(inserted, tag_id) => {
+                if let Some(curr_book) = self.media.as_ref().and_then(|v| v.as_ok().ok()) {
+                    if inserted {
+                        // If the tag is in the db model.
+                        if curr_book.tags.iter().any(|bt| bt.tag.id == tag_id) {
+                            // We have to make sure it's on in the "removed_tags" vec
+                            self.editing_item.remove_tag(tag_id);
+                        } else {
+                            self.editing_item.insert_added_tag(tag_id);
+                        }
                     } else {
-                        self.editing_item.insert_added_tag(tag_id);
-                    }
-                } else {
-                    // If the tag is in the db model.
-                    if curr_book.tags.iter().any(|bt| bt.tag.id == tag_id) {
-                        self.editing_item.insert_removed_tag(tag_id);
-                    } else {
-                        // We have to make sure it's not in the "added_tags" vec
-                        self.editing_item.remove_tag(tag_id);
+                        // If the tag is in the db model.
+                        if curr_book.tags.iter().any(|bt| bt.tag.id == tag_id) {
+                            self.editing_item.insert_removed_tag(tag_id);
+                        } else {
+                            // We have to make sure it's not in the "added_tags" vec
+                            self.editing_item.remove_tag(tag_id);
+                        }
                     }
                 }
             }
 
-            Msg::MultiselectCreate(type_of, item) => {
-                match &type_of {
-                    TagType::Genre |
-                    TagType::Subject => {
-                        ctx.link()
-                        .send_future(async move {
-                            let tag_resp = request::new_tag(item.name.clone(), type_of).await;
+            Msg::MultiselectCreate(type_of, item) => match &type_of {
+                TagType::Genre | TagType::Subject => {
+                    ctx.link().send_future(async move {
+                        let tag_resp = request::new_tag(item.name.clone(), type_of).await;
 
-                            match tag_resp.ok() {
-                                Ok(tag_resp) => {
-                                    item.register.emit(tag_resp.id);
+                        match tag_resp.ok() {
+                            Ok(tag_resp) => {
+                                item.register.emit(tag_resp.id);
 
-                                    Msg::MultiCreateResponse(tag_resp)
-                                }
-
-                                Err(err) => {
-                                    log::error!("{err}");
-
-                                    Msg::Ignore
-                                }
+                                Msg::MultiCreateResponse(tag_resp)
                             }
-                        });
-                    }
 
-                    _ => unimplemented!("Msg::MultiselectCreate {:?}", type_of)
+                            Err(err) => {
+                                log::error!("{err}");
+
+                                Msg::Ignore
+                            }
+                        }
+                    });
                 }
-            }
+
+                _ => unimplemented!("Msg::MultiselectCreate {:?}", type_of),
+            },
 
             Msg::MultiCreateResponse(tag) => {
                 // Add original tag to cache.
@@ -154,7 +164,8 @@ impl Component for BookView {
                         id: tag.id,
                     });
 
-                    self.cached_tags.sort_unstable_by(|a, b| a.name.partial_cmp(&b.name).unwrap());
+                    self.cached_tags
+                        .sort_unstable_by(|a, b| a.name.partial_cmp(&b.name).unwrap());
                 }
 
                 self.editing_item.insert_added_tag(tag.id);
@@ -163,21 +174,24 @@ impl Component for BookView {
             Msg::AllTagsResponse(resp) => {
                 let resp = resp.ok().unwrap_throw();
 
-                self.cached_tags = resp.items.into_iter()
+                self.cached_tags = resp
+                    .items
+                    .into_iter()
                     .map(|v| CachedTag {
                         id: v.id,
                         type_of: v.type_of,
-                        name: v.name
+                        name: v.name,
                     })
                     .collect();
 
-                self.cached_tags.sort_unstable_by(|a, b| a.name.partial_cmp(&b.name).unwrap());
+                self.cached_tags
+                    .sort_unstable_by(|a, b| a.name.partial_cmp(&b.name).unwrap());
             }
-
 
             Msg::UpdatePoster(book_id, url_or_id) => {
                 ctx.link().send_future(async move {
-                    request::change_poster_for_meta(ImageIdType::new_book(book_id), url_or_id).await;
+                    request::change_poster_for_meta(ImageIdType::new_book(book_id), url_or_id)
+                        .await;
 
                     Msg::ReloadPosters
                 });
@@ -185,20 +199,24 @@ impl Component for BookView {
                 return false;
             }
 
-            Msg::ReloadPosters => if let Some(curr_book) = self.media.as_ref().and_then(|v| v.as_ok().ok()) {
-                let book_id = curr_book.metadata.id;
+            Msg::ReloadPosters => {
+                if let Some(curr_book) = self.media.as_ref().and_then(|v| v.as_ok().ok()) {
+                    let book_id = curr_book.metadata.id;
 
-                let search_metadata = self.search_poster_metadata;
+                    let search_metadata = self.search_poster_metadata;
 
-                ctx.link()
-                .send_future(async move {
-                    Msg::RetrievePosters(request::get_posters_for_meta(
-                        ImageIdType::new_book(book_id),
-                        Some(GetPostersQuery { search_metadata })
-                    ).await)
-                });
+                    ctx.link().send_future(async move {
+                        Msg::RetrievePosters(
+                            request::get_posters_for_meta(
+                                ImageIdType::new_book(book_id),
+                                Some(GetPostersQuery { search_metadata }),
+                            )
+                            .await,
+                        )
+                    });
 
-                return false;
+                    return false;
+                }
             }
 
             Msg::TogglePosterMetaSearch => {
@@ -218,17 +236,18 @@ impl Component for BookView {
                 self.is_editing = !self.is_editing;
             }
 
-            Msg::SaveEdits => if let Some(curr_book) = self.media.as_ref().and_then(|v| v.as_ok().ok()) {
-                let edit = self.editing_item.clone();
+            Msg::SaveEdits => {
+                if let Some(curr_book) = self.media.as_ref().and_then(|v| v.as_ok().ok()) {
+                    let edit = self.editing_item.clone();
 
-                let book_id = curr_book.metadata.id;
+                    let book_id = curr_book.metadata.id;
 
-                ctx.link()
-                .send_future(async move {
-                    request::update_book(book_id, &edit).await;
+                    ctx.link().send_future(async move {
+                        request::update_book(book_id, &edit).await;
 
-                    Msg::RetrieveMediaView(Box::new(request::get_media_view(book_id).await))
-                });
+                        Msg::RetrieveMediaView(Box::new(request::get_media_view(book_id).await))
+                    });
+                }
             }
 
             Msg::UpdateEditing(type_of, value) => {
@@ -242,14 +261,20 @@ impl Component for BookView {
                     ChangingType::Description => updating.description = value,
                     // ChangingType::Rating => updating.rating = value.and_then(|v| v.parse().ok()),
                     // ChangingType::ThumbPath => todo!(),
-                    ChangingType::AvailableAt => updating.available_at = value.map(|v| {
-                        let date = Date::new(&JsValue::from_str(&v));
-                        date.get_seconds() as i64
-                    }),
-                    ChangingType::Language => updating.language = value.and_then(|v| v.parse().ok()),
+                    ChangingType::AvailableAt => {
+                        updating.available_at = value.map(|v| {
+                            let date = Date::new(&JsValue::from_str(&v));
+                            date.get_seconds() as i64
+                        })
+                    }
+                    ChangingType::Language => {
+                        updating.language = value.and_then(|v| v.parse().ok())
+                    }
                     ChangingType::Isbn10 => updating.isbn_10 = value,
                     ChangingType::Isbn13 => updating.isbn_13 = value,
-                    ChangingType::Publicity => updating.is_public = value.and_then(|v| v.parse().ok()),
+                    ChangingType::Publicity => {
+                        updating.is_public = value.and_then(|v| v.parse().ok())
+                    }
 
                     ChangingType::PersonRelation(id) => {
                         updating.insert_updated_person(id, value);
@@ -266,7 +291,6 @@ impl Component for BookView {
                 }
             }
 
-
             Msg::OnDelete(resp) => {
                 match resp {
                     WrappingResponse::Resp(okay) => {
@@ -279,7 +303,6 @@ impl Component for BookView {
                     WrappingResponse::Error(e) => self.media = Some(WrappingResponse::Error(e)),
                 }
             }
-
 
             // Popup
             Msg::ClosePopup => {
@@ -298,13 +321,14 @@ impl Component for BookView {
                 }
             }
 
-
             Msg::RetrievePosters(value) => {
                 // TODO: Simplify
                 if let Some(WrappingResponse::Resp(book)) = self.media.as_mut() {
                     if let Ok(posters) = value.as_ok() {
                         if let Some(poster) = posters.items.iter().find(|v| v.selected) {
-                            book.metadata.thumb_path = ThumbnailStore::Path(poster.path.rsplit_once('/').unwrap().1.to_string());
+                            book.metadata.thumb_path = ThumbnailStore::Path(
+                                poster.path.rsplit_once('/').unwrap().1.to_string(),
+                            );
                         }
                     }
                 }
@@ -362,7 +386,11 @@ impl Component for BookView {
 impl BookView {
     fn render_editing(&self, ctx: &Context<Self>) -> Html {
         if let Some(resp) = self.media.as_ref() {
-            let book_resp @ MediaViewResponse { people, metadata: book_model, tags } = crate::continue_or_html_err!(resp);
+            let book_resp @ MediaViewResponse {
+                people,
+                metadata: book_model,
+                tags,
+            } = crate::continue_or_html_err!(resp);
 
             let editing = &self.editing_item;
 
@@ -372,7 +400,10 @@ impl BookView {
                 e.prevent_default();
                 e.stop_propagation();
 
-                Msg::ShowPopup(DisplayOverlay::More { book_id, mouse_pos: (e.page_x(), e.page_y()) })
+                Msg::ShowPopup(DisplayOverlay::More {
+                    book_id,
+                    mouse_pos: (e.page_x(), e.page_y()),
+                })
             });
 
             html! {
@@ -717,7 +748,11 @@ impl BookView {
 
     fn render_viewing(&self, ctx: &Context<Self>) -> Html {
         if let Some(resp) = self.media.as_ref() {
-            let book_resp @ MediaViewResponse { people, metadata: book_model, tags } = crate::continue_or_html_err!(resp);
+            let book_resp @ MediaViewResponse {
+                people,
+                metadata: book_model,
+                tags,
+            } = crate::continue_or_html_err!(resp);
 
             let book_id = book_model.id;
 
@@ -725,7 +760,10 @@ impl BookView {
                 e.prevent_default();
                 e.stop_propagation();
 
-                Msg::ShowPopup(DisplayOverlay::More { book_id, mouse_pos: (e.page_x(), e.page_y()) })
+                Msg::ShowPopup(DisplayOverlay::More {
+                    book_id,
+                    mouse_pos: (e.page_x(), e.page_y()),
+                })
             });
 
             html! {
@@ -858,7 +896,14 @@ impl BookView {
         }
     }
 
-    fn render_popup(&self, MediaViewResponse { metadata: book_model, .. }: &MediaViewResponse, ctx: &Context<Self>) -> Html {
+    fn render_popup(
+        &self,
+        MediaViewResponse {
+            metadata: book_model,
+            ..
+        }: &MediaViewResponse,
+        ctx: &Context<Self>,
+    ) -> Html {
         if let Some(overlay_type) = self.media_popup.as_ref() {
             let book_id = book_model.id;
 
@@ -881,21 +926,19 @@ impl BookView {
                     }
                 }
 
-                DisplayOverlay::Edit(resp) => {
-                    match resp.as_ok() {
-                        Ok(resp) => html! {
-                            <PopupEditMetadata
-                                on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
-                                classes={ classes!("popup-book-edit") }
-                                media_resp={ resp.clone() }
-                            />
-                        },
+                DisplayOverlay::Edit(resp) => match resp.as_ok() {
+                    Ok(resp) => html! {
+                        <PopupEditMetadata
+                            on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
+                            classes={ classes!("popup-book-edit") }
+                            media_resp={ resp.clone() }
+                        />
+                    },
 
-                        Err(e) => html! {
-                            <h2>{ e }</h2>
-                        }
-                    }
-                }
+                    Err(e) => html! {
+                        <h2>{ e }</h2>
+                    },
+                },
 
                 DisplayOverlay::EditFromMetadata(new_meta) => {
                     html! {
@@ -970,19 +1013,40 @@ impl BookView {
 
     fn on_change_select(scope: &Scope<Self>, updating: ChangingType) -> Callback<Event> {
         scope.callback(move |e: Event| {
-            Msg::UpdateEditing(updating, e.target().unwrap().dyn_into::<HtmlSelectElement>().unwrap().value())
+            Msg::UpdateEditing(
+                updating,
+                e.target()
+                    .unwrap()
+                    .dyn_into::<HtmlSelectElement>()
+                    .unwrap()
+                    .value(),
+            )
         })
     }
 
     fn on_change_input(scope: &Scope<Self>, updating: ChangingType) -> Callback<Event> {
         scope.callback(move |e: Event| {
-            Msg::UpdateEditing(updating, e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap().value())
+            Msg::UpdateEditing(
+                updating,
+                e.target()
+                    .unwrap()
+                    .dyn_into::<HtmlInputElement>()
+                    .unwrap()
+                    .value(),
+            )
         })
     }
 
     fn on_change_textarea(scope: &Scope<Self>, updating: ChangingType) -> Callback<Event> {
         scope.callback(move |e: Event| {
-            Msg::UpdateEditing(updating, e.target().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap().value())
+            Msg::UpdateEditing(
+                updating,
+                e.target()
+                    .unwrap()
+                    .dyn_into::<HtmlTextAreaElement>()
+                    .unwrap()
+                    .value(),
+            )
         })
     }
 
@@ -995,7 +1059,6 @@ impl BookView {
         })
     }
 }
-
 
 #[derive(Properties)]
 struct PersonItemProps {
@@ -1014,11 +1077,9 @@ struct PersonItemProps {
 
 impl PartialEq for PersonItemProps {
     fn eq(&self, other: &Self) -> bool {
-        self.person == other.person &&
-        self.edited_info == other.edited_info
+        self.person == other.person && self.edited_info == other.edited_info
     }
 }
-
 
 #[function_component(PersonItem)]
 fn _person_item(props: &PersonItemProps) -> Html {
@@ -1074,16 +1135,12 @@ fn _person_item(props: &PersonItemProps) -> Html {
     }
 }
 
-
-
 #[derive(Debug, Clone)]
 pub struct CachedTag {
     type_of: TagType,
     id: TagId,
     name: String,
 }
-
-
 
 #[derive(Clone, Copy)]
 pub enum ChangingType {
@@ -1103,9 +1160,6 @@ pub enum ChangingType {
     PersonAdding(PersonId),
 }
 
-
-
-
 #[derive(Clone)]
 pub enum DisplayOverlay {
     Edit(Box<WrappingResponse<MediaViewResponse>>),
@@ -1114,7 +1168,7 @@ pub enum DisplayOverlay {
 
     More {
         book_id: BookId,
-        mouse_pos: (i32, i32)
+        mouse_pos: (i32, i32),
     },
 
     SearchForBook {
@@ -1129,11 +1183,15 @@ impl PartialEq for DisplayOverlay {
         match (self, other) {
             (Self::More { book_id: l_id, .. }, Self::More { book_id: r_id, .. }) => l_id == r_id,
             (
-                Self::SearchForBook { input_value: l_val, .. },
-                Self::SearchForBook { input_value: r_val, .. }
+                Self::SearchForBook {
+                    input_value: l_val, ..
+                },
+                Self::SearchForBook {
+                    input_value: r_val, ..
+                },
             ) => l_val == r_val,
 
-            _ => false
+            _ => false,
         }
     }
 }

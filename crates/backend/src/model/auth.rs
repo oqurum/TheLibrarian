@@ -1,9 +1,7 @@
 use chrono::{DateTime, Utc};
 use tokio_postgres::Client;
 
-
 use crate::Result;
-
 
 pub struct AuthModel {
     pub oauth_token: String,
@@ -26,9 +24,9 @@ impl AuthModel {
     }
 
     pub async fn remove_by_oauth_token(value: &str, client: &Client) -> Result<bool> {
-        Ok(client.execute(
-            "DELETE FROM auth WHERE oauth_token = $1",
-            params![ value ],
-        ).await? != 0)
+        Ok(client
+            .execute("DELETE FROM auth WHERE oauth_token = $1", params![value])
+            .await?
+            != 0)
     }
 }

@@ -1,6 +1,4 @@
-use serde::{Serialize, Deserialize};
-
-
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct MemberSettings {
@@ -11,11 +9,10 @@ impl MemberSettings {
     pub fn get_page_view_default(&self) -> PageView {
         match self.page_view {
             Some(v) => v,
-            None => PageView::Viewing
+            None => PageView::Viewing,
         }
     }
 }
-
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum PageView {

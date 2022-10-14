@@ -2,30 +2,27 @@
 
 // TODO: Better security. Simple Proof of Concept.
 
-
 use actix_identity::Identity;
 use actix_web::{http::header, HttpResponse};
 use actix_web::{web, HttpRequest};
 use common::api::{ApiErrorResponse, WrappingResponse};
-use common_local::{Permissions, ConfigEmail};
+use common_local::{ConfigEmail, Permissions};
 
 use crate::config::get_config;
 use crate::http::JsonResponse;
-use crate::model::{AuthModel, NewMemberModel, MemberModel};
-use crate::{Result, WebResult, Error};
+use crate::model::{AuthModel, MemberModel, NewMemberModel};
+use crate::{Error, Result, WebResult};
 use chrono::Utc;
 use lettre::message::header::ContentType;
 use lettre::message::{MultiPart, SinglePart};
-use lettre::{Message, SmtpTransport, Transport};
 use lettre::transport::smtp::authentication::Credentials;
-use rand::Rng;
+use lettre::{Message, SmtpTransport, Transport};
 use rand::prelude::ThreadRng;
-use serde::{Serialize, Deserialize};
-
+use rand::Rng;
+use serde::{Deserialize, Serialize};
 
 pub static PASSWORDLESS_PATH: &str = "/auth/passwordless";
 pub static PASSWORDLESS_PATH_CB: &str = "/auth/passwordless/response";
-
 
 #[derive(Serialize, Deserialize)]
 pub struct PostPasswordlessCallback {
@@ -46,15 +43,23 @@ pub async fn post_passwordless_oauth(
 
     let (email_config, host) = match (
         config.email,
-        req.headers().get("host").and_then(|v| v.to_str().ok())
+        req.headers().get("host").and_then(|v| v.to_str().ok()),
     ) {
         (Some(a), Some(b)) => (a, b),
-        _ => return Err(ApiErrorResponse::new("Missing email from config OR unable to get host").into()),
+        _ => {
+            return Err(
+                ApiErrorResponse::new("Missing email from config OR unable to get host").into(),
+            )
+        }
     };
 
     let proto = config.server.is_secure.then(|| "https").unwrap_or("http");
 
-    if !get_config().auth.new_users && MemberModel::get_by_email(query.0.email.trim(), &db).await?.is_none() {
+    if !get_config().auth.new_users
+        && MemberModel::get_by_email(query.0.email.trim(), &db)
+            .await?
+            .is_none()
+    {
         return Err(ApiErrorResponse::new("New user creation is disabled").into());
     }
 
@@ -66,7 +71,8 @@ pub async fn post_passwordless_oauth(
         serde_urlencoded::to_string(QueryCallback {
             oauth_token: oauth_token.clone(),
             email: query.email.clone()
-        }).map_err(Error::from)?
+        })
+        .map_err(Error::from)?
     );
 
     let main_html = render_email(
@@ -107,10 +113,7 @@ pub async fn get_passwordless_oauth_callback(
             .finish());
     }
 
-    let QueryCallback {
-        oauth_token,
-        email,
-    } = query.into_inner();
+    let QueryCallback { oauth_token, email } = query.into_inner();
 
     if AuthModel::remove_by_oauth_token(&oauth_token, &db).await? {
         // Create or Update User.
@@ -139,11 +142,20 @@ pub async fn get_passwordless_oauth_callback(
         .finish())
 }
 
-
-
-pub fn send_auth_email(sending_to_email: String, alt_text: String, main_html: String, email_config: &ConfigEmail) -> Result<()> {
+pub fn send_auth_email(
+    sending_to_email: String,
+    alt_text: String,
+    main_html: String,
+    email_config: &ConfigEmail,
+) -> Result<()> {
     let email = Message::builder()
-        .from(format!("{} <{}>", email_config.display_name, email_config.sending_email).parse()?)
+        .from(
+            format!(
+                "{} <{}>",
+                email_config.display_name, email_config.sending_email
+            )
+            .parse()?,
+        )
         .reply_to(email_config.sending_email.parse()?)
         .to(sending_to_email.parse()?)
         .subject(&email_config.subject_line)
@@ -161,7 +173,10 @@ pub fn send_auth_email(sending_to_email: String, alt_text: String, main_html: St
                 ),
         )?;
 
-    let creds = Credentials::new(email_config.smtp_username.clone(), email_config.smtp_password.clone());
+    let creds = Credentials::new(
+        email_config.smtp_username.clone(),
+        email_config.smtp_password.clone(),
+    );
 
     // Open a remote connection to gmail
     let mailer = SmtpTransport::relay(&email_config.smtp_relay)?
@@ -181,14 +196,14 @@ pub fn gen_sample_alphanumeric(amount: usize, rng: &mut ThreadRng) -> String {
         .collect()
 }
 
-
 fn render_email(
     website_url_protocol: &str,
     website_http_base_host: &str,
     email_display_name: &str,
     email_callback_url: &str,
 ) -> String {
-    format!(r#"
+    format!(
+        r#"
         <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
         <html xmlns="http://www.w3.org/1999/xhtml">
             <head>

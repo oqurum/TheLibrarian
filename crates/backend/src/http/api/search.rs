@@ -1,11 +1,12 @@
-use actix_web::{get, web, post};
-use common::api::{WrappingResponse, QueryListResponse};
+use actix_web::{get, post, web};
+use common::api::{QueryListResponse, WrappingResponse};
 use common_local::{api, SearchGroup, SearchGroupId};
 
-use crate::{http::{MemberCookie, JsonResponse}, WebResult, model::SearchGroupModel};
-
-
-
+use crate::{
+    http::{JsonResponse, MemberCookie},
+    model::SearchGroupModel,
+    WebResult,
+};
 
 #[get("/searches")]
 pub async fn get_searches(
@@ -23,7 +24,8 @@ pub async fn get_searches(
     let limit = query.limit.unwrap_or(50);
 
     let total = SearchGroupModel::get_count(&db).await?;
-    let items = SearchGroupModel::find_all(offset, limit, &db).await?
+    let items = SearchGroupModel::find_all(offset, limit, &db)
+        .await?
         .into_iter()
         .map(|v| v.into())
         .collect();

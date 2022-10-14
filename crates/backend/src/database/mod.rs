@@ -1,13 +1,10 @@
-use crate::{Result, config::Config};
-use tokio_postgres::{connect, NoTls, Client};
+use crate::{config::Config, Result};
+use tokio_postgres::{connect, Client, NoTls};
 
 mod migrations;
 
 pub async fn init(config: &Config) -> Result<Client> {
-    let (client, connection) = connect(
-        &config.database.url,
-        NoTls
-    ).await?;
+    let (client, connection) = connect(&config.database.url, NoTls).await?;
 
     // Initiate Connection
     tokio::spawn(async move {
@@ -15,7 +12,6 @@ pub async fn init(config: &Config) -> Result<Client> {
             panic!("Database Connection Error: {}", e);
         }
     });
-
 
     migrations::start_initiation(&client).await?;
 

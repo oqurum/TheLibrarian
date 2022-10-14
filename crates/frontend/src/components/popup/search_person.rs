@@ -1,14 +1,24 @@
-use common::{component::popup::{Popup, PopupType}, Source, api::{WrappingResponse, QueryListResponse}, PersonId};
-use common_local::{api::{SearchItem, ExternalSearchResponse}, item::edit::PersonEdit, Person, SearchType};
+use common::{
+    api::{QueryListResponse, WrappingResponse},
+    component::popup::{Popup, PopupType},
+    PersonId, Source,
+};
+use common_local::{
+    api::{ExternalSearchResponse, SearchItem},
+    item::edit::PersonEdit,
+    Person, SearchType,
+};
 use gloo_utils::document;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
-use crate::{request, util::{self, LoadingItem}};
+use crate::{
+    request,
+    util::{self, LoadingItem},
+};
 
 use super::SearchBy;
-
 
 #[derive(Properties, PartialEq)]
 pub struct Property {
@@ -27,7 +37,6 @@ pub struct Property {
     pub search_on_init: bool,
 }
 
-
 pub enum Msg {
     PersonLocalSearchResponse(String, WrappingResponse<QueryListResponse<Person>>),
     PersonExternalSearchResponse(String, WrappingResponse<ExternalSearchResponse>),
@@ -36,7 +45,6 @@ pub enum Msg {
 
     OnSelectItem(SearchSelectedValue),
 }
-
 
 pub struct PopupSearchPerson {
     cached_loc_search: Option<LoadingItem<WrappingResponse<QueryListResponse<Person>>>>,
@@ -62,20 +70,14 @@ impl Component for PopupSearchPerson {
                 self.cached_loc_search = Some(LoadingItem::Loading);
 
                 if ctx.props().type_of == SearchBy::External {
-                    ctx.link()
-                    .send_future(async move {
+                    ctx.link().send_future(async move {
                         let resp = request::external_search_for(&search, SearchType::Person).await;
 
                         Msg::PersonExternalSearchResponse(search, resp)
                     });
                 } else {
-                    ctx.link()
-                    .send_future(async move {
-                        let resp = request::get_people(
-                            Some(&search),
-                            None,
-                            None
-                        ).await;
+                    ctx.link().send_future(async move {
+                        let resp = request::get_people(Some(&search), None, None).await;
 
                         Msg::PersonLocalSearchResponse(search, resp)
                     });
@@ -106,7 +108,8 @@ impl Component for PopupSearchPerson {
 
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
         if first_render && ctx.props().search_on_init {
-            ctx.link().send_message(Msg::SearchFor(ctx.props().input_value.clone()));
+            ctx.link()
+                .send_message(Msg::SearchFor(ctx.props().input_value.clone()));
         }
     }
 }
@@ -254,5 +257,5 @@ impl PopupSearchPerson {
 pub enum SearchSelectedValue {
     Source(Source),
     PersonEdit(Box<PersonEdit>),
-    PersonId(PersonId)
+    PersonId(PersonId),
 }

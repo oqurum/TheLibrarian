@@ -1,12 +1,17 @@
-use common::{api::WrappingResponse, component::popup::{Popup, PopupType, PopupClose}};
-use common_local::{api::{self, NewCollectionBody}, Collection};
+use common::{
+    api::WrappingResponse,
+    component::popup::{Popup, PopupClose, PopupType},
+};
+use common_local::{
+    api::{self, NewCollectionBody},
+    Collection,
+};
 use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
-use web_sys::{HtmlElement, HtmlInputElement, HtmlTextAreaElement, HtmlSelectElement};
-use yew::{prelude::*, html::Scope};
+use web_sys::{HtmlElement, HtmlInputElement, HtmlSelectElement, HtmlTextAreaElement};
+use yew::{html::Scope, prelude::*};
 use yew_router::prelude::Link;
 
 use crate::{components::LoginBarrier, request, Route};
-
 
 #[derive(Properties, PartialEq, Eq)]
 pub struct Property {}
@@ -65,10 +70,16 @@ impl Component for ListCollectionsPage {
                 let func = Closure::wrap(Box::new(move || {
                     let lib_list = lib_list_ref.cast::<HtmlElement>().unwrap();
 
-                    link.send_message(Msg::OnScroll(lib_list.client_height() + lib_list.scroll_top()));
+                    link.send_message(Msg::OnScroll(
+                        lib_list.client_height() + lib_list.scroll_top(),
+                    ));
                 }) as Box<dyn FnMut()>);
 
-                let _ = self.collection_list_ref.cast::<HtmlElement>().unwrap().add_event_listener_with_callback("scroll", func.as_ref().unchecked_ref());
+                let _ = self
+                    .collection_list_ref
+                    .cast::<HtmlElement>()
+                    .unwrap()
+                    .add_event_listener_with_callback("scroll", func.as_ref().unchecked_ref());
 
                 self.on_scroll_fn = Some(func);
             }
@@ -81,14 +92,18 @@ impl Component for ListCollectionsPage {
                 self.is_fetching = true;
 
                 let offset = Some(
-                    self.media_items.as_ref()
+                    self.media_items
+                        .as_ref()
                         .and_then(|v| v.as_ok().ok())
-                        .map(|v| v.len()).unwrap_or_default()
-                    ).filter(|v| *v != 0);
+                        .map(|v| v.len())
+                        .unwrap_or_default(),
+                )
+                .filter(|v| *v != 0);
 
-                ctx.link()
-                .send_future(async move {
-                    Msg::CollectionListResults(request::get_collection_list(None, offset, None).await)
+                ctx.link().send_future(async move {
+                    Msg::CollectionListResults(
+                        request::get_collection_list(None, offset, None).await,
+                    )
                 });
             }
 
@@ -100,7 +115,10 @@ impl Component for ListCollectionsPage {
                         self.total_media_count = resp.total;
 
                         // TODO: Replace match with as_mut_ok()
-                        if let Some(items) = self.media_items.as_mut().and_then(|v| match v { WrappingResponse::Resp(v) => Some(v), _ => None }) {
+                        if let Some(items) = self.media_items.as_mut().and_then(|v| match v {
+                            WrappingResponse::Resp(v) => Some(v),
+                            _ => None,
+                        }) {
                             items.append(&mut resp.items);
                         } else {
                             self.media_items = Some(WrappingResponse::okay(resp.items));
@@ -118,7 +136,11 @@ impl Component for ListCollectionsPage {
             }
 
             Msg::OnScroll(scroll_y) => {
-                let scroll_height = self.collection_list_ref.cast::<HtmlElement>().unwrap().scroll_height();
+                let scroll_height = self
+                    .collection_list_ref
+                    .cast::<HtmlElement>()
+                    .unwrap()
+                    .scroll_height();
 
                 if scroll_height - scroll_y < 600 && self.can_req_more() {
                     ctx.link().send_message(Msg::RequestCollections);
@@ -187,7 +209,11 @@ impl Component for ListCollectionsPage {
 
     fn destroy(&mut self, _ctx: &Context<Self>) {
         if let Some(f) = self.on_scroll_fn.take() {
-            let _ = self.collection_list_ref.cast::<HtmlElement>().unwrap().remove_event_listener_with_callback("scroll", f.as_ref().unchecked_ref());
+            let _ = self
+                .collection_list_ref
+                .cast::<HtmlElement>()
+                .unwrap()
+                .remove_event_listener_with_callback("scroll", f.as_ref().unchecked_ref());
         }
     }
 }
@@ -203,17 +229,19 @@ impl ListCollectionsPage {
     }
 
     pub fn can_req_more(&self) -> bool {
-        let count = self.media_items.as_ref().and_then(|v| v.as_ok().ok()).map(|v| v.len()).unwrap_or_default();
+        let count = self
+            .media_items
+            .as_ref()
+            .and_then(|v| v.as_ok().ok())
+            .map(|v| v.len())
+            .unwrap_or_default();
 
         count != 0 && count != self.total_media_count
     }
 }
 
-
 fn clean_title(value: &str) -> String {
-    let mut value = value.trim()
-        .to_lowercase()
-        .replace(' ', "-");
+    let mut value = value.trim().to_lowercase().replace(' ', "-");
 
     value.shrink_to(20);
 
@@ -225,14 +253,12 @@ fn clean_title(value: &str) -> String {
 }
 
 static REPLACE_CHARS: [char; 14] = [
-    '!', '@', '#', '$', '^', '&', '*',
-    '(', ')', '?', '.', '|', '\\', '/',
+    '!', '@', '#', '$', '^', '&', '*', '(', ')', '?', '.', '|', '\\', '/',
 ];
-
 
 #[derive(Properties)]
 struct CreateCollectionPopupProps {
-    scope: Scope<ListCollectionsPage>
+    scope: Scope<ListCollectionsPage>,
 }
 
 impl PartialEq for CreateCollectionPopupProps {
@@ -240,7 +266,6 @@ impl PartialEq for CreateCollectionPopupProps {
         true
     }
 }
-
 
 #[function_component(CreateCollectionPopup)]
 fn create_collection_popup(props: &CreateCollectionPopupProps) -> Html {

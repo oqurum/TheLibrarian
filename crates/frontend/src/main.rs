@@ -1,6 +1,9 @@
 use std::sync::{Arc, Mutex};
 
-use common::{BookId, PersonId, api::{WrappingResponse, ApiErrorResponse}};
+use common::{
+    api::{ApiErrorResponse, WrappingResponse},
+    BookId, PersonId,
+};
 use common_local::{api, Member};
 use lazy_static::lazy_static;
 use yew::prelude::*;
@@ -8,11 +11,10 @@ use yew_router::prelude::*;
 
 use components::NavbarModule;
 
-mod util;
+mod components;
 mod pages;
 mod request;
-mod components;
-
+mod util;
 
 lazy_static! {
     pub static ref MEMBER_SELF: Arc<Mutex<Option<Member>>> = Arc::new(Mutex::new(None));
@@ -26,21 +28,18 @@ pub fn is_signed_in() -> bool {
     get_member_self().is_some()
 }
 
-
 #[macro_export]
 macro_rules! continue_or_html_err {
     ($value:ident) => {
         match $value.as_ok() {
             Ok(v) => v,
-            Err(e) => return html! { <> { "An Error Occured: " } { e } </> }
+            Err(e) => return html! { <> { "An Error Occured: " } { e } </> },
         }
     };
 }
 
-
-
 enum Msg {
-    LoadMemberSelf(WrappingResponse<api::GetMemberSelfResponse>)
+    LoadMemberSelf(WrappingResponse<api::GetMemberSelfResponse>),
 }
 
 struct Model {
@@ -54,9 +53,7 @@ impl Component for Model {
 
     fn create(ctx: &Context<Self>) -> Self {
         ctx.link()
-        .send_future(async {
-            Msg::LoadMemberSelf(request::get_member_self().await)
-        });
+            .send_future(async { Msg::LoadMemberSelf(request::get_member_self().await) });
 
         Self {
             has_loaded_member: false,
@@ -78,7 +75,6 @@ impl Component for Model {
                         // self.error = Some(e);
                     }
                 }
-
             }
         }
 
@@ -112,7 +108,6 @@ impl Component for Model {
         }
     }
 }
-
 
 #[derive(Routable, PartialEq, Eq, Clone, Debug)]
 pub enum Route {
@@ -151,9 +146,8 @@ pub enum Route {
 
     #[at("/")]
     #[not_found]
-    Home
+    Home,
 }
-
 
 fn switch(route: &Route) -> Html {
     log::info!("{:?}", route);
@@ -216,7 +210,7 @@ fn switch(route: &Route) -> Html {
             match path.as_str() {
                 "members" => html! { <pages::admin::ListMembersPage /> },
                 "searches" => html! { <pages::admin::ListSearchesPage /> },
-                _ => html! {}
+                _ => html! {},
             }
         }
 
@@ -225,7 +219,6 @@ fn switch(route: &Route) -> Html {
         }
     }
 }
-
 
 fn main() {
     wasm_logger::init(wasm_logger::Config::default());

@@ -4,17 +4,20 @@
 
 use std::collections::HashMap;
 
-use crate::{Result, model::{OptMetadataSearchModel, DataType, MetadataSearchType}};
+use crate::{
+    model::{DataType, MetadataSearchType, OptMetadataSearchModel},
+    Result,
+};
 use async_trait::async_trait;
 use chrono::NaiveDate;
 use common::{Agent, Either};
 use common_local::{MetadataItemCached, SearchForBooksBy};
 use lazy_static::lazy_static;
 use regex::Regex;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-use crate::{metadata::{BookMetadata, FoundImageLocation}};
-use super::{Metadata, SearchItem, MetadataReturned, SearchFor};
+use super::{Metadata, MetadataReturned, SearchFor, SearchItem};
+use crate::metadata::{BookMetadata, FoundImageLocation};
 
 lazy_static! {
     pub static ref REMOVE_HTML_TAGS: Regex = Regex::new("<(.|\n)*?>").unwrap();
@@ -28,8 +31,19 @@ impl Metadata for GoogleBooksMetadata {
         Agent::new_static("googlebooks")
     }
 
-    async fn get_metadata_by_source_id(&mut self, value: &str, _upgrade_editions: bool, db: &tokio_postgres::Client) -> Result<Option<MetadataReturned>> {
-        let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Book, value, &self.get_agent(), db).await?;
+    async fn get_metadata_by_source_id(
+        &mut self,
+        value: &str,
+        _upgrade_editions: bool,
+        db: &tokio_postgres::Client,
+    ) -> Result<Option<MetadataReturned>> {
+        let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(
+            MetadataSearchType::Book,
+            value,
+            &self.get_agent(),
+            db,
+        )
+        .await?;
 
         if let Some(model) = existing_model.should_use_cached()? {
             return Ok(model.inner_book_single());
@@ -44,36 +58,53 @@ impl Metadata for GoogleBooksMetadata {
             }
         };
 
-        existing_model.update_or_insert(
-            MetadataSearchType::Book,
-            value.to_string(),
-            self.get_agent(),
-            1,
-            DataType::BookSingle(resp.clone()),
-            db
-        ).await?;
+        existing_model
+            .update_or_insert(
+                MetadataSearchType::Book,
+                value.to_string(),
+                self.get_agent(),
+                1,
+                DataType::BookSingle(resp.clone()),
+                db,
+            )
+            .await?;
 
         Ok(resp)
     }
 
-    async fn search(&mut self, search: &str, search_for: SearchFor, db: &tokio_postgres::Client) -> Result<Vec<SearchItem>> {
+    async fn search(
+        &mut self,
+        search: &str,
+        search_for: SearchFor,
+        db: &tokio_postgres::Client,
+    ) -> Result<Vec<SearchItem>> {
         match search_for {
             SearchFor::Person => Ok(Vec::new()),
 
             SearchFor::Book(specifically) => {
-                let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(MetadataSearchType::Book, search, &self.get_agent(), db).await?;
+                let existing_model = OptMetadataSearchModel::find_one_by_query_and_agent(
+                    MetadataSearchType::Book,
+                    search,
+                    &self.get_agent(),
+                    db,
+                )
+                .await?;
 
                 if let Some(model) = existing_model.should_use_cached()? {
                     return Ok(model.inner_search());
                 }
 
-                let url = format!("https://www.googleapis.com/books/v1/volumes?q={}", match specifically {
-                    SearchForBooksBy::AuthorName => BookSearchKeyword::InAuthor.combile_string(search),
-                    SearchForBooksBy::Contents |
-                    SearchForBooksBy::Query => urlencoding::encode(search).to_string(),
-                    SearchForBooksBy::Title => BookSearchKeyword::InTitle.combile_string(search),
-                });
-
+                let url = format!(
+                    "https://www.googleapis.com/books/v1/volumes?q={}",
+                    match specifically {
+                        SearchForBooksBy::AuthorName =>
+                            BookSearchKeyword::InAuthor.combile_string(search),
+                        SearchForBooksBy::Contents | SearchForBooksBy::Query =>
+                            urlencoding::encode(search).to_string(),
+                        SearchForBooksBy::Title =>
+                            BookSearchKeyword::InTitle.combile_string(search),
+                    }
+                );
 
                 println!("[METADATA][GOOGLE BOOKS]: Search URL: {}", url);
 
@@ -93,29 +124,58 @@ impl Metadata for GoogleBooksMetadata {
                         books.push(SearchItem::Book(BookMetadata {
                             source: self.prefix_text(&item.id).try_into()?,
                             title: item.volume_info.title.clone(),
-                            description: item.volume_info.description.as_deref().map(|text| REMOVE_HTML_TAGS.replace_all(text, "").to_string()),
+                            description: item
+                                .volume_info
+                                .description
+                                .as_deref()
+                                .map(|text| REMOVE_HTML_TAGS.replace_all(text, "").to_string()),
                             rating: item.volume_info.average_rating.unwrap_or_default(),
                             thumb_locations: vec![thumb_dl_url],
                             cached: MetadataItemCached::default(),
-                            isbn_10: item.volume_info.industry_identifiers.as_ref()
-                                .and_then(|v|
-                                    v.iter().find_map(|v| if v.type_of == "ISBN_10" { Some(v.identifier.clone()) } else { None })),
-                            isbn_13: item.volume_info.industry_identifiers.as_ref()
-                                .and_then(|v|
-                                v.iter().find_map(|v| if v.type_of == "ISBN_13" { Some(v.identifier.clone()) } else { None })),
-                            available_at: item.volume_info.published_date.and_then(|v| v.parse::<NaiveDate>().ok()),
+                            isbn_10: item
+                                .volume_info
+                                .industry_identifiers
+                                .as_ref()
+                                .and_then(|v| {
+                                    v.iter().find_map(|v| {
+                                        if v.type_of == "ISBN_10" {
+                                            Some(v.identifier.clone())
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                }),
+                            isbn_13: item
+                                .volume_info
+                                .industry_identifiers
+                                .as_ref()
+                                .and_then(|v| {
+                                    v.iter().find_map(|v| {
+                                        if v.type_of == "ISBN_13" {
+                                            Some(v.identifier.clone())
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                }),
+                            available_at: item
+                                .volume_info
+                                .published_date
+                                .and_then(|v| v.parse::<NaiveDate>().ok()),
                             language: None,
                         }));
                     }
 
-                    existing_model.update_or_insert(
-                        MetadataSearchType::Book,
-                        search.to_string(),
-                        self.get_agent(),
-                        books.len(),
-                        DataType::Search(books.clone()),
-                        db
-                    ).await?;
+                    existing_model
+                        .update_or_insert(
+                            MetadataSearchType::Book,
+                            search.to_string(),
+                            self.get_agent(),
+                            books.len(),
+                            DataType::Search(books.clone()),
+                            db,
+                        )
+                        .await?;
 
                     Ok(books)
                 } else {
@@ -128,7 +188,11 @@ impl Metadata for GoogleBooksMetadata {
 
 impl GoogleBooksMetadata {
     pub async fn request_singular_id(&self, id: &str) -> Result<Option<MetadataReturned>> {
-        let resp = reqwest::get(format!("https://www.googleapis.com/books/v1/volumes/{}", id)).await?;
+        let resp = reqwest::get(format!(
+            "https://www.googleapis.com/books/v1/volumes/{}",
+            id
+        ))
+        .await?;
 
         if resp.status().is_success() {
             self.compile_book_volume_item(resp.json().await?).await
@@ -137,44 +201,76 @@ impl GoogleBooksMetadata {
         }
     }
 
-
-    async fn compile_book_volume_item(&self, value: BookVolumeItem) -> Result<Option<MetadataReturned>> {
+    async fn compile_book_volume_item(
+        &self,
+        value: BookVolumeItem,
+    ) -> Result<Option<MetadataReturned>> {
         let thumb_dl_url = FoundImageLocation::Url(format!(
             "https://books.google.com/books/publisher/content/images/frontcover/{}?fife=w400-h600",
             value.id
         ));
 
-        let author = value.volume_info.authors.as_ref().and_then(|v| v.first().cloned());
+        let author = value
+            .volume_info
+            .authors
+            .as_ref()
+            .and_then(|v| v.first().cloned());
 
         Ok(Some(MetadataReturned {
-            authors: value.volume_info.authors.map(|v| v.into_iter().map(Either::Right).collect()),
+            authors: value
+                .volume_info
+                .authors
+                .map(|v| v.into_iter().map(Either::Right).collect()),
             publisher: None,
             meta: BookMetadata {
                 source: self.prefix_text(value.id).try_into()?,
                 title: value.volume_info.title.clone(),
-                description: value.volume_info.description.as_deref().map(|text| REMOVE_HTML_TAGS.replace_all(text, "").to_string()),
+                description: value
+                    .volume_info
+                    .description
+                    .as_deref()
+                    .map(|text| REMOVE_HTML_TAGS.replace_all(text, "").to_string()),
                 rating: value.volume_info.average_rating.unwrap_or_default(),
                 thumb_locations: vec![thumb_dl_url],
                 cached: MetadataItemCached::default()
                     .publisher_optional(value.volume_info.publisher)
                     .author_optional(author),
-                isbn_10: value.volume_info.industry_identifiers.as_ref()
-                    .and_then(|v|
-                        v.iter().find_map(|v| if v.type_of == "ISBN_10" { Some(v.identifier.clone()) } else { None })),
-                isbn_13: value.volume_info.industry_identifiers.as_ref()
-                    .and_then(|v|
-                    v.iter().find_map(|v| if v.type_of == "ISBN_13" { Some(v.identifier.clone()) } else { None })),
-                    // TODO: Handle multiple different formats instead of just 0000-00-00
-                available_at: value.volume_info.published_date.and_then(|v| v.parse::<NaiveDate>().ok()),
+                isbn_10: value
+                    .volume_info
+                    .industry_identifiers
+                    .as_ref()
+                    .and_then(|v| {
+                        v.iter().find_map(|v| {
+                            if v.type_of == "ISBN_10" {
+                                Some(v.identifier.clone())
+                            } else {
+                                None
+                            }
+                        })
+                    }),
+                isbn_13: value
+                    .volume_info
+                    .industry_identifiers
+                    .as_ref()
+                    .and_then(|v| {
+                        v.iter().find_map(|v| {
+                            if v.type_of == "ISBN_13" {
+                                Some(v.identifier.clone())
+                            } else {
+                                None
+                            }
+                        })
+                    }),
+                // TODO: Handle multiple different formats instead of just 0000-00-00
+                available_at: value
+                    .volume_info
+                    .published_date
+                    .and_then(|v| v.parse::<NaiveDate>().ok()),
                 language: None,
-            }
+            },
         }))
     }
 }
-
-
-
-
 
 // Search
 
@@ -186,7 +282,7 @@ pub enum BookSearchKeyword {
     Subject,
     Isbn,
     Lccn,
-    Oclc
+    Oclc,
 }
 
 impl BookSearchKeyword {
@@ -207,8 +303,6 @@ impl BookSearchKeyword {
     }
 }
 
-
-
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(debug_assertions, serde(deny_unknown_fields))]
 pub struct BookVolumesContainer {
@@ -218,7 +312,6 @@ pub struct BookVolumesContainer {
     #[serde(default)]
     pub items: Vec<BookVolumeItem>,
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -232,7 +325,6 @@ pub struct BookVolumeItem {
     pub access_info: BookVolumeAccessInfo,
     pub search_info: Option<BookVolumeSearchInfo>,
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -302,7 +394,6 @@ pub struct BookVolumeVolumeInfoImageLinks {
 
 // TODO: function to return largest size available. Otherwise use current way
 
-
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct BookVolumeSaleInfo {
@@ -310,7 +401,6 @@ pub struct BookVolumeSaleInfo {
     pub saleability: String,
     pub is_ebook: bool,
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -338,7 +428,6 @@ pub struct BookVolumeAccessInfoEpub {
 pub struct BookVolumeAccessInfoPdf {
     is_available: bool,
 }
-
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]

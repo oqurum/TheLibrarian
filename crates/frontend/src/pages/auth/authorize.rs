@@ -1,9 +1,8 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::UnwrapThrowExt;
-use yew::{prelude::*, html::Scope};
+use yew::{html::Scope, prelude::*};
 
 use crate::get_member_self;
-
 
 pub struct AuthorizePage;
 
@@ -45,10 +44,8 @@ impl Component for AuthorizePage {
                 }
             }
         }
-
     }
 }
-
 
 #[derive(Properties)]
 struct InnerProps {
@@ -61,7 +58,6 @@ impl PartialEq for InnerProps {
         self.query == other.query
     }
 }
-
 
 #[function_component(AuthForm)]
 fn _auth_form(props: &InnerProps) -> Html {
@@ -166,10 +162,6 @@ fn _auth_form(props: &InnerProps) -> Html {
     }
 }
 
-
-
-
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthorizeQuery {
     pub server_owner_name: Option<String>,
@@ -181,7 +173,6 @@ pub struct AuthorizeQuery {
 }
 
 impl AuthorizeQuery {
-
     pub fn load() -> std::result::Result<Self, &'static str> {
         let q = gloo_utils::window().location().search().unwrap_or_default();
 
@@ -215,7 +206,13 @@ impl AuthorizeQuery {
             return Some("Scope");
         }
 
-        if self.server_id.is_none() && !self.scope.as_deref().map(|v| v == "server_register").unwrap_or_default() {
+        if self.server_id.is_none()
+            && !self
+                .scope
+                .as_deref()
+                .map(|v| v == "server_register")
+                .unwrap_or_default()
+        {
             return Some("Server ID");
         }
 

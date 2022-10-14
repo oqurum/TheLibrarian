@@ -1,13 +1,12 @@
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
-use common_local::{ServerLinkId, SearchItemId, util::serialize_datetime};
+use common_local::{util::serialize_datetime, SearchItemId, ServerLinkId};
 use serde::Serialize;
 
 use crate::Result;
 
-use super::{TableRow, AdvRow, row_int_to_usize};
-
+use super::{row_int_to_usize, AdvRow, TableRow};
 
 #[derive(Debug)]
 pub struct NewSearchItemServerModel {
@@ -50,7 +49,6 @@ impl TableRow for SearchItemServerModel {
     }
 }
 
-
 impl NewSearchItemServerModel {
     pub fn new(server_link_id: ServerLinkId, query: String) -> Self {
         let now = Utc::now();
@@ -87,9 +85,21 @@ impl NewSearchItemServerModel {
 
     /// Returns a bool to determine if updated
     pub async fn insert_or_inc(self, db: &tokio_postgres::Client) -> Result<bool> {
-        if let Some(model) = SearchItemServerModel::find_one_by_server_link_id_and_query(self.server_link_id, &self.query, db).await? {
+        if let Some(model) = SearchItemServerModel::find_one_by_server_link_id_and_query(
+            self.server_link_id,
+            &self.query,
+            db,
+        )
+        .await?
+        {
             // Update if it's been at least 1 hour since last updated.
-            if self.updated_at.signed_duration_since(model.updated_at).to_std().unwrap() > Duration::from_secs(60 * 60) {
+            if self
+                .updated_at
+                .signed_duration_since(model.updated_at)
+                .to_std()
+                .unwrap()
+                > Duration::from_secs(60 * 60)
+            {
                 SearchItemServerModel::increment_one_by_id(model.id, db).await?;
 
                 Ok(true)
@@ -104,22 +114,33 @@ impl NewSearchItemServerModel {
 }
 
 impl SearchItemServerModel {
-    pub async fn find_one_by_server_link_id_and_query(server_link_id: ServerLinkId, query: &str, db: &tokio_postgres::Client) -> Result<Option<Self>> {
+    pub async fn find_one_by_server_link_id_and_query(
+        server_link_id: ServerLinkId,
+        query: &str,
+        db: &tokio_postgres::Client,
+    ) -> Result<Option<Self>> {
         db.query_opt(
             r#"SELECT * FROM search_item WHERE server_link_id = $1 AND query = $2"#,
-            params![ server_link_id, query ],
-        ).await?.map(Self::from_row).transpose()
+            params![server_link_id, query],
+        )
+        .await?
+        .map(Self::from_row)
+        .transpose()
     }
 
     pub async fn increment_one_by_id(id: SearchItemId, db: &tokio_postgres::Client) -> Result<u64> {
-        Ok(db.execute(
-            r#"UPDATE search_item SET calls = calls + 1, updated_at = $2 WHERE id = $1"#,
-            params![ id, Utc::now() ],
-        ).await?)
+        Ok(db
+            .execute(
+                r#"UPDATE search_item SET calls = calls + 1, updated_at = $2 WHERE id = $1"#,
+                params![id, Utc::now()],
+            )
+            .await?)
     }
 
     pub async fn update(&self, db: &tokio_postgres::Client) -> Result<u64> {
-        Ok(db.execute(r#"
+        Ok(db
+            .execute(
+                r#"
             UPDATE search_item SET
                 server_link_id = $2,
                 query = $3,
@@ -127,11 +148,15 @@ impl SearchItemServerModel {
                 created_at = $5,
                 updated_at = $6
             WHERE id = $1"#,
-            params![
-                self.id,
-                &self.server_link_id, &self.query, self.calls as i32,
-                self.created_at, self.updated_at
-            ]
-        ).await?)
+                params![
+                    self.id,
+                    &self.server_link_id,
+                    &self.query,
+                    self.calls as i32,
+                    self.created_at,
+                    self.updated_at
+                ],
+            )
+            .await?)
     }
 }

@@ -1,11 +1,21 @@
-use actix_web::{web, get, HttpResponse, HttpRequest, post};
-use chrono::{Utc, NaiveDate};
-use common::{PersonId, api::{WrappingResponse, ApiErrorResponse}, Source, ThumbnailStore};
+use actix_web::{get, post, web, HttpRequest, HttpResponse};
+use chrono::{NaiveDate, Utc};
+use common::{
+    api::{ApiErrorResponse, WrappingResponse},
+    PersonId, Source, ThumbnailStore,
+};
 use common_local::api;
 use tokio_postgres::Client;
 
-use crate::{WebResult, model::{PersonModel, NewPersonModel, PersonAltModel, BookPersonModel, BookModel, NewEditModel}, http::{JsonResponse, MemberCookie}, storage::get_storage, metadata, InternalError, Error};
-
+use crate::{
+    http::{JsonResponse, MemberCookie},
+    metadata,
+    model::{
+        BookModel, BookPersonModel, NewEditModel, NewPersonModel, PersonAltModel, PersonModel,
+    },
+    storage::get_storage,
+    Error, InternalError, WebResult,
+};
 
 // Get List Of People and Search For People
 #[get("/people")]
@@ -18,7 +28,8 @@ pub async fn load_author_list(
 
     // Return Searched People
     if let Some(query) = query.query.as_deref() {
-        let items = PersonModel::search(query, offset, limit, &db).await?
+        let items = PersonModel::search(query, offset, limit, &db)
+            .await?
             .into_iter()
             .map(|v| v.into_public_person(None))
             .collect();
@@ -27,13 +38,13 @@ pub async fn load_author_list(
             offset,
             limit,
             total: 0, // TODO
-            items
+            items,
         })))
     }
-
     // Return All People
     else {
-        let items = PersonModel::get_all(offset, limit, &db).await?
+        let items = PersonModel::get_all(offset, limit, &db)
+            .await?
             .into_iter()
             .map(|v| v.into_public_person(None))
             .collect();
@@ -42,11 +53,10 @@ pub async fn load_author_list(
             offset,
             limit,
             total: PersonModel::get_count(&db).await?,
-            items
+            items,
         })))
     }
 }
-
 
 #[post("/person")]
 pub async fn add_new_person(
@@ -57,7 +67,9 @@ pub async fn add_new_person(
     let member = member.fetch_or_error(&db).await?;
 
     if !member.permissions.has_editing_perms() {
-        return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
+        return Ok(web::Json(WrappingResponse::error(
+            "You cannot do this! No Permissions!",
+        )));
     }
 
     if let Some(author) = metadata::get_person_by_source(&source, &db).await? {
@@ -65,7 +77,9 @@ pub async fn add_new_person(
         let thumb_url = if let Some(mut item) = author.cover_image_url {
             item.download(&db).await?;
 
-            item.as_local_value().cloned().unwrap_or(ThumbnailStore::None)
+            item.as_local_value()
+                .cloned()
+                .unwrap_or(ThumbnailStore::None)
         } else {
             ThumbnailStore::None
         };
@@ -79,7 +93,9 @@ pub async fn add_new_person(
             birth_date: author.birth_date.and_then(|v| v.parse::<NaiveDate>().ok()),
             updated_at: Utc::now(),
             created_at: Utc::now(),
-        }.insert(&db).await?;
+        }
+        .insert(&db)
+        .await?;
 
         // Insert Person Alt Names
         if let Some(names) = author.other_names {
@@ -87,25 +103,29 @@ pub async fn add_new_person(
                 let _ = PersonAltModel {
                     person_id: person.id,
                     name,
-                }.insert(&db).await;
+                }
+                .insert(&db)
+                .await;
             }
         }
 
         Ok(web::Json(WrappingResponse::okay("ok")))
     } else {
-        Ok(web::Json(WrappingResponse::error("Unable to find person from source")))
+        Ok(web::Json(WrappingResponse::error(
+            "Unable to find person from source",
+        )))
     }
-
 }
-
-
-
-
 
 // Person
 #[get("/person/{id}")]
-async fn load_person(person_id: web::Path<PersonId>, db: web::Data<tokio_postgres::Client>) -> WebResult<JsonResponse<api::GetPersonResponse>> {
-    let person = PersonModel::get_by_id(*person_id, &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
+async fn load_person(
+    person_id: web::Path<PersonId>,
+    db: web::Data<tokio_postgres::Client>,
+) -> WebResult<JsonResponse<api::GetPersonResponse>> {
+    let person = PersonModel::get_by_id(*person_id, &db)
+        .await?
+        .ok_or_else(|| Error::from(InternalError::ItemMissing))?;
     let person_alts = PersonAltModel::find_all_by_person_id(*person_id, &db).await?;
 
     Ok(web::Json(WrappingResponse::okay(api::GetPersonResponse {
@@ -114,22 +134,24 @@ async fn load_person(person_id: web::Path<PersonId>, db: web::Data<tokio_postgre
     })))
 }
 
-
 // Person Thumbnail
 #[get("/person/{id}/thumbnail")]
-async fn load_person_thumbnail(person_id: web::Path<PersonId>, req: HttpRequest, db: web::Data<tokio_postgres::Client>) -> WebResult<HttpResponse> {
+async fn load_person_thumbnail(
+    person_id: web::Path<PersonId>,
+    req: HttpRequest,
+    db: web::Data<tokio_postgres::Client>,
+) -> WebResult<HttpResponse> {
     let meta = PersonModel::get_by_id(*person_id, &db).await?;
 
     if let Some(file_name) = meta.as_ref().and_then(|v| v.thumb_url.as_value()) {
-        Ok(get_storage().await.get_http_response(file_name, &req).await?)
+        Ok(get_storage()
+            .await
+            .get_http_response(file_name, &req)
+            .await?)
     } else {
         Ok(HttpResponse::NotFound().finish())
     }
 }
-
-
-
-
 
 // Person Tasks - Update Person, Overwrite Person with another source.
 #[post("/person/{id}")]
@@ -157,7 +179,9 @@ pub async fn update_person_data(
             if let Some((updated_book, current_book)) = Some(person_edit).zip(current_book) {
                 // Make sure we have something we're updating.
                 if !updated_book.is_empty() {
-                    let model = NewEditModel::from_person_modify(member.id, current_book, updated_book).await?;
+                    let model =
+                        NewEditModel::from_person_modify(member.id, current_book, updated_book)
+                            .await?;
 
                     if !model.data.is_empty() {
                         model.insert(&db).await?;
@@ -170,11 +194,17 @@ pub async fn update_person_data(
             // TODO: Tests for this to ensure it's correct.
 
             if person_id == into_person_id {
-                return Err(ApiErrorResponse::new("You cannot join the same person into itself!").into());
+                return Err(
+                    ApiErrorResponse::new("You cannot join the same person into itself!").into(),
+                );
             }
 
-            let old_person = PersonModel::get_by_id(person_id, &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
-            let mut into_person = PersonModel::get_by_id(into_person_id, &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
+            let old_person = PersonModel::get_by_id(person_id, &db)
+                .await?
+                .ok_or_else(|| Error::from(InternalError::ItemMissing))?;
+            let mut into_person = PersonModel::get_by_id(into_person_id, &db)
+                .await?
+                .ok_or_else(|| Error::from(InternalError::ItemMissing))?;
 
             // Attempt to transfer to other person
             let _ = PersonAltModel::transfer_by_person_id(old_person.id, into_person.id, &db).await;
@@ -186,16 +216,21 @@ pub async fn update_person_data(
             let _ = PersonAltModel {
                 name: old_person.name,
                 person_id: into_person.id,
-            }.insert(&db).await;
+            }
+            .insert(&db)
+            .await;
 
             // Transfer Old Person Book to New Person
-            let trans_book_person_vec = BookPersonModel::find_by_person_id(old_person.id, &db).await?;
+            let trans_book_person_vec =
+                BookPersonModel::find_by_person_id(old_person.id, &db).await?;
             for met_per in &trans_book_person_vec {
                 let _ = BookPersonModel {
                     book_id: met_per.book_id,
                     person_id: into_person.id,
                     info: None,
-                }.insert(&db).await;
+                }
+                .insert(&db)
+                .await;
             }
 
             BookPersonModel::remove_by_person_id(old_person.id, &db).await?;

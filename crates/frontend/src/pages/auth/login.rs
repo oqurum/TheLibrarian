@@ -2,8 +2,11 @@ use common::api::ApiErrorResponse;
 use gloo_utils::window;
 use wasm_bindgen::UnwrapThrowExt;
 use web_sys::HtmlInputElement;
-use yew::{prelude::*, html::Scope};
-use yew_router::{prelude::{RouterScopeExt, Location}, history::History};
+use yew::{html::Scope, prelude::*};
+use yew_router::{
+    history::History,
+    prelude::{Location, RouterScopeExt},
+};
 
 use crate::{request, Route};
 
@@ -78,7 +81,6 @@ impl Component for LoginPage {
     }
 }
 
-
 #[derive(Properties)]
 struct InnerProps {
     cb: Scope<LoginPage>,
@@ -90,15 +92,15 @@ impl PartialEq for InnerProps {
     }
 }
 
-
-
 #[function_component(PasswordlessLogin)]
 fn passwordless(props: &InnerProps) -> Html {
     let passless_email = use_state(String::new);
 
     let on_change_passless_email = {
         let value = passless_email.setter();
-        Callback::from(move |e: Event| value.set(e.target_unchecked_into::<HtmlInputElement>().value()))
+        Callback::from(move |e: Event| {
+            value.set(e.target_unchecked_into::<HtmlInputElement>().value())
+        })
     };
 
     let submit_passless = {
@@ -126,7 +128,6 @@ fn passwordless(props: &InnerProps) -> Html {
     }
 }
 
-
 #[function_component(PasswordLogin)]
 fn password(props: &InnerProps) -> Html {
     let pass_email = use_state(String::new);
@@ -134,12 +135,16 @@ fn password(props: &InnerProps) -> Html {
 
     let on_change_pass_email = {
         let value = pass_email.setter();
-        Callback::from(move |e: Event| value.set(e.target_unchecked_into::<HtmlInputElement>().value()))
+        Callback::from(move |e: Event| {
+            value.set(e.target_unchecked_into::<HtmlInputElement>().value())
+        })
     };
 
     let on_change_pass_pass = {
         let value = pass_pass.setter();
-        Callback::from(move |e: Event| value.set(e.target_unchecked_into::<HtmlInputElement>().value()))
+        Callback::from(move |e: Event| {
+            value.set(e.target_unchecked_into::<HtmlInputElement>().value())
+        })
     };
 
     let submit_pass = {

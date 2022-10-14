@@ -1,14 +1,28 @@
-use common::{component::popup::{compare::{Comparable, PopupComparison}, Popup, PopupType}, Either, Source, api::WrappingResponse, util::upper_case_first_char, BookId};
-use common_local::{api::{SearchItem, self, QueryType, BookListQuery}, SearchType, item::edit::BookEdit, DisplayItem};
+use common::{
+    api::WrappingResponse,
+    component::popup::{
+        compare::{Comparable, PopupComparison},
+        Popup, PopupType,
+    },
+    util::upper_case_first_char,
+    BookId, Either, Source,
+};
+use common_local::{
+    api::{self, BookListQuery, QueryType, SearchItem},
+    item::edit::BookEdit,
+    DisplayItem, SearchType,
+};
 use gloo_utils::document;
 use wasm_bindgen::{JsCast, UnwrapThrowExt};
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
-use crate::{request, util::{self, LoadingItem}};
+use crate::{
+    request,
+    util::{self, LoadingItem},
+};
 
 use super::SearchBy;
-
 
 #[derive(Properties, PartialEq)]
 pub struct Property {
@@ -31,11 +45,13 @@ pub struct Property {
     pub comparable: bool,
 }
 
-
 pub enum Msg {
     BookLocalSearchResponse(String, WrappingResponse<api::GetBookListResponse>),
     BookExternalSearchResponse(String, WrappingResponse<api::ExternalSearchResponse>),
-    BookItemResponse(Source, Box<WrappingResponse<api::ExternalSourceItemResponse>>),
+    BookItemResponse(
+        Source,
+        Box<WrappingResponse<api::ExternalSourceItemResponse>>,
+    ),
 
     SearchFor(String),
 
@@ -45,7 +61,6 @@ pub enum Msg {
 
     OnSubmitSingle,
 }
-
 
 pub struct PopupSearch {
     cached_ext_search: Option<LoadingItem<WrappingResponse<api::ExternalSearchResponse>>>,
@@ -84,23 +99,21 @@ impl Component for PopupSearch {
             Msg::SearchFor(search) => {
                 self.cached_ext_search = Some(LoadingItem::Loading);
 
-
                 if ctx.props().type_of == SearchBy::External {
                     let search_for = ctx.props().search_for;
 
-                    ctx.link()
-                    .send_future(async move {
+                    ctx.link().send_future(async move {
                         let resp = request::external_search_for(&search, search_for).await;
 
                         Msg::BookExternalSearchResponse(search, resp)
                     });
                 } else {
-                    ctx.link()
-                    .send_future(async move {
+                    ctx.link().send_future(async move {
                         let resp = request::get_books(BookListQuery {
                             search: Some(QueryType::Query(search.clone())),
-                            .. Default::default()
-                        }).await;
+                            ..Default::default()
+                        })
+                        .await;
 
                         Msg::BookLocalSearchResponse(search, resp)
                     });
@@ -108,7 +121,12 @@ impl Component for PopupSearch {
             }
 
             Msg::BookExternalSearchResponse(search, resp) => {
-                if let Some(name) = resp.as_ok().ok().and_then(|v| v.items.keys().next()).cloned() {
+                if let Some(name) = resp
+                    .as_ok()
+                    .ok()
+                    .and_then(|v| v.items.keys().next())
+                    .cloned()
+                {
                     self.selected_tab = name;
                 }
 
@@ -137,7 +155,9 @@ impl Component for PopupSearch {
                 match value {
                     SearchSelectedValue::Source(source) => {
                         if !ctx.props().comparable {
-                            ctx.props().on_select.emit(SearchSelectedValue::Source(source));
+                            ctx.props()
+                                .on_select
+                                .emit(SearchSelectedValue::Source(source));
                             return false;
                         }
 
@@ -149,7 +169,10 @@ impl Component for PopupSearch {
 
                         // TODO: Only Request once we've selected both sources.
                         ctx.link().send_future(async move {
-                            Msg::BookItemResponse(source.clone(), Box::new(request::get_external_source_item(source).await))
+                            Msg::BookItemResponse(
+                                source.clone(),
+                                Box::new(request::get_external_source_item(source).await),
+                            )
                         });
                     }
 
@@ -159,7 +182,9 @@ impl Component for PopupSearch {
 
             Msg::OnSubmitSingle => {
                 if let Some((_, source)) = self.left_edit.as_ref() {
-                    ctx.props().on_select.emit(SearchSelectedValue::Source(source.clone()));
+                    ctx.props()
+                        .on_select
+                        .emit(SearchSelectedValue::Source(source.clone()));
                 }
             }
 
@@ -181,7 +206,8 @@ impl Component for PopupSearch {
 
     fn rendered(&mut self, ctx: &Context<Self>, first_render: bool) {
         if first_render && ctx.props().search_on_init {
-            ctx.link().send_message(Msg::SearchFor(ctx.props().input_value.clone()));
+            ctx.link()
+                .send_message(Msg::SearchFor(ctx.props().input_value.clone()));
         }
     }
 }
@@ -318,7 +344,12 @@ impl PopupSearch {
         }
     }
 
-    fn render_compare(&self, left_edit: BookEdit, right_edit: BookEdit, ctx: &Context<Self>) -> Html {
+    fn render_compare(
+        &self,
+        left_edit: BookEdit,
+        right_edit: BookEdit,
+        ctx: &Context<Self>,
+    ) -> Html {
         html! {
             <PopupComparison
                 compare={ left_edit.create_comparison_with(&right_edit).unwrap_throw() }
@@ -375,7 +406,7 @@ impl PopupSearch {
 pub enum SearchSelectedValue {
     Source(Source),
     BookEdit(Box<BookEdit>),
-    BookId(BookId)
+    BookId(BookId),
 }
 
 impl SearchSelectedValue {

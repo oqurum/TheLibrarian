@@ -1,14 +1,14 @@
 use std::error::Error;
 
-use num_enum::{IntoPrimitive, TryFromPrimitive, FromPrimitive};
-use serde::{Serialize, Deserialize};
+use num_enum::{FromPrimitive, IntoPrimitive, TryFromPrimitive};
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "backend")]
-use tokio_postgres::types::{FromSql, ToSql, Type, private::BytesMut, IsNull, to_sql_checked};
+use tokio_postgres::types::{private::BytesMut, to_sql_checked, FromSql, IsNull, ToSql, Type};
 
-
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, IntoPrimitive, TryFromPrimitive, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, IntoPrimitive, TryFromPrimitive, Serialize, Deserialize,
+)]
 #[repr(u8)]
 pub enum EditOperation {
     Create = 0,
@@ -28,8 +28,9 @@ impl EditOperation {
     }
 }
 
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, IntoPrimitive, TryFromPrimitive, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, IntoPrimitive, TryFromPrimitive, Serialize, Deserialize,
+)]
 #[repr(u8)]
 pub enum EditStatus {
     Accepted = 0,
@@ -59,7 +60,10 @@ impl EditStatus {
     }
 
     pub fn is_rejected(self) -> bool {
-        matches!(self, Self::Rejected | Self::Failed | Self::Cancelled | Self::ForceRejected)
+        matches!(
+            self,
+            Self::Rejected | Self::Failed | Self::Cancelled | Self::ForceRejected
+        )
     }
 
     pub fn is_pending(self) -> bool {
@@ -67,8 +71,9 @@ impl EditStatus {
     }
 }
 
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, IntoPrimitive, TryFromPrimitive, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, IntoPrimitive, TryFromPrimitive, Serialize, Deserialize,
+)]
 #[repr(u8)]
 pub enum EditType {
     Book = 0,
@@ -88,8 +93,9 @@ impl EditType {
     }
 }
 
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, FromPrimitive, IntoPrimitive)]
+#[derive(
+    Debug, Clone, Copy, Eq, PartialEq, Serialize, Deserialize, FromPrimitive, IntoPrimitive,
+)]
 #[repr(u8)]
 pub enum ModifyValuesBy {
     #[num_enum(default)]
@@ -104,9 +110,6 @@ impl Default for ModifyValuesBy {
     }
 }
 
-
-
-
 #[cfg(feature = "backend")]
 impl<'a> FromSql<'a> for EditOperation {
     fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
@@ -120,7 +123,11 @@ impl<'a> FromSql<'a> for EditOperation {
 
 #[cfg(feature = "backend")]
 impl ToSql for EditOperation {
-    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
+    fn to_sql(
+        &self,
+        ty: &Type,
+        out: &mut BytesMut,
+    ) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
         (u8::from(*self) as i16).to_sql(ty, out)
     }
 
@@ -130,7 +137,6 @@ impl ToSql for EditOperation {
 
     to_sql_checked!();
 }
-
 
 #[cfg(feature = "backend")]
 impl<'a> FromSql<'a> for EditStatus {
@@ -145,7 +151,11 @@ impl<'a> FromSql<'a> for EditStatus {
 
 #[cfg(feature = "backend")]
 impl ToSql for EditStatus {
-    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
+    fn to_sql(
+        &self,
+        ty: &Type,
+        out: &mut BytesMut,
+    ) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
         (u8::from(*self) as i16).to_sql(ty, out)
     }
 
@@ -155,7 +165,6 @@ impl ToSql for EditStatus {
 
     to_sql_checked!();
 }
-
 
 #[cfg(feature = "backend")]
 impl<'a> FromSql<'a> for EditType {
@@ -170,7 +179,11 @@ impl<'a> FromSql<'a> for EditType {
 
 #[cfg(feature = "backend")]
 impl ToSql for EditType {
-    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
+    fn to_sql(
+        &self,
+        ty: &Type,
+        out: &mut BytesMut,
+    ) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
         (u8::from(*self) as i16).to_sql(ty, out)
     }
 

@@ -1,21 +1,22 @@
-use actix_web::{get, web, HttpResponse, post, HttpRequest, delete};
+use actix_web::{delete, get, post, web, HttpRequest, HttpResponse};
 
-use chrono::{Utc, TimeZone};
+use chrono::{TimeZone, Utc};
 use common::api::WrappingResponse;
-use common::{Either, ThumbnailStore, BookId, ImageType};
+use common::{BookId, Either, ImageType, ThumbnailStore};
 use common_local::edit::ModifyValuesBy;
 use common_local::item::edit::{BookEdit, NewOrCachedImage};
-use common_local::{api, DisplayItem, MetadataItemCached, DisplayMetaItem};
+use common_local::{api, DisplayItem, DisplayMetaItem, MetadataItemCached};
 use serde_qs::actix::QsQuery;
 use tokio_postgres::Client;
 
-use crate::http::{MemberCookie, JsonResponse};
+use crate::http::{JsonResponse, MemberCookie};
 use crate::metadata::MetadataReturned;
-use crate::model::{BookPersonModel, BookModel, BookTagWithTagModel, PersonModel, NewEditModel, ImageLinkModel, UploadedImageModel};
+use crate::model::{
+    BookModel, BookPersonModel, BookTagWithTagModel, ImageLinkModel, NewEditModel, PersonModel,
+    UploadedImageModel,
+};
 use crate::storage::get_storage;
-use crate::{WebResult, metadata, Error, InternalError};
-
-
+use crate::{metadata, Error, InternalError, WebResult};
 
 #[post("/book")]
 pub async fn add_new_book(
@@ -26,7 +27,9 @@ pub async fn add_new_book(
     let member = member.fetch_or_error(&db).await?;
 
     if !member.permissions.has_editing_perms() {
-        return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
+        return Ok(web::Json(WrappingResponse::error(
+            "You cannot do this! No Permissions!",
+        )));
     }
 
     // TODO: Cleanup. We have one statement which doesn't utilize "value" field.
@@ -41,7 +44,13 @@ pub async fn add_new_book(
                         BookPersonModel::remove_by_book_id(book_id, &db).await?;
 
                         for person_id in edit.people_list.iter().copied() {
-                            BookPersonModel { book_id, person_id, info: None, }.insert(&db).await?;
+                            BookPersonModel {
+                                book_id,
+                                person_id,
+                                info: None,
+                            }
+                            .insert(&db)
+                            .await?;
                         }
 
                         // Update the cached author name
@@ -60,7 +69,13 @@ pub async fn add_new_book(
                 ModifyValuesBy::Append => {
                     for book_id in edit.book_ids {
                         for person_id in edit.people_list.iter().copied() {
-                            BookPersonModel { book_id, person_id, info: None, }.insert(&db).await?;
+                            BookPersonModel {
+                                book_id,
+                                person_id,
+                                info: None,
+                            }
+                            .insert(&db)
+                            .await?;
                         }
                     }
                 }
@@ -68,13 +83,22 @@ pub async fn add_new_book(
                 ModifyValuesBy::Remove => {
                     for book_id in edit.book_ids {
                         for person_id in edit.people_list.iter().copied() {
-                            BookPersonModel { book_id, person_id, info: None, }.remove(&db).await?;
+                            BookPersonModel {
+                                book_id,
+                                person_id,
+                                info: None,
+                            }
+                            .remove(&db)
+                            .await?;
                         }
 
                         // TODO: Check if we removed cached author
                         // If book has no other people referenced we'll update the cached author name.
                         // TODO: Exists instead of getting all items
-                        if BookPersonModel::get_all_by_book_id(book_id, &db).await?.is_empty() {
+                        if BookPersonModel::get_all_by_book_id(book_id, &db)
+                            .await?
+                            .is_empty()
+                        {
                             let book = BookModel::get_by_id(book_id, &db).await?;
 
                             if let Some(mut book) = book {
@@ -98,7 +122,9 @@ pub async fn add_new_book(
             if let Some(isbn) = common::parse_book_id(&find_str).into_possible_isbn_value() {
                 if find_str.trim() == isbn {
                     if BookModel::exists_by_isbn(&isbn, &db).await? {
-                        return Ok(web::Json(WrappingResponse::error("Book ISBN already exists!")));
+                        return Ok(web::Json(WrappingResponse::error(
+                            "Book ISBN already exists!",
+                        )));
                     } else {
                         // Add isbn: before the string to specify the book we want.
                         find_str = format!("isbn:{find_str}");
@@ -106,16 +132,20 @@ pub async fn add_new_book(
                 }
             }
 
-            let found = google_books::GoogleBooksMetadata.search(
-                &find_str,
-                common_local::SearchFor::Book(common_local::SearchForBooksBy::Query),
-                &db
-            ).await?;
+            let found = google_books::GoogleBooksMetadata
+                .search(
+                    &find_str,
+                    common_local::SearchFor::Book(common_local::SearchForBooksBy::Query),
+                    &db,
+                )
+                .await?;
 
             if let Some(item) = found.first().and_then(|v| v.as_book()) {
                 Either::Left(item.source.clone())
             } else {
-                return Ok(web::Json(WrappingResponse::error("Unable to find an item to add!")));
+                return Ok(web::Json(WrappingResponse::error(
+                    "Unable to find an item to add!",
+                )));
             }
         }
 
@@ -125,9 +155,14 @@ pub async fn add_new_book(
     match value {
         Either::Left(source) => {
             if let Some(mut meta) = metadata::get_metadata_by_source(&source, true, &db).await? {
-                let (main_author, author_ids) = meta.add_or_ignore_authors_into_database(&db).await?;
+                let (main_author, author_ids) =
+                    meta.add_or_ignore_authors_into_database(&db).await?;
 
-                let MetadataReturned { mut meta, publisher, .. } = meta;
+                let MetadataReturned {
+                    mut meta,
+                    publisher,
+                    ..
+                } = meta;
                 let mut posters_to_add = Vec::new();
 
                 for item in meta.thumb_locations.iter_mut().filter(|v| v.is_url()) {
@@ -141,7 +176,11 @@ pub async fn add_new_book(
                 let mut db_book: BookModel = meta.into();
 
                 if let Some(author) = main_author {
-                    db_book.cached = db_book.cached.publisher_optional(publisher).author(author.name).author_id(author.id);
+                    db_book.cached = db_book
+                        .cached
+                        .publisher_optional(publisher)
+                        .author(author.name)
+                        .author_id(author.id);
                 } else {
                     db_book.cached = db_book.cached.publisher_optional(publisher);
                 }
@@ -149,8 +188,12 @@ pub async fn add_new_book(
                 db_book.add_or_update_book(&db).await?;
 
                 for path in posters_to_add {
-                    if let Some(model) = UploadedImageModel::get_by_path(path.as_value().unwrap(), &db).await? {
-                        ImageLinkModel::new_book(model.id, db_book.id).insert(&db).await?;
+                    if let Some(model) =
+                        UploadedImageModel::get_by_path(path.as_value().unwrap(), &db).await?
+                    {
+                        ImageLinkModel::new_book(model.id, db_book.id)
+                            .insert(&db)
+                            .await?;
                     }
                 }
 
@@ -158,7 +201,8 @@ pub async fn add_new_book(
                     let model = BookPersonModel {
                         book_id: db_book.id,
                         person_id,
-                        info: Some(String::from("Author")).filter(|_| Some(person_id) == db_book.cached.author_id),
+                        info: Some(String::from("Author"))
+                            .filter(|_| Some(person_id) == db_book.cached.author_id),
                     };
 
                     model.insert(&db).await?;
@@ -182,7 +226,9 @@ pub async fn add_new_book(
                             uploaded_images.push(id);
 
                             if thumb_path.is_none() {
-                                let image = UploadedImageModel::get_by_id(id, &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
+                                let image = UploadedImageModel::get_by_id(id, &db)
+                                    .await?
+                                    .ok_or_else(|| Error::from(InternalError::ItemMissing))?;
 
                                 thumb_path = image.path;
                             }
@@ -190,9 +236,11 @@ pub async fn add_new_book(
 
                         NewOrCachedImage::Url(url) => {
                             let resp = reqwest::get(url)
-                                .await.map_err(Error::from)?
+                                .await
+                                .map_err(Error::from)?
                                 .bytes()
-                                .await.map_err(Error::from)?;
+                                .await
+                                .map_err(Error::from)?;
 
                             let model = crate::store_image(resp.to_vec(), &db).await?;
 
@@ -229,7 +277,8 @@ pub async fn add_new_book(
 
             for image_id in uploaded_images {
                 ImageLinkModel::new_book(image_id, book_model.id)
-                    .insert(&db).await?;
+                    .insert(&db)
+                    .await?;
             }
 
             return Ok(web::Json(WrappingResponse::okay(Some(book_model.into()))));
@@ -238,8 +287,6 @@ pub async fn add_new_book(
 
     Ok(web::Json(WrappingResponse::okay(None)))
 }
-
-
 
 #[get("/books")]
 pub async fn load_book_list(
@@ -263,71 +310,62 @@ pub async fn load_book_list(
                 limit,
                 query.order.unwrap_or(api::OrderBy::Asc),
                 false,
-                &db
-            ).await?
-                .into_iter()
-                .map(|meta| {
-                    DisplayItem {
-                        id: meta.id,
-                        title: meta.title.or(meta.clean_title).unwrap_or_default(),
-                        cached: meta.cached,
-                        has_thumbnail: meta.thumb_path.is_some()
-                    }
-                })
-                .collect()
+                &db,
+            )
+            .await?
+            .into_iter()
+            .map(|meta| DisplayItem {
+                id: meta.id,
+                title: meta.title.or(meta.clean_title).unwrap_or_default(),
+                cached: meta.cached,
+                has_thumbnail: meta.thumb_path.is_some(),
+            })
+            .collect()
         };
 
         (items, count)
     } else {
         let count = BookModel::get_book_count(&db).await?;
 
-        let items = BookModel::get_book_by(
-            offset,
-            limit,
-            api::OrderBy::Asc,
-            false,
-            None,
-            &db,
-        ).await?
+        let items = BookModel::get_book_by(offset, limit, api::OrderBy::Asc, false, None, &db)
+            .await?
             .into_iter()
-            .map(|meta| {
-                DisplayItem {
-                    id: meta.id,
-                    title: meta.title.or(meta.clean_title).unwrap_or_default(),
-                    cached: meta.cached,
-                    has_thumbnail: meta.thumb_path.is_some()
-                }
+            .map(|meta| DisplayItem {
+                id: meta.id,
+                title: meta.title.or(meta.clean_title).unwrap_or_default(),
+                cached: meta.cached,
+                has_thumbnail: meta.thumb_path.is_some(),
             })
             .collect();
 
         (items, count)
     };
 
-    Ok(web::Json(WrappingResponse::okay(api::GetBookListResponse {
-        items,
-        count,
-    })))
+    Ok(web::Json(WrappingResponse::okay(
+        api::GetBookListResponse { items, count },
+    )))
 }
 
-
-
 #[get("/book/{id}")]
-pub async fn get_book_info(book_id: web::Path<BookId>, db: web::Data<Client>) -> WebResult<JsonResponse<api::MediaViewResponse>> {
-    let book = BookModel::get_by_id(*book_id, &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
+pub async fn get_book_info(
+    book_id: web::Path<BookId>,
+    db: web::Data<Client>,
+) -> WebResult<JsonResponse<api::MediaViewResponse>> {
+    let book = BookModel::get_by_id(*book_id, &db)
+        .await?
+        .ok_or_else(|| Error::from(InternalError::ItemMissing))?;
     let people = PersonModel::get_all_by_book_id_w_info(book.id, &db).await?;
     let tags = BookTagWithTagModel::get_by_book_id(book.id, &db).await?;
 
     Ok(web::Json(WrappingResponse::okay(api::MediaViewResponse {
         metadata: book.into(),
-        people: people.into_iter()
+        people: people
+            .into_iter()
             .map(|(model, info)| model.into_public_person(info))
             .collect(),
-        tags: tags.into_iter()
-            .map(|t| t.into())
-            .collect(),
+        tags: tags.into_iter().map(|t| t.into()).collect(),
     })))
 }
-
 
 #[post("/book/{id}")]
 pub async fn update_book_id(
@@ -341,7 +379,9 @@ pub async fn update_book_id(
     let member = member.fetch_or_error(&db).await?;
 
     if !member.permissions.has_editing_perms() {
-        return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
+        return Ok(web::Json(WrappingResponse::error(
+            "You cannot do this! No Permissions!",
+        )));
     }
 
     let current_book = BookModel::get_by_id(*book_id, &db).await?;
@@ -349,7 +389,8 @@ pub async fn update_book_id(
     if let Some((updated_book, current_book)) = Some(body).zip(current_book) {
         // Make sure we have something we're updating.
         if !updated_book.is_empty() {
-            let model = NewEditModel::from_book_modify(member.id, current_book, updated_book, &db).await?;
+            let model =
+                NewEditModel::from_book_modify(member.id, current_book, updated_book, &db).await?;
 
             if !model.data.is_empty() {
                 model.insert(&db).await?;
@@ -360,7 +401,6 @@ pub async fn update_book_id(
     Ok(web::Json(WrappingResponse::okay("success")))
 }
 
-
 #[delete("/book/{id}")]
 pub async fn delete_book_id(
     book_id: web::Path<BookId>,
@@ -370,7 +410,9 @@ pub async fn delete_book_id(
     let member = member.fetch_or_error(&db).await?;
 
     if !member.permissions.has_editing_perms() {
-        return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
+        return Ok(web::Json(WrappingResponse::error(
+            "You cannot do this! No Permissions!",
+        )));
     }
 
     // TODO: Utilize edit
@@ -393,17 +435,21 @@ pub async fn delete_book_id(
     Ok(web::Json(WrappingResponse::okay(amount != 0)))
 }
 
-
-
-
 #[get("/book/{id}/thumbnail")]
-async fn load_book_thumbnail(path: web::Path<BookId>, req: HttpRequest, db: web::Data<Client>) -> WebResult<HttpResponse> {
+async fn load_book_thumbnail(
+    path: web::Path<BookId>,
+    req: HttpRequest,
+    db: web::Data<Client>,
+) -> WebResult<HttpResponse> {
     let book_id = path.into_inner();
 
     let meta = BookModel::get_by_id(book_id, &db).await?;
 
     if let Some(file_name) = meta.as_ref().and_then(|v| v.thumb_path.as_value()) {
-        Ok(get_storage().await.get_http_response(file_name, &req).await?)
+        Ok(get_storage()
+            .await
+            .get_http_response(file_name, &req)
+            .await?)
     } else {
         Ok(HttpResponse::NotFound().finish())
     }

@@ -1,13 +1,13 @@
-use lazy_static::lazy_static;
-use common_local::{util::serialize_datetime, Permissions, item::member::MemberSettings};
 use chrono::{DateTime, Utc};
 use common::MemberId;
+use common_local::{item::member::MemberSettings, util::serialize_datetime, Permissions};
+use lazy_static::lazy_static;
 use serde::Serialize;
 use tokio_postgres::Client;
 
 use crate::Result;
 
-use super::{TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize};
+use super::{row_bigint_to_usize, row_int_to_usize, AdvRow, TableRow};
 
 lazy_static! {
     pub static ref SYSTEM_MEMBER_ID: MemberId = MemberId::from(0);
@@ -65,14 +65,15 @@ impl From<MemberModel> for common_local::Member {
             name: value.name,
             email: value.email,
             permissions: value.permissions,
-            localsettings: value.localsettings.and_then(|v| serde_json::from_str(&v).ok()).unwrap_or_default(),
+            localsettings: value
+                .localsettings
+                .and_then(|v| serde_json::from_str(&v).ok())
+                .unwrap_or_default(),
             created_at: value.created_at,
             updated_at: value.updated_at,
         }
     }
 }
-
-
 
 impl NewMemberModel {
     pub async fn insert(self, db: &Client) -> Result<MemberModel> {
@@ -99,17 +100,17 @@ impl NewMemberModel {
 
 impl MemberModel {
     pub async fn get_by_email(value: &str, db: &Client) -> Result<Option<Self>> {
-        db.query_opt(
-            "SELECT * FROM member WHERE email = $1",
-            params![ value ],
-        ).await?.map(Self::from_row).transpose()
+        db.query_opt("SELECT * FROM member WHERE email = $1", params![value])
+            .await?
+            .map(Self::from_row)
+            .transpose()
     }
 
     pub async fn get_by_id(id: MemberId, db: &Client) -> Result<Option<Self>> {
-        db.query_opt(
-            "SELECT * FROM member WHERE id = $1",
-            params![ *id as i32 ],
-        ).await?.map(Self::from_row).transpose()
+        db.query_opt("SELECT * FROM member WHERE id = $1", params![*id as i32])
+            .await?
+            .map(Self::from_row)
+            .transpose()
     }
 
     pub async fn get_count(db: &Client) -> Result<usize> {
@@ -117,10 +118,12 @@ impl MemberModel {
     }
 
     pub async fn find_all(offset: usize, limit: usize, db: &Client) -> Result<Vec<Self>> {
-        let values = db.query(
-            "SELECT * FROM member LIMIT $1 OFFSET $2",
-            params![ limit as i64, offset as i64 ]
-        ).await?;
+        let values = db
+            .query(
+                "SELECT * FROM member LIMIT $1 OFFSET $2",
+                params![limit as i64, offset as i64],
+            )
+            .await?;
 
         values.into_iter().map(Self::from_row).collect()
     }
@@ -128,7 +131,8 @@ impl MemberModel {
     pub async fn update(&mut self, db: &tokio_postgres::Client) -> Result<()> {
         self.updated_at = Utc::now();
 
-        db.execute(r#"
+        db.execute(
+            r#"
             UPDATE member SET
                 name = $2,
                 email = $3,
@@ -139,14 +143,18 @@ impl MemberModel {
             WHERE id = $1"#,
             params![
                 *self.id as i32,
-                &self.name, &self.email, &self.password, &self.permissions, &self.localsettings,
+                &self.name,
+                &self.email,
+                &self.password,
+                &self.permissions,
+                &self.localsettings,
                 self.updated_at,
-            ]
-        ).await?;
+            ],
+        )
+        .await?;
 
         Ok(())
     }
-
 
     pub fn set_settings(&mut self, value: MemberSettings) -> Result<()> {
         self.localsettings = Some(serde_json::to_string(&value)?);

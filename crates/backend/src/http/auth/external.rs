@@ -1,16 +1,24 @@
-use actix_web::{web, HttpResponse, http::header};
-use common::api::{librarian::{AuthFormLink, AuthQueryHandshake, Scope}, reader::VerifyAgentQuery};
-use rand::{distributions::{Alphanumeric, DistString}, thread_rng, Rng, prelude::Distribution};
+use actix_web::{http::header, web, HttpResponse};
+use common::api::{
+    librarian::{AuthFormLink, AuthQueryHandshake, Scope},
+    reader::VerifyAgentQuery,
+};
+use rand::{
+    distributions::{Alphanumeric, DistString},
+    prelude::Distribution,
+    thread_rng, Rng,
+};
 use reqwest::Url;
 
-use crate::{WebResult, model::{NewServerLinkModel, ServerLinkModel}};
+use crate::{
+    model::{NewServerLinkModel, ServerLinkModel},
+    WebResult,
+};
 
 use super::MemberCookie;
 
-
 pub static AUTH_LINK_PATH: &str = "/auth/link";
 pub static AUTH_HANDSHAKE_PATH: &str = "/auth/handshake";
-
 
 pub async fn post_oauth_link(
     form: web::Form<AuthFormLink>,
@@ -44,27 +52,29 @@ pub async fn post_oauth_link(
 
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
-    }.insert(&db).await?;
+    }
+    .insert(&db)
+    .await?;
 
     // TODO: Also link account.
 
     let mut location_uri = Url::parse(&form.redirect_uri).unwrap();
-    location_uri.set_query(Some(&serde_qs::to_string(&VerifyAgentQuery {
-        member_id: *member.id,
-        server_id,
-        public_id,
+    location_uri.set_query(Some(
+        &serde_qs::to_string(&VerifyAgentQuery {
+            member_id: *member.id,
+            server_id,
+            public_id,
 
-        state: form.state,
-        scope: form.scope,
-    }).unwrap()));
+            state: form.state,
+            scope: form.scope,
+        })
+        .unwrap(),
+    ));
 
-    Ok(
-        HttpResponse::SeeOther()
-            .insert_header((header::LOCATION, location_uri.to_string()))
-            .body("Redirecting...")
-    )
+    Ok(HttpResponse::SeeOther()
+        .insert_header((header::LOCATION, location_uri.to_string()))
+        .body("Redirecting..."))
 }
-
 
 // Uses:
 //   - Registering External Servers
@@ -94,15 +104,14 @@ pub async fn get_oauth_handshake(
     }
 }
 
-
-
 #[derive(Debug, Clone, Copy)]
 pub struct AlphanumericSpecials;
 
 impl Distribution<u8> for AlphanumericSpecials {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> u8 {
         const RANGE: usize = 26 + 26 + 10 + 8;
-        const GEN_ASCII_STR_CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*~";
+        const GEN_ASCII_STR_CHARSET: &[u8] =
+            b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*~";
 
         GEN_ASCII_STR_CHARSET[rng.gen_range(0..RANGE)]
     }

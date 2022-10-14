@@ -1,12 +1,12 @@
 use chrono::{DateTime, Utc};
 use common::MemberId;
-use common_local::{EditId, EditCommentId};
+use common_local::{EditCommentId, EditId};
 use tokio_postgres::Client;
 
-
-use crate::{Result, model::{TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize}};
-
-
+use crate::{
+    model::{row_bigint_to_usize, row_int_to_usize, AdvRow, TableRow},
+    Result,
+};
 
 pub struct NewEditCommentModel {
     pub edit_id: EditId,
@@ -31,7 +31,6 @@ pub struct EditCommentModel {
     pub created_at: DateTime<Utc>,
 }
 
-
 impl TableRow for EditCommentModel {
     fn create(row: &mut AdvRow) -> Result<Self> {
         Ok(Self {
@@ -48,7 +47,6 @@ impl TableRow for EditCommentModel {
     }
 }
 
-
 impl NewEditCommentModel {
     pub fn new(edit_id: EditId, member_id: MemberId, text: String) -> Self {
         Self {
@@ -61,19 +59,24 @@ impl NewEditCommentModel {
     }
 
     pub async fn insert(self, client: &Client) -> Result<EditCommentModel> {
-        let row = client.query_one(r#"
+        let row = client
+            .query_one(
+                r#"
             INSERT INTO edit_comment (
                 edit_id, member_id,
                 text, deleted,
                 created_at
             )
             VALUES ($1, $2, $3, $4, $5) RETURNING id"#,
-            params![
-                self.edit_id, *self.member_id as i32,
-                self.text, self.deleted,
-                self.created_at,
-            ]
-        ).await?;
+                params![
+                    self.edit_id,
+                    *self.member_id as i32,
+                    self.text,
+                    self.deleted,
+                    self.created_at,
+                ],
+            )
+            .await?;
 
         Ok(EditCommentModel {
             id: EditCommentId::from(row_int_to_usize(row)?),
@@ -89,14 +92,13 @@ impl NewEditCommentModel {
     }
 }
 
-
 impl EditCommentModel {
     pub async fn get_by_edit_id(
         edit_id: EditId,
         offset: usize,
         limit: usize,
         deleted: Option<bool>,
-        client: &Client
+        client: &Client,
     ) -> Result<Vec<Self>> {
         if let Some(deleted) = deleted {
             let conn = client.query(
@@ -104,18 +106,33 @@ impl EditCommentModel {
                 params![ edit_id, deleted, limit as i64, offset as i64 ]
             ).await?;
 
-            Ok(conn.into_iter().map(Self::from_row).collect::<std::result::Result<Vec<_>, _>>()?)
+            Ok(conn
+                .into_iter()
+                .map(Self::from_row)
+                .collect::<std::result::Result<Vec<_>, _>>()?)
         } else {
-            let conn = client.query(
-                "SELECT * FROM edit_comment WHERE edit_id = $1 LIMIT $2 OFFSET $3",
-                params![ edit_id, limit as i64, offset as i64 ]
-            ).await?;
+            let conn = client
+                .query(
+                    "SELECT * FROM edit_comment WHERE edit_id = $1 LIMIT $2 OFFSET $3",
+                    params![edit_id, limit as i64, offset as i64],
+                )
+                .await?;
 
-            Ok(conn.into_iter().map(Self::from_row).collect::<std::result::Result<Vec<_>, _>>()?)
+            Ok(conn
+                .into_iter()
+                .map(Self::from_row)
+                .collect::<std::result::Result<Vec<_>, _>>()?)
         }
     }
 
     pub async fn get_count(edit_id: EditId, client: &Client) -> Result<usize> {
-        row_bigint_to_usize(client.query_one(r#"SELECT COUNT(*) FROM edit_comment WHERE edit_id = $1"#, params![ edit_id ]).await?)
+        row_bigint_to_usize(
+            client
+                .query_one(
+                    r#"SELECT COUNT(*) FROM edit_comment WHERE edit_id = $1"#,
+                    params![edit_id],
+                )
+                .await?,
+        )
     }
 }

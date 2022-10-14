@@ -1,8 +1,8 @@
 pub mod config;
 pub mod edit;
-mod perms;
 mod ids;
+mod perms;
 
-pub use perms::*;
-pub use ids::*;
 pub use config::*;
+pub use ids::*;
+pub use perms::*;

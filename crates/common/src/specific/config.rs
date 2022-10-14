@@ -1,7 +1,5 @@
 use rand::distributions::{Alphanumeric, DistString};
-use serde::{Serialize, Deserialize};
-
-
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SharedConfig {
@@ -10,15 +8,11 @@ pub struct SharedConfig {
     pub email: Option<ConfigEmail>,
 }
 
-
-
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ConfigServer {
     pub name: String,
     pub is_secure: bool,
 }
-
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthConfig {
@@ -34,8 +28,6 @@ impl Default for AuthConfig {
         }
     }
 }
-
-
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ConfigEmail {

@@ -1,10 +1,16 @@
 use common::ThumbnailStore;
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 
-use crate::{Result, model::{NewUploadedImageModel, UploadedImageModel}, storage::get_storage};
+use crate::{
+    model::{NewUploadedImageModel, UploadedImageModel},
+    storage::get_storage,
+    Result,
+};
 
-
-pub async fn store_image(image: Vec<u8>, db: &tokio_postgres::Client) -> Result<UploadedImageModel> {
+pub async fn store_image(
+    image: Vec<u8>,
+    db: &tokio_postgres::Client,
+) -> Result<UploadedImageModel> {
     // TODO: Resize? Function is currently only used for converting to jpeg
     let image = image::load_from_memory(&image)?;
 
@@ -24,6 +30,7 @@ pub async fn store_image(image: Vec<u8>, db: &tokio_postgres::Client) -> Result<
         get_storage().await.upload(&hash, image_data).await?;
 
         NewUploadedImageModel::new(ThumbnailStore::from(hash), image.width(), image.height())
-            .get_or_insert(db).await
+            .get_or_insert(db)
+            .await
     }
 }

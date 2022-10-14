@@ -1,9 +1,8 @@
-use common::api::{WrappingResponse, QueryListResponse};
+use common::api::{QueryListResponse, WrappingResponse};
 use common_local::Member;
-use yew::{prelude::*, html::Scope};
+use yew::{html::Scope, prelude::*};
 
-use crate::{request, get_member_self};
-
+use crate::{get_member_self, request};
 
 #[derive(Clone)]
 pub enum Msg {
@@ -25,16 +24,13 @@ impl Component for ListMembersPage {
     fn create(ctx: &Context<Self>) -> Self {
         ctx.link().send_message(Msg::RequestMembers);
 
-        Self {
-            items_resp: None,
-        }
+        Self { items_resp: None }
     }
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::RequestMembers => {
-                ctx.link()
-                .send_future(async move {
+                ctx.link().send_future(async move {
                     Msg::MembersResults(request::get_member_list(None, None).await)
                 });
             }

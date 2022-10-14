@@ -1,12 +1,12 @@
-use actix_identity::{CookieIdentityPolicy, IdentityService, Identity};
-use actix_web::HttpResponse;
+use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
 use actix_web::http::header;
 use actix_web::middleware::Logger;
-use actix_web::{web, App, HttpServer, cookie::SameSite};
+use actix_web::HttpResponse;
+use actix_web::{cookie::SameSite, web, App, HttpServer};
 use common::api::WrappingResponse;
 
-use crate::CliArgs;
 use crate::config::get_config;
+use crate::CliArgs;
 
 mod api;
 mod auth;
@@ -14,9 +14,7 @@ mod search;
 pub use self::api::api_route;
 pub use self::auth::*;
 
-
 pub type JsonResponse<V> = web::Json<WrappingResponse<V>>;
-
 
 // TODO: Convert to async closure (https://github.com/rust-lang/rust/issues/62290)
 async fn default_handler() -> impl actix_web::Responder {
@@ -31,8 +29,10 @@ async fn logout(ident: Identity) -> HttpResponse {
         .finish()
 }
 
-
-pub async fn register_http_service(cli_args: &CliArgs, db_data: web::Data<tokio_postgres::Client>) -> std::io::Result<()> {
+pub async fn register_http_service(
+    cli_args: &CliArgs,
+    db_data: web::Data<tokio_postgres::Client>,
+) -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(db_data.clone())
@@ -42,26 +42,18 @@ pub async fn register_http_service(cli_args: &CliArgs, db_data: web::Data<tokio_
                     .name("librarian-auth")
                     .secure(false)
                     .max_age_secs(60 * 60 * 24 * 365)
-                    .same_site(SameSite::Strict)
+                    .same_site(SameSite::Strict),
             ))
-
             .service(search::public_search_book)
             .service(search::public_search_author)
-
             // API
             .service(api_route())
-
-            .route(
-                "/auth/logout",
-                web::get().to(logout)
-            )
-
+            .route("/auth/logout", web::get().to(logout))
             // Password
             .route(
                 password::PASSWORD_PATH,
                 web::post().to(password::post_password_oauth),
             )
-
             // Passwordless
             .route(
                 passwordless::PASSWORDLESS_PATH,
@@ -71,22 +63,20 @@ pub async fn register_http_service(cli_args: &CliArgs, db_data: web::Data<tokio_
                 passwordless::PASSWORDLESS_PATH_CB,
                 web::get().to(passwordless::get_passwordless_oauth_callback),
             )
-
             // Links
             .route(
                 external::AUTH_LINK_PATH,
                 web::post().to(external::post_oauth_link),
             )
-			.route(
+            .route(
                 external::AUTH_HANDSHAKE_PATH,
                 web::get().to(external::get_oauth_handshake),
             )
-
             // Other
             .service(actix_files::Files::new("/", "./app/public").index_file("dist/index.html"))
             .default_service(web::route().to(default_handler))
     })
-        .bind(format!("{}:{}", &cli_args.host, cli_args.port))?
-        .run()
-        .await
+    .bind(format!("{}:{}", &cli_args.host, cli_args.port))?
+    .run()
+    .await
 }

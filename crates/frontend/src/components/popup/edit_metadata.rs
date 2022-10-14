@@ -1,10 +1,12 @@
-use common::{component::popup::{Popup, PopupType}, Either, ImageIdType, api::WrappingResponse};
+use common::{
+    api::WrappingResponse,
+    component::popup::{Popup, PopupType},
+    Either, ImageIdType,
+};
 use common_local::api;
 use yew::prelude::*;
 
 use crate::request;
-
-
 
 #[derive(Clone, Copy)]
 pub enum TabDisplay {
@@ -12,7 +14,6 @@ pub enum TabDisplay {
     Poster,
     Info,
 }
-
 
 #[derive(Properties, PartialEq)]
 pub struct Property {
@@ -24,7 +25,6 @@ pub struct Property {
     pub media_resp: api::MediaViewResponse,
 }
 
-
 pub enum Msg {
     RetrievePostersResponse(WrappingResponse<api::GetPostersResponse>),
 
@@ -35,7 +35,6 @@ pub enum Msg {
 
     Ignore,
 }
-
 
 pub struct PopupEditMetadata {
     tab_display: TabDisplay,
@@ -72,9 +71,10 @@ impl Component for PopupEditMetadata {
             Msg::UpdatedPoster => {
                 let book_id = ctx.props().media_resp.metadata.id;
 
-                ctx.link()
-                .send_future(async move {
-                    Msg::RetrievePostersResponse(request::get_posters_for_meta(ImageIdType::new_book(book_id), None).await)
+                ctx.link().send_future(async move {
+                    Msg::RetrievePostersResponse(
+                        request::get_posters_for_meta(ImageIdType::new_book(book_id), None).await,
+                    )
                 });
 
                 return false;
@@ -120,18 +120,19 @@ impl PopupEditMetadata {
                 if self.cached_posters.is_none() {
                     let book_id = ctx.props().media_resp.metadata.id;
 
-                    ctx.link()
-                    .send_future(async move {
-                        Msg::RetrievePostersResponse(request::get_posters_for_meta(ImageIdType::new_book(book_id), None).await)
+                    ctx.link().send_future(async move {
+                        Msg::RetrievePostersResponse(
+                            request::get_posters_for_meta(ImageIdType::new_book(book_id), None)
+                                .await,
+                        )
                     });
                 }
 
                 self.render_tab_poster(ctx)
-            },
+            }
             TabDisplay::Info => self.render_tab_info(ctx.props()),
         }
     }
-
 
     fn render_tab_general(&self, props: &<Self as Component>::Properties) -> Html {
         let resp = &props.media_resp;

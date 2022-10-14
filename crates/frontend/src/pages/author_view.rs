@@ -4,15 +4,19 @@
 use std::str::FromStr;
 
 use chrono::NaiveDate;
-use common::{component::upload::UploadModule, Either, PersonId, ImageIdType, api::WrappingResponse};
-use common_local::{api::{self, GetPostersResponse, GetPersonResponse, BookListQuery}, TagType, item::edit::PersonEdit};
+use common::{
+    api::WrappingResponse, component::upload::UploadModule, Either, ImageIdType, PersonId,
+};
+use common_local::{
+    api::{self, BookListQuery, GetPersonResponse, GetPostersResponse},
+    item::edit::PersonEdit,
+    TagType,
+};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlInputElement, HtmlTextAreaElement};
-use yew::{prelude::*, html::Scope};
+use yew::{html::Scope, prelude::*};
 
-use crate::{components::LoginBarrier, request, pages::home::MediaItem, get_member_self};
-
-
+use crate::{components::LoginBarrier, get_member_self, pages::home::MediaItem, request};
 
 #[derive(Clone)]
 pub enum Msg {
@@ -28,7 +32,7 @@ pub enum Msg {
     SaveEdits,
     UpdateEditing(ChangingType, String),
 
-    Ignore
+    Ignore,
 }
 
 #[derive(Properties, PartialEq, Eq)]
@@ -54,12 +58,12 @@ impl Component for AuthorView {
     fn create(ctx: &Context<Self>) -> Self {
         let person_id = ctx.props().id;
 
-        ctx.link()
-        .send_future(async move {
+        ctx.link().send_future(async move {
             let resp = request::get_books(BookListQuery {
                 search: Some(api::QueryType::Person(person_id)),
-                .. Default::default()
-            }).await;
+                ..Default::default()
+            })
+            .await;
 
             Msg::BooksListResults(resp)
         });
@@ -83,40 +87,48 @@ impl Component for AuthorView {
                 self.cached_books = Some(resp);
             }
 
-            Msg::UpdatedPoster => if let Some(book) = self.media.as_ref().and_then(|v| v.as_ok().ok()) {
-                let person_id = ImageIdType::new_person(book.person.id);
+            Msg::UpdatedPoster => {
+                if let Some(book) = self.media.as_ref().and_then(|v| v.as_ok().ok()) {
+                    let person_id = ImageIdType::new_person(book.person.id);
 
-                ctx.link()
-                .send_future(async move {
-                    Msg::RetrievePosters(request::get_posters_for_meta(person_id, None).await)
-                });
+                    ctx.link().send_future(async move {
+                        Msg::RetrievePosters(request::get_posters_for_meta(person_id, None).await)
+                    });
 
-                return false;
+                    return false;
+                }
             }
 
             // Edits
-            Msg::ToggleEdit => if let Some(book) = self.media.as_ref().and_then(|v| v.as_ok().ok()) {
-                self.is_editing = !self.is_editing;
-                self.editing_item = PersonEdit::default();
+            Msg::ToggleEdit => {
+                if let Some(book) = self.media.as_ref().and_then(|v| v.as_ok().ok()) {
+                    self.is_editing = !self.is_editing;
+                    self.editing_item = PersonEdit::default();
 
-                if self.is_editing && self.cached_posters.is_none() {
-                    let person_id = ImageIdType::new_person(book.person.id);
+                    if self.is_editing && self.cached_posters.is_none() {
+                        let person_id = ImageIdType::new_person(book.person.id);
 
-                    ctx.link()
-                    .send_future(async move {
-                        Msg::RetrievePosters(request::get_posters_for_meta(person_id, None).await)
-                    });
+                        ctx.link().send_future(async move {
+                            Msg::RetrievePosters(
+                                request::get_posters_for_meta(person_id, None).await,
+                            )
+                        });
+                    }
                 }
             }
 
             Msg::SaveEdits => {
-                let person = &self.media.as_ref().and_then(|v| v.as_ok().ok()).unwrap().person;
+                let person = &self
+                    .media
+                    .as_ref()
+                    .and_then(|v| v.as_ok().ok())
+                    .unwrap()
+                    .person;
 
                 let edit = self.editing_item.clone();
                 let person_id = person.id;
 
-                ctx.link()
-                .send_future(async move {
+                ctx.link().send_future(async move {
                     request::update_person(person_id, &api::PostPersonBody::Edit(edit)).await;
 
                     Msg::RetrieveMediaView(Box::new(request::get_person(person_id).await))
@@ -133,7 +145,7 @@ impl Component for AuthorView {
                         let value = value.map(|mut v| {
                             // TODO: Separate into own function, handle errors properly.
 
-                            let dashes = v.chars().filter(|v|  *v == '-').count();
+                            let dashes = v.chars().filter(|v| *v == '-').count();
 
                             if dashes == 0 {
                                 v.push_str("-01");
@@ -146,11 +158,12 @@ impl Component for AuthorView {
                             v
                         });
 
-                        self.editing_item.birth_date = value.and_then(|v| NaiveDate::from_str(&v).ok()).map(|v| v.to_string());
+                        self.editing_item.birth_date = value
+                            .and_then(|v| NaiveDate::from_str(&v).ok())
+                            .map(|v| v.to_string());
                     }
                     ChangingType::ThumbPath => unimplemented!(),
                 }
-
             }
 
             Msg::RetrievePosters(value) => {
@@ -171,7 +184,11 @@ impl Component for AuthorView {
             None => None,
         };
 
-        if let Some(GetPersonResponse { person, other_names }) = media {
+        if let Some(GetPersonResponse {
+            person,
+            other_names,
+        }) = media
+        {
             let editing = &self.editing_item;
 
             html! {
@@ -454,13 +471,27 @@ impl AuthorView {
 
     fn on_change_input(scope: &Scope<Self>, updating: ChangingType) -> Callback<Event> {
         scope.callback(move |e: Event| {
-            Msg::UpdateEditing(updating, e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap().value())
+            Msg::UpdateEditing(
+                updating,
+                e.target()
+                    .unwrap()
+                    .dyn_into::<HtmlInputElement>()
+                    .unwrap()
+                    .value(),
+            )
         })
     }
 
     fn on_change_textarea(scope: &Scope<Self>, updating: ChangingType) -> Callback<Event> {
         scope.callback(move |e: Event| {
-            Msg::UpdateEditing(updating, e.target().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap().value())
+            Msg::UpdateEditing(
+                updating,
+                e.target()
+                    .unwrap()
+                    .dyn_into::<HtmlTextAreaElement>()
+                    .unwrap()
+                    .value(),
+            )
         })
     }
 
@@ -482,15 +513,12 @@ impl AuthorView {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct CachedTag {
     type_of: TagType,
     id: usize,
     name: String,
 }
-
-
 
 #[derive(Clone, Copy)]
 pub enum ChangingType {
@@ -500,20 +528,17 @@ pub enum ChangingType {
     ThumbPath,
 }
 
-
-
-
 #[derive(Clone)]
 pub enum DisplayOverlay {
     Info {
-        meta_id: usize
+        meta_id: usize,
     },
 
     Edit(Box<api::MediaViewResponse>),
 
     More {
         meta_id: usize,
-        mouse_pos: (i32, i32)
+        mouse_pos: (i32, i32),
     },
 }
 
@@ -523,7 +548,7 @@ impl PartialEq for DisplayOverlay {
             (Self::Info { meta_id: l_id }, Self::Info { meta_id: r_id }) => l_id == r_id,
             (Self::More { meta_id: l_id, .. }, Self::More { meta_id: r_id, .. }) => l_id == r_id,
 
-            _ => false
+            _ => false,
         }
     }
 }

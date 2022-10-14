@@ -1,11 +1,12 @@
 use chrono::{DateTime, Utc};
 use common::MemberId;
-use common_local::{EditId, item::edit::SharedEditVoteModel, EditVoteId};
+use common_local::{item::edit::SharedEditVoteModel, EditId, EditVoteId};
 use tokio_postgres::Client;
 
-use crate::{Result, model::{TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize}};
-
-
+use crate::{
+    model::{row_bigint_to_usize, row_int_to_usize, AdvRow, TableRow},
+    Result,
+};
 
 #[derive(Debug, Clone)]
 pub struct EditVoteModel {
@@ -19,7 +20,6 @@ pub struct EditVoteModel {
     pub created_at: DateTime<Utc>,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct NewEditVoteModel {
     pub edit_id: EditId,
@@ -29,7 +29,6 @@ pub struct NewEditVoteModel {
 
     pub created_at: DateTime<Utc>,
 }
-
 
 impl TableRow for EditVoteModel {
     fn create(row: &mut AdvRow) -> Result<Self> {
@@ -45,7 +44,6 @@ impl TableRow for EditVoteModel {
     }
 }
 
-
 impl From<EditVoteModel> for SharedEditVoteModel {
     fn from(val: EditVoteModel) -> Self {
         SharedEditVoteModel {
@@ -57,7 +55,6 @@ impl From<EditVoteModel> for SharedEditVoteModel {
         }
     }
 }
-
 
 impl NewEditVoteModel {
     pub fn create(edit_id: EditId, member_id: MemberId, vote: bool) -> Self {
@@ -95,50 +92,70 @@ impl EditVoteModel {
         Self::update_vote(self.edit_id, self.member_id, self.vote, client).await
     }
 
-
-    pub async fn update_vote(edit_id: EditId, member_id: MemberId, vote: bool, client: &Client) -> Result<()> {
-        client.execute(
-            "UPDATE edit_vote SET vote = $3 WHERE edit_id = $1 AND member_id = $2",
-            params![
-                edit_id,
-                *member_id as i32,
-                vote,
-            ]
-        ).await?;
+    pub async fn update_vote(
+        edit_id: EditId,
+        member_id: MemberId,
+        vote: bool,
+        client: &Client,
+    ) -> Result<()> {
+        client
+            .execute(
+                "UPDATE edit_vote SET vote = $3 WHERE edit_id = $1 AND member_id = $2",
+                params![edit_id, *member_id as i32, vote,],
+            )
+            .await?;
 
         Ok(())
     }
 
     pub async fn remove(edit_id: EditId, member_id: MemberId, client: &Client) -> Result<u64> {
-        Ok(client.execute(
-            "DELETE FROM edit_vote WHERE edit_id = $1 AND member_id = $2",
-            params![
-                edit_id,
-                *member_id as i32,
-            ]
-        ).await?)
+        Ok(client
+            .execute(
+                "DELETE FROM edit_vote WHERE edit_id = $1 AND member_id = $2",
+                params![edit_id, *member_id as i32,],
+            )
+            .await?)
     }
 
-    pub async fn find_one(edit_id: EditId, member_id: MemberId, client: &Client) -> Result<Option<Self>> {
-        client.query_opt(
-            "SELECT * FROM edit_vote WHERE edit_id = $1 AND member_id = $2",
-            params![
-                edit_id,
-                *member_id as i32,
-            ]
-        ).await?.map(Self::from_row).transpose()
+    pub async fn find_one(
+        edit_id: EditId,
+        member_id: MemberId,
+        client: &Client,
+    ) -> Result<Option<Self>> {
+        client
+            .query_opt(
+                "SELECT * FROM edit_vote WHERE edit_id = $1 AND member_id = $2",
+                params![edit_id, *member_id as i32,],
+            )
+            .await?
+            .map(Self::from_row)
+            .transpose()
     }
 
-    pub async fn find_by_edit_id(edit_id: EditId, offset: usize, limit: usize, client: &Client) -> Result<Vec<Self>> {
-        let conn = client.query(
-            "SELECT * FROM edit_vote WHERE edit_id = $1 LIMIT $2 OFFSET $3",
-            params![edit_id, limit as i64, offset as i64]
-        ).await?;
+    pub async fn find_by_edit_id(
+        edit_id: EditId,
+        offset: usize,
+        limit: usize,
+        client: &Client,
+    ) -> Result<Vec<Self>> {
+        let conn = client
+            .query(
+                "SELECT * FROM edit_vote WHERE edit_id = $1 LIMIT $2 OFFSET $3",
+                params![edit_id, limit as i64, offset as i64],
+            )
+            .await?;
 
         conn.into_iter().map(Self::from_row).collect()
     }
 
     pub async fn count_by_edit_id(edit_id: EditId, client: &Client) -> Result<usize> {
-        row_bigint_to_usize(client.query_one("SELECT COUNT(*) FROM edit_vote WHERE edit_id = $1", params![edit_id]).await?)
+        row_bigint_to_usize(
+            client
+                .query_one(
+                    "SELECT COUNT(*) FROM edit_vote WHERE edit_id = $1",
+                    params![edit_id],
+                )
+                .await?,
+        )
     }
 }

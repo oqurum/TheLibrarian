@@ -1,9 +1,8 @@
 use std::str::FromStr;
 
-use chrono::{DateTime, Utc, Duration, NaiveDate};
-use common::{BookId, PersonId, TagId, MemberId};
-use common_local::{edit::*, EditId, item::edit::*};
-
+use chrono::{DateTime, Duration, NaiveDate, Utc};
+use common::{BookId, MemberId, PersonId, TagId};
+use common_local::{edit::*, item::edit::*, EditId};
 
 mod edit_comment;
 mod edit_vote;
@@ -12,10 +11,12 @@ pub use edit_comment::*;
 pub use edit_vote::*;
 use tokio_postgres::Client;
 
-use crate::{Result, edit_translate};
+use crate::{edit_translate, Result};
 
-use super::{BookModel, MemberModel, BookTagModel, BookPersonModel, TagModel, PersonModel, ImageLinkModel, TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize, PersonAltModel};
-
+use super::{
+    row_bigint_to_usize, row_int_to_usize, AdvRow, BookModel, BookPersonModel, BookTagModel,
+    ImageLinkModel, MemberModel, PersonAltModel, PersonModel, TableRow, TagModel,
+};
 
 #[derive(Debug)]
 pub struct NewEditModel {
@@ -38,7 +39,6 @@ pub struct NewEditModel {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct EditModel {
@@ -64,7 +64,6 @@ pub struct EditModel {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
-
 
 impl TableRow for EditModel {
     fn create(row: &mut AdvRow) -> Result<Self> {
@@ -93,9 +92,13 @@ impl TableRow for EditModel {
     }
 }
 
-
 impl NewEditModel {
-    pub async fn from_book_modify(member_id: MemberId, current: BookModel, updated: BookEdit, db: &Client) -> Result<Self> {
+    pub async fn from_book_modify(
+        member_id: MemberId,
+        current: BookModel,
+        updated: BookEdit,
+        db: &Client,
+    ) -> Result<Self> {
         let now = Utc::now();
 
         Ok(Self {
@@ -106,7 +109,10 @@ impl NewEditModel {
             model_id: Some(*current.id),
             is_applied: false,
             vote_count: 0,
-            data: convert_data_to_string(EditType::Book, &new_edit_data_from_book(current, updated, db).await?)?,
+            data: convert_data_to_string(
+                EditType::Book,
+                &new_edit_data_from_book(current, updated, db).await?,
+            )?,
             ended_at: None,
             expires_at: Some(now + Duration::days(7)),
             created_at: now,
@@ -114,7 +120,11 @@ impl NewEditModel {
         })
     }
 
-    pub async fn from_person_modify(member_id: MemberId, current: PersonModel, updated: PersonEdit) -> Result<Self> {
+    pub async fn from_person_modify(
+        member_id: MemberId,
+        current: PersonModel,
+        updated: PersonEdit,
+    ) -> Result<Self> {
         let now = Utc::now();
 
         Ok(Self {
@@ -125,7 +135,10 @@ impl NewEditModel {
             model_id: Some(*current.id),
             is_applied: false,
             vote_count: 0,
-            data: convert_data_to_string(EditType::Person, &new_edit_data_from_person(current, updated).await?)?,
+            data: convert_data_to_string(
+                EditType::Person,
+                &new_edit_data_from_person(current, updated).await?,
+            )?,
             ended_at: None,
             expires_at: Some(now + Duration::days(7)),
             created_at: now,
@@ -134,20 +147,31 @@ impl NewEditModel {
     }
 
     pub async fn insert(self, db: &Client) -> Result<EditModel> {
-        let row = db.query_one(r#"
+        let row = db
+            .query_one(
+                r#"
             INSERT INTO edit (
                 type_of, operation, status,
                 member_id, model_id, is_applied, vote_count, data,
                 ended_at, expires_at, created_at, updated_at
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id"#,
-            params![
-                self.type_of, self.operation, self.status,
-                *self.member_id as i32, self.model_id.map(|v| v as i32), self.is_applied, self.vote_count as i16, &self.data,
-                self.ended_at, self.expires_at,
-                self.created_at, self.updated_at,
-            ]
-        ).await?;
+                params![
+                    self.type_of,
+                    self.operation,
+                    self.status,
+                    *self.member_id as i32,
+                    self.model_id.map(|v| v as i32),
+                    self.is_applied,
+                    self.vote_count as i16,
+                    &self.data,
+                    self.ended_at,
+                    self.expires_at,
+                    self.created_at,
+                    self.updated_at,
+                ],
+            )
+            .await?;
 
         Ok(EditModel {
             id: EditId::from(row_int_to_usize(row)?),
@@ -172,25 +196,32 @@ impl NewEditModel {
     }
 }
 
-
 impl EditModel {
     pub async fn get_all(offset: usize, limit: usize, db: &Client) -> Result<Vec<Self>> {
-        let values = db.query(
-            "SELECT * FROM edit LIMIT $1 OFFSET $2",
-            params![ limit as i64, offset as i64 ]
-        ).await?;
+        let values = db
+            .query(
+                "SELECT * FROM edit LIMIT $1 OFFSET $2",
+                params![limit as i64, offset as i64],
+            )
+            .await?;
 
         values.into_iter().map(Self::from_row).collect()
     }
 
     pub async fn get_by_id(id: EditId, db: &Client) -> Result<Option<Self>> {
-        db.query_opt(
-            "SELECT * FROM edit WHERE id = $1",
-            params![ id ],
-        ).await?.map(Self::from_row).transpose()
+        db.query_opt("SELECT * FROM edit WHERE id = $1", params![id])
+            .await?
+            .map(Self::from_row)
+            .transpose()
     }
 
-    pub async fn find_by_status(offset: usize, limit: usize, status: Option<EditStatus>, is_expired: Option<bool>, db: &Client) -> Result<Vec<Self>> {
+    pub async fn find_by_status(
+        offset: usize,
+        limit: usize,
+        status: Option<EditStatus>,
+        is_expired: Option<bool>,
+        db: &Client,
+    ) -> Result<Vec<Self>> {
         let mut expired_str = String::new();
 
         if let Some(expired) = is_expired {
@@ -215,10 +246,14 @@ impl EditModel {
                 expired_str.insert_str(0, "WHERE ");
             }
 
-            let values = db.query(
-                &format!("SELECT * FROM edit {expired_str} ORDER BY id DESC LIMIT $1 OFFSET $2"),
-                params![ limit as i64, offset as i64 ]
-            ).await?;
+            let values = db
+                .query(
+                    &format!(
+                        "SELECT * FROM edit {expired_str} ORDER BY id DESC LIMIT $1 OFFSET $2"
+                    ),
+                    params![limit as i64, offset as i64],
+                )
+                .await?;
 
             values.into_iter().map(Self::from_row).collect()
         }
@@ -231,9 +266,7 @@ impl EditModel {
     pub async fn update_by_id(id: EditId, edit: UpdateEditModel, db: &Client) -> Result<u64> {
         let mut items = Vec::new();
         // We have to Box because DateTime doesn't return a borrow.
-        let mut values = vec![
-            Box::new(id) as Box<dyn tokio_postgres::types::ToSql + Sync>
-        ];
+        let mut values = vec![Box::new(id) as Box<dyn tokio_postgres::types::ToSql + Sync>];
 
         if let Some(value) = edit.vote {
             items.push("vote_count = vote_count +");
@@ -260,22 +293,28 @@ impl EditModel {
             values.push(Box::new(value) as Box<dyn tokio_postgres::types::ToSql + Sync>);
         }
 
-
         if items.is_empty() {
             return Ok(0);
         }
 
-        Ok(db.execute(
-            &format!(
-                "UPDATE edit SET {} WHERE id = $1",
-                items.iter()
-                    .enumerate()
-                    .map(|(i, v)| if v.contains('=') { format!("{v} ${}", 2 + i) } else { format!("{v} = ${}", 2 + i) })
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
-            &super::boxed_to_dyn_vec(&values)
-        ).await?)
+        Ok(db
+            .execute(
+                &format!(
+                    "UPDATE edit SET {} WHERE id = $1",
+                    items
+                        .iter()
+                        .enumerate()
+                        .map(|(i, v)| if v.contains('=') {
+                            format!("{v} ${}", 2 + i)
+                        } else {
+                            format!("{v} = ${}", 2 + i)
+                        })
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+                &super::boxed_to_dyn_vec(&values),
+            )
+            .await?)
     }
 
     pub fn get_model_id(&self) -> Option<ModelIdGroup> {
@@ -296,7 +335,11 @@ impl EditModel {
         })
     }
 
-    pub async fn update_end_data_and_status(&mut self, value: Option<EditData>, db: &Client) -> Result<()> {
+    pub async fn update_end_data_and_status(
+        &mut self,
+        value: Option<EditData>,
+        db: &Client,
+    ) -> Result<()> {
         if let Some(value) = value {
             match (self.type_of, value) {
                 (EditType::Book, EditData::Book(v)) => self.data = serde_json::to_string(&v)?,
@@ -309,13 +352,15 @@ impl EditModel {
 
             db.execute(
                 "UPDATE edit SET data = $2, status = $3, ended_at = $4 WHERE id = $1",
-                params![ self.id, &self.data, self.status, self.ended_at ]
-            ).await?;
+                params![self.id, &self.data, self.status, self.ended_at],
+            )
+            .await?;
         } else {
             db.execute(
                 "UPDATE edit SET status = $2, ended_at = $3 WHERE id = $1",
-                params![ self.id, self.status, self.ended_at ]
-            ).await?;
+                params![self.id, self.status, self.ended_at],
+            )
+            .await?;
         }
 
         Ok(())
@@ -342,8 +387,11 @@ impl EditModel {
         })
     }
 
-
-    pub async fn process_status_change(&mut self, new_status: EditStatus, db: &Client) -> Result<()> {
+    pub async fn process_status_change(
+        &mut self,
+        new_status: EditStatus,
+        db: &Client,
+    ) -> Result<()> {
         self.status = new_status;
 
         if !self.status.is_pending() {
@@ -352,37 +400,49 @@ impl EditModel {
 
         if new_status.is_accepted() {
             match self.parse_data()? {
-                EditData::Book(mut book_data) => {
-                    match self.operation {
-                        EditOperation::Modify => {
-                            if let Some(book_model) = BookModel::get_by_id(BookId::from(self.model_id.unwrap()), db).await? {
-                                accept_register_book_data_overwrites(book_model, &mut book_data, db).await?;
+                EditData::Book(mut book_data) => match self.operation {
+                    EditOperation::Modify => {
+                        if let Some(book_model) =
+                            BookModel::get_by_id(BookId::from(self.model_id.unwrap()), db).await?
+                        {
+                            accept_register_book_data_overwrites(book_model, &mut book_data, db)
+                                .await?;
 
-                                self.update_end_data_and_status(Some(EditData::Book(book_data)), db).await?;
-                            }
+                            self.update_end_data_and_status(Some(EditData::Book(book_data)), db)
+                                .await?;
                         }
-
-                        EditOperation::Create => todo!(),
-                        EditOperation::Delete => todo!(),
-                        EditOperation::Merge => todo!(),
                     }
-                }
 
-                EditData::Person(mut person_data) => {
-                    match self.operation {
-                        EditOperation::Modify => {
-                            if let Some(book_model) = PersonModel::get_by_id(PersonId::from(self.model_id.unwrap()), db).await? {
-                                accept_register_person_data_overwrites(book_model, &mut person_data, db).await?;
+                    EditOperation::Create => todo!(),
+                    EditOperation::Delete => todo!(),
+                    EditOperation::Merge => todo!(),
+                },
 
-                                self.update_end_data_and_status(Some(EditData::Person(person_data)), db).await?;
-                            }
+                EditData::Person(mut person_data) => match self.operation {
+                    EditOperation::Modify => {
+                        if let Some(book_model) =
+                            PersonModel::get_by_id(PersonId::from(self.model_id.unwrap()), db)
+                                .await?
+                        {
+                            accept_register_person_data_overwrites(
+                                book_model,
+                                &mut person_data,
+                                db,
+                            )
+                            .await?;
+
+                            self.update_end_data_and_status(
+                                Some(EditData::Person(person_data)),
+                                db,
+                            )
+                            .await?;
                         }
-
-                        EditOperation::Create => todo!(),
-                        EditOperation::Delete => todo!(),
-                        EditOperation::Merge => todo!(),
                     }
-                }
+
+                    EditOperation::Create => todo!(),
+                    EditOperation::Delete => todo!(),
+                    EditOperation::Merge => todo!(),
+                },
                 EditData::Tag => todo!(),
                 EditData::Collection => todo!(),
             }
@@ -394,11 +454,17 @@ impl EditModel {
     }
 }
 
-
-pub async fn new_edit_data_from_book(current: BookModel, updated: BookEdit, db: &Client) -> Result<EditData> {
+pub async fn new_edit_data_from_book(
+    current: BookModel,
+    updated: BookEdit,
+    db: &Client,
+) -> Result<EditData> {
     // TODO: Cleaner, less complicated way?
 
-    let (current_people, curr_people_info) = if updated.added_people.is_some() || updated.removed_people.is_some() || updated.updated_people.is_some() {
+    let (current_people, curr_people_info) = if updated.added_people.is_some()
+        || updated.removed_people.is_some()
+        || updated.updated_people.is_some()
+    {
         let bp = BookPersonModel::get_all_by_book_id(current.id, db).await?;
 
         (
@@ -410,19 +476,30 @@ pub async fn new_edit_data_from_book(current: BookModel, updated: BookEdit, db: 
     };
 
     let (title_old, title) = edit_translate::cmp_opt_string(current.title, updated.title);
-    let (clean_title_old, clean_title) = edit_translate::cmp_opt_string(current.clean_title, updated.clean_title);
-    let (description_old, description) = edit_translate::cmp_opt_string(current.description, updated.description);
-    let (rating_old, rating) = edit_translate::cmp_opt_partial_eq(Some(current.rating), updated.rating);
+    let (clean_title_old, clean_title) =
+        edit_translate::cmp_opt_string(current.clean_title, updated.clean_title);
+    let (description_old, description) =
+        edit_translate::cmp_opt_string(current.description, updated.description);
+    let (rating_old, rating) =
+        edit_translate::cmp_opt_partial_eq(Some(current.rating), updated.rating);
     let (isbn_10_old, isbn_10) = edit_translate::cmp_opt_string(current.isbn_10, updated.isbn_10);
     let (isbn_13_old, isbn_13) = edit_translate::cmp_opt_string(current.isbn_13, updated.isbn_13);
-    let (is_public_old, is_public) = edit_translate::cmp_opt_bool(Some(current.is_public), updated.is_public);
-    let (available_at_old, available_at) = edit_translate::cmp_opt_partial_eq(current.available_at.map(|v| v.and_hms(0, 0, 0).timestamp()), updated.available_at);
-    let (language_old, language) = edit_translate::cmp_opt_partial_eq(Some(current.language), updated.language);
-    let (display_person_id_old, display_person_id) = edit_translate::cmp_opt_partial_eq(current.cached.author_id, updated.display_person_id);
+    let (is_public_old, is_public) =
+        edit_translate::cmp_opt_bool(Some(current.is_public), updated.is_public);
+    let (available_at_old, available_at) = edit_translate::cmp_opt_partial_eq(
+        current.available_at.map(|v| v.and_hms(0, 0, 0).timestamp()),
+        updated.available_at,
+    );
+    let (language_old, language) =
+        edit_translate::cmp_opt_partial_eq(Some(current.language), updated.language);
+    let (display_person_id_old, display_person_id) =
+        edit_translate::cmp_opt_partial_eq(current.cached.author_id, updated.display_person_id);
 
-    let (updated_people_old, updated_people) = edit_translate::cmp_opt_partial_eq(curr_people_info, updated.updated_people);
+    let (updated_people_old, updated_people) =
+        edit_translate::cmp_opt_partial_eq(curr_people_info, updated.updated_people);
     // TODO: Will need to fix
-    let (removed_people_old, removed_people) = edit_translate::cmp_opt_partial_eq(current_people, updated.removed_people);
+    let (removed_people_old, removed_people) =
+        edit_translate::cmp_opt_partial_eq(current_people, updated.removed_people);
 
     let new = BookEdit {
         title,
@@ -474,15 +551,18 @@ pub async fn new_edit_data_from_book(current: BookModel, updated: BookEdit, db: 
     }))
 }
 
-
-pub async fn new_edit_data_from_person(current: PersonModel, updated: PersonEdit) -> Result<EditData> {
+pub async fn new_edit_data_from_person(
+    current: PersonModel,
+    updated: PersonEdit,
+) -> Result<EditData> {
     // TODO: Cleaner, less complicated way?
 
     let (name_old, name) = edit_translate::cmp_opt_string(Some(current.name), updated.name);
-    let (description_old, description) = edit_translate::cmp_opt_string(current.description, updated.description);
+    let (description_old, description) =
+        edit_translate::cmp_opt_string(current.description, updated.description);
     let (birth_date_old, birth_date) = edit_translate::cmp_opt_partial_eq(
         current.birth_date.map(|v| v.to_string()), // TODO: Use NaiveDate
-        updated.birth_date
+        updated.birth_date,
     );
 
     let new = PersonEdit {
@@ -509,7 +589,6 @@ pub async fn new_edit_data_from_person(current: PersonModel, updated: PersonEdit
     }))
 }
 
-
 // We use EditType to double check that we're using the correct EditData.
 pub fn convert_data_to_string(type_of: EditType, value: &EditData) -> Result<String> {
     Ok(match (type_of, value) {
@@ -520,35 +599,88 @@ pub fn convert_data_to_string(type_of: EditType, value: &EditData) -> Result<Str
     })
 }
 
-
-
 /// Update: BookModel
 ///
 /// Link: Tags, People, Images
 pub async fn accept_register_book_data_overwrites(
     mut book_model: BookModel,
     edit: &mut BookEditData,
-    db: &Client
+    db: &Client,
 ) -> Result<()> {
     let (old, new) = match (edit.old.clone().unwrap_or_default(), edit.new.clone()) {
         (a, Some(b)) => (a, b),
-        _ => return Ok(())
+        _ => return Ok(()),
     };
 
     let mut book_edits = UpdatedBookEdit::default();
 
     // Update Book
-    cmp_opt_old_and_new_return(&mut book_edits.title, &mut book_model.title, old.title, new.title);
-    cmp_opt_old_and_new_return(&mut book_edits.clean_title, &mut book_model.clean_title, old.clean_title, new.clean_title);
-    cmp_opt_old_and_new_return(&mut book_edits.description, &mut book_model.description, old.description, new.description);
-    cmp_opt_old_and_new_return(&mut book_edits.isbn_10, &mut book_model.isbn_10, old.isbn_10, new.isbn_10);
-    cmp_opt_old_and_new_return(&mut book_edits.isbn_13, &mut book_model.isbn_13, old.isbn_13, new.isbn_13);
-    cmp_opt_old_and_new_return(&mut book_edits.available_at, &mut book_model.available_at.map(|v| v.and_hms(0, 0, 0).timestamp()), old.available_at, new.available_at);
-    cmp_old_and_new_return(&mut book_edits.language, &mut book_model.language, old.language, new.language);
-    cmp_old_and_new_return(&mut book_edits.rating, &mut book_model.rating, old.rating, new.rating);
-    cmp_old_and_new_return(&mut book_edits.is_public, &mut book_model.is_public, old.is_public, new.is_public);
+    cmp_opt_old_and_new_return(
+        &mut book_edits.title,
+        &mut book_model.title,
+        old.title,
+        new.title,
+    );
+    cmp_opt_old_and_new_return(
+        &mut book_edits.clean_title,
+        &mut book_model.clean_title,
+        old.clean_title,
+        new.clean_title,
+    );
+    cmp_opt_old_and_new_return(
+        &mut book_edits.description,
+        &mut book_model.description,
+        old.description,
+        new.description,
+    );
+    cmp_opt_old_and_new_return(
+        &mut book_edits.isbn_10,
+        &mut book_model.isbn_10,
+        old.isbn_10,
+        new.isbn_10,
+    );
+    cmp_opt_old_and_new_return(
+        &mut book_edits.isbn_13,
+        &mut book_model.isbn_13,
+        old.isbn_13,
+        new.isbn_13,
+    );
+    cmp_opt_old_and_new_return(
+        &mut book_edits.available_at,
+        &mut book_model
+            .available_at
+            .map(|v| v.and_hms(0, 0, 0).timestamp()),
+        old.available_at,
+        new.available_at,
+    );
+    cmp_old_and_new_return(
+        &mut book_edits.language,
+        &mut book_model.language,
+        old.language,
+        new.language,
+    );
+    cmp_old_and_new_return(
+        &mut book_edits.rating,
+        &mut book_model.rating,
+        old.rating,
+        new.rating,
+    );
+    cmp_old_and_new_return(
+        &mut book_edits.is_public,
+        &mut book_model.is_public,
+        old.is_public,
+        new.is_public,
+    );
 
-    cmp_old_and_new_return(&mut book_edits.display_person_id, book_model.cached.author_id.get_or_insert_with(Default::default), old.display_person_id, new.display_person_id);
+    cmp_old_and_new_return(
+        &mut book_edits.display_person_id,
+        book_model
+            .cached
+            .author_id
+            .get_or_insert_with(Default::default),
+        old.display_person_id,
+        new.display_person_id,
+    );
 
     // If we updated display id then we'll also update the author name.
     if book_edits.display_person_id {
@@ -565,7 +697,6 @@ pub async fn accept_register_book_data_overwrites(
 
     book_model.update_book(db).await?;
 
-
     // Tags
     if let Some(values) = new.added_tags {
         for tag_id in values {
@@ -581,17 +712,13 @@ pub async fn accept_register_book_data_overwrites(
         }
     }
 
-
     // Images
     if let Some(values) = new.added_images {
         for id_or_url in values {
             let image_id = match id_or_url {
                 NewOrCachedImage::Id(v) => v,
                 NewOrCachedImage::Url(url) => {
-                    let resp = reqwest::get(url)
-                        .await?
-                        .bytes()
-                        .await?;
+                    let resp = reqwest::get(url).await?.bytes().await?;
 
                     let model = crate::store_image(resp.to_vec(), db).await?;
 
@@ -600,23 +727,25 @@ pub async fn accept_register_book_data_overwrites(
             };
 
             ImageLinkModel::new_book(image_id, book_model.id)
-                .insert(db).await?;
+                .insert(db)
+                .await?;
         }
     }
 
     if let Some(values) = new.removed_images {
         for image_id in values {
             ImageLinkModel::new_book(image_id, book_model.id)
-                .remove(db).await?;
+                .remove(db)
+                .await?;
         }
     }
-
 
     // People
     if let Some(values) = new.updated_people {
         for (person_id, info) in values {
             BookPersonModel::new(book_model.id, person_id, info)
-                .update(db).await?;
+                .update(db)
+                .await?;
         }
     }
 
@@ -624,7 +753,8 @@ pub async fn accept_register_book_data_overwrites(
         for person_id in values {
             if PersonModel::get_by_id(person_id, db).await?.is_some() {
                 BookPersonModel::new(book_model.id, person_id, None)
-                    .insert(db).await?;
+                    .insert(db)
+                    .await?;
             }
         }
     }
@@ -632,7 +762,8 @@ pub async fn accept_register_book_data_overwrites(
     if let Some(values) = new.removed_people {
         for person_id in values {
             BookPersonModel::new(book_model.id, person_id, None)
-                .remove(db).await?;
+                .remove(db)
+                .await?;
         }
     }
 
@@ -642,19 +773,34 @@ pub async fn accept_register_book_data_overwrites(
 pub async fn accept_register_person_data_overwrites(
     mut person_model: PersonModel,
     edit: &mut PersonEditData,
-    db: &Client
+    db: &Client,
 ) -> Result<()> {
     let (old, new) = match (edit.old.clone().unwrap_or_default(), edit.new.clone()) {
         (a, Some(b)) => (a, b),
-        _ => return Ok(())
+        _ => return Ok(()),
     };
 
     let mut person_edits = UpdatedPersonEdit::default();
 
     // Update Person
-    cmp_old_and_new_return(&mut person_edits.name, &mut person_model.name, old.name, new.name);
-    cmp_opt_old_and_new_return(&mut person_edits.description, &mut person_model.description, old.description, new.description);
-    cmp_opt_old_and_new_return(&mut person_edits.birth_date, &mut person_model.birth_date, old.birth_date.and_then(|v| NaiveDate::from_str(&v).ok()), new.birth_date.and_then(|v| NaiveDate::from_str(&v).ok()));
+    cmp_old_and_new_return(
+        &mut person_edits.name,
+        &mut person_model.name,
+        old.name,
+        new.name,
+    );
+    cmp_opt_old_and_new_return(
+        &mut person_edits.description,
+        &mut person_model.description,
+        old.description,
+        new.description,
+    );
+    cmp_opt_old_and_new_return(
+        &mut person_edits.birth_date,
+        &mut person_model.birth_date,
+        old.birth_date.and_then(|v| NaiveDate::from_str(&v).ok()),
+        new.birth_date.and_then(|v| NaiveDate::from_str(&v).ok()),
+    );
 
     let update_name = person_edits.name;
 
@@ -664,23 +810,28 @@ pub async fn accept_register_person_data_overwrites(
 
     // Update Book Name
     if update_name {
-        BookPersonModel::update_book_caches(person_model.id, Some(person_model.name.clone()), db).await?;
+        BookPersonModel::update_book_caches(person_model.id, Some(person_model.name.clone()), db)
+            .await?;
         // If the Person Alt Table contains the name + id then we'll remove it.
         // TODO: Possibly add previous name to table.
         PersonAltModel {
             person_id: person_model.id,
             name: person_model.name,
-        }.remove(db).await?;
+        }
+        .remove(db)
+        .await?;
     }
 
     Ok(())
 }
 
-
-
-
 /// Returns the new value if current and old are equal.
-fn cmp_old_and_new_return<V: PartialEq + Default>(edited: &mut bool, current: &mut V, old: Option<V>, new: Option<V>) {
+fn cmp_old_and_new_return<V: PartialEq + Default>(
+    edited: &mut bool,
+    current: &mut V,
+    old: Option<V>,
+    new: Option<V>,
+) {
     match (old, new) {
         // If we have an old value and new value.
         (Some(old), Some(new)) => {
@@ -705,12 +856,17 @@ fn cmp_old_and_new_return<V: PartialEq + Default>(edited: &mut bool, current: &m
             }
         }
 
-        _ => ()
+        _ => (),
     }
 }
 
 /// Returns the new value if current and old are equal.
-fn cmp_opt_old_and_new_return<V: PartialEq>(edited: &mut bool, current: &mut Option<V>, old: Option<V>, new: Option<V>) {
+fn cmp_opt_old_and_new_return<V: PartialEq>(
+    edited: &mut bool,
+    current: &mut Option<V>,
+    old: Option<V>,
+    new: Option<V>,
+) {
     if (old.is_some() || new.is_some()) && *current == old {
         *current = new;
         *edited = true;

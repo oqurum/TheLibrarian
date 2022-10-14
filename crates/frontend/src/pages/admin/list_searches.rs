@@ -1,10 +1,18 @@
-use common::{api::{WrappingResponse, QueryListResponse}, ImageIdType};
-use common_local::{SearchGroup, SearchType, SearchGroupId, api::{PostUpdateSearchIdBody, NewBookBody, SimpleListQuery}};
+use common::{
+    api::{QueryListResponse, WrappingResponse},
+    ImageIdType,
+};
+use common_local::{
+    api::{NewBookBody, PostUpdateSearchIdBody, SimpleListQuery},
+    SearchGroup, SearchGroupId, SearchType,
+};
 use gloo_utils::window;
-use yew::{prelude::*, html::Scope};
+use yew::{html::Scope, prelude::*};
 
-use crate::{components::popup::{PopupSearch, SearchBy, search::SearchSelectedValue}, request};
-
+use crate::{
+    components::popup::{search::SearchSelectedValue, PopupSearch, SearchBy},
+    request,
+};
 
 #[derive(Clone)]
 pub enum Msg {
@@ -42,21 +50,20 @@ impl Component for ListSearchesPage {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::RequestSearches => {
-                ctx.link()
-                .send_future(async move {
+                ctx.link().send_future(async move {
                     let query = SimpleListQuery::from_url_search_params();
                     Msg::MembersResults(request::get_search_list(query.offset, query.limit).await)
                 });
             }
 
             Msg::AutoFindAll => {
-                let searching_queries = match self.items_resp.as_ref().and_then(|v| v.as_ok().ok()) {
+                let searching_queries = match self.items_resp.as_ref().and_then(|v| v.as_ok().ok())
+                {
                     Some(v) => v.items.iter().map(|v| v.query.clone()).collect::<Vec<_>>(),
                     None => return false,
                 };
 
-                ctx.link()
-                .send_future(async move {
+                ctx.link().send_future(async move {
                     log::info!("starting auto find all");
 
                     for value in searching_queries {

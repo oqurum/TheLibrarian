@@ -1,14 +1,14 @@
-use std::sync::{Mutex, Arc};
+use std::sync::{Arc, Mutex};
 
 use common::api::WrappingResponse;
-use common_local::api::{GetBookListResponse, self, BookListQuery};
-use gloo_utils::{document, body};
-use wasm_bindgen::{JsCast, prelude::Closure};
+use common_local::api::{self, BookListQuery, GetBookListResponse};
+use gloo_utils::{body, document};
+use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
 use yew_router::components::Link;
 
-use crate::{Route, request, util, is_signed_in};
+use crate::{is_signed_in, request, util, Route};
 
 pub enum Msg {
     Close,
@@ -32,14 +32,30 @@ impl Component for NavbarModule {
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
             left_items: vec![
-                (false, Route::Home, DisplayType::Icon("library_books", "Books")),
+                (
+                    false,
+                    Route::Home,
+                    DisplayType::Icon("library_books", "Books"),
+                ),
                 (false, Route::People, DisplayType::Icon("person", "Authors")),
-                (false, Route::EditList, DisplayType::Icon("fact_check", "Edits")),
-                (false, Route::Collections, DisplayType::Icon("collections_bookmark", "Collections")),
+                (
+                    false,
+                    Route::EditList,
+                    DisplayType::Icon("fact_check", "Edits"),
+                ),
+                (
+                    false,
+                    Route::Collections,
+                    DisplayType::Icon("collections_bookmark", "Collections"),
+                ),
             ],
             right_items: vec![
-                (true, Route::Options, DisplayType::Icon("settings", "Settings")),
-                (true, Route::Logout, DisplayType::Icon("logout", "Logout"))
+                (
+                    true,
+                    Route::Options,
+                    DisplayType::Icon("settings", "Settings"),
+                ),
+                (true, Route::Logout, DisplayType::Icon("logout", "Logout")),
             ],
 
             search_results: None,
@@ -57,10 +73,13 @@ impl Component for NavbarModule {
                 self.search_results = None;
 
                 ctx.link().send_future(async move {
-                    Msg::SearchResults(request::get_books(BookListQuery {
-                        search: Some(api::QueryType::Query(value)),
-                        .. Default::default()
-                    }).await)
+                    Msg::SearchResults(
+                        request::get_books(BookListQuery {
+                            search: Some(api::QueryType::Query(value)),
+                            ..Default::default()
+                        })
+                        .await,
+                    )
                 });
             }
 
@@ -115,7 +134,8 @@ impl Component for NavbarModule {
 
     fn rendered(&mut self, ctx: &Context<Self>, _first_render: bool) {
         if let Some(func) = (*self.closure.lock().unwrap()).take() {
-            let _ = body().remove_event_listener_with_callback("click", func.as_ref().unchecked_ref());
+            let _ =
+                body().remove_event_listener_with_callback("click", func.as_ref().unchecked_ref());
         }
 
         let closure = Arc::new(Mutex::default());
@@ -156,7 +176,7 @@ impl NavbarModule {
                 <Link<Route> to={route}>
                     <span class="material-icons" title={ *title }>{ icon }</span>
                 </Link<Route>>
-            }
+            },
         }
     }
 

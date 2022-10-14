@@ -1,26 +1,33 @@
-use std::{pin::Pin, future::{Ready, ready}, task::{Poll, Context}, rc::Rc};
+use std::{
+    future::{ready, Ready},
+    pin::Pin,
+    rc::Rc,
+    task::{Context, Poll},
+};
 
 use actix_identity::Identity;
-use actix_web::{FromRequest, HttpRequest, dev::{Payload, Transform, Service, ServiceRequest, ServiceResponse}, body::MessageBody};
-use common::{MemberId, api::ApiErrorResponse};
+use actix_web::{
+    body::MessageBody,
+    dev::{Payload, Service, ServiceRequest, ServiceResponse, Transform},
+    FromRequest, HttpRequest,
+};
 use chrono::Utc;
+use common::{api::ApiErrorResponse, MemberId};
 use futures::{future::LocalBoxFuture, FutureExt};
 use serde::{Deserialize, Serialize};
 use tokio_postgres::Client;
 
-use crate::{Result, model::MemberModel, WebError, InternalError};
+use crate::{model::MemberModel, InternalError, Result, WebError};
 
+pub mod external;
 pub mod password;
 pub mod passwordless;
-pub mod external;
-
 
 #[derive(Serialize, Deserialize)]
 pub struct CookieAuth {
     pub member_id: MemberId,
     pub stored_since: i64,
 }
-
 
 pub fn get_auth_value(identity: &Identity) -> Option<CookieAuth> {
     let ident = identity.identity()?;
@@ -58,10 +65,10 @@ impl MemberCookie {
     }
 }
 
-
 impl FromRequest for MemberCookie {
     type Error = WebError;
-    type Future = Pin<Box<dyn std::future::Future<Output = std::result::Result<MemberCookie, WebError>>>>;
+    type Future =
+        Pin<Box<dyn std::future::Future<Output = std::result::Result<MemberCookie, WebError>>>>;
 
     fn from_request(req: &HttpRequest, pl: &mut Payload) -> Self::Future {
         let fut = Identity::from_request(req, pl);
@@ -75,7 +82,6 @@ impl FromRequest for MemberCookie {
         })
     }
 }
-
 
 pub struct LoginRequired;
 
@@ -92,7 +98,9 @@ where
     type Future = Ready<std::result::Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        ready(Ok(CheckLoginMiddleware { service: Rc::new(service) }))
+        ready(Ok(CheckLoginMiddleware {
+            service: Rc::new(service),
+        }))
     }
 }
 
@@ -110,10 +118,7 @@ where
     type Error = WebError;
     type Future = LocalBoxFuture<'static, std::result::Result<Self::Response, Self::Error>>;
 
-    fn poll_ready(
-        &self,
-        cx: &mut Context<'_>,
-    ) -> Poll<std::result::Result<(), Self::Error>> {
+    fn poll_ready(&self, cx: &mut Context<'_>) -> Poll<std::result::Result<(), Self::Error>> {
         self.service.poll_ready(cx)
     }
 

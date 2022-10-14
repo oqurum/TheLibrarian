@@ -1,11 +1,14 @@
 use std::ops::Neg;
 
-use actix_web::{web, get, post};
+use actix_web::{get, post, web};
 use common::api::{QueryListResponse, WrappingResponse};
-use common_local::{api, EditId, item::edit::*};
+use common_local::{api, item::edit::*, EditId};
 
-use crate::{WebResult, model::{EditModel, BookModel, MemberModel, EditVoteModel, NewEditVoteModel}, http::{MemberCookie, JsonResponse}, InternalError, Error};
-
+use crate::{
+    http::{JsonResponse, MemberCookie},
+    model::{BookModel, EditModel, EditVoteModel, MemberModel, NewEditVoteModel},
+    Error, InternalError, WebResult,
+};
 
 // Get List Of Edits
 #[get("/edits")]
@@ -23,7 +26,11 @@ pub async fn load_edit_list(
     let mut items = Vec::new();
 
     for item in EditModel::find_by_status(offset, limit, None, None, &db).await? {
-        let member = if let Some(v) = existing_members.iter().find(|v| v.id == item.member_id).cloned() {
+        let member = if let Some(v) = existing_members
+            .iter()
+            .find(|v| v.id == item.member_id)
+            .cloned()
+        {
             Some(v)
         } else if let Some(v) = MemberModel::get_by_id(item.member_id, &db).await? {
             existing_members.push(v.clone());
@@ -32,12 +39,12 @@ pub async fn load_edit_list(
             None
         };
 
-
         let mut item = item.into_shared_edit(member)?;
 
         let my_vote = if let Some(this_member) = this_member.as_ref() {
             // If we've voted, return our vote in there.
-            EditVoteModel::find_one(item.id, this_member.member_id(), &db).await?
+            EditVoteModel::find_one(item.id, this_member.member_id(), &db)
+                .await?
                 .map(|v| vec![SharedEditVoteModel::from(v)])
                 .unwrap_or_default()
         } else {
@@ -58,7 +65,9 @@ pub async fn load_edit_list(
             if let Some(ModelIdGroup::Book(book_id)) = item.get_model_id() {
                 if let EditData::Book(book_data) = &mut item.data {
                     // If we've already queried the database for this book id, clone it.
-                    if let Some(book_model) = existing_books.iter().find(|v| v.id == book_id).cloned() {
+                    if let Some(book_model) =
+                        existing_books.iter().find(|v| v.id == book_id).cloned()
+                    {
                         book_data.current = Some(book_model.into());
                     }
                     // Query database for book id.
@@ -73,34 +82,39 @@ pub async fn load_edit_list(
         items.push(item);
     }
 
-    Ok(web::Json(WrappingResponse::okay(api::GetEditListResponse {
-        offset,
-        limit,
-        total: EditModel::get_count(&db).await?,
-        items
-    })))
+    Ok(web::Json(WrappingResponse::okay(
+        api::GetEditListResponse {
+            offset,
+            limit,
+            total: EditModel::get_count(&db).await?,
+            items,
+        },
+    )))
 }
-
 
 // Edit
 #[get("/edit/{id}")]
-async fn load_edit(edit_id: web::Path<EditId>, db: web::Data<tokio_postgres::Client>) -> WebResult<JsonResponse<api::GetEditResponse>> {
-    let model = EditModel::get_by_id(*edit_id, &db).await?.ok_or_else(|| Error::from(InternalError::ItemMissing))?;
+async fn load_edit(
+    edit_id: web::Path<EditId>,
+    db: web::Data<tokio_postgres::Client>,
+) -> WebResult<JsonResponse<api::GetEditResponse>> {
+    let model = EditModel::get_by_id(*edit_id, &db)
+        .await?
+        .ok_or_else(|| Error::from(InternalError::ItemMissing))?;
 
     let member = MemberModel::get_by_id(model.member_id, &db).await?;
 
     Ok(web::Json(WrappingResponse::okay(api::GetEditResponse {
-        model: model.into_shared_edit(member)?
+        model: model.into_shared_edit(member)?,
     })))
 }
-
 
 #[post("/edit/{id}")]
 async fn update_edit(
     edit_id: web::Path<EditId>,
     json: web::Json<UpdateEditModel>,
     member: MemberCookie,
-    db: web::Data<tokio_postgres::Client>
+    db: web::Data<tokio_postgres::Client>,
 ) -> WebResult<JsonResponse<api::PostEditResponse>> {
     let mut update = json.into_inner();
 
@@ -108,19 +122,22 @@ async fn update_edit(
     update.expires_at = None;
     update.is_applied = None;
 
-
     let mut edit_model = match EditModel::get_by_id(*edit_id, &db).await? {
         Some(value) => value,
-        _ => return Ok(web::Json(WrappingResponse::error("Unable to find Edit Model."))),
+        _ => {
+            return Ok(web::Json(WrappingResponse::error(
+                "Unable to find Edit Model.",
+            )))
+        }
     };
-
 
     // Check that we're pending.
     // TODO: Add Admin Override.
     if !edit_model.status.is_pending() {
-        return Ok(web::Json(WrappingResponse::error("Edit Model is not currently pending!")));
+        return Ok(web::Json(WrappingResponse::error(
+            "Edit Model is not currently pending!",
+        )));
     }
-
 
     let member = member.fetch_or_error(&db).await?;
 
@@ -129,7 +146,9 @@ async fn update_edit(
     // Only an Admin can change the status.
     if let Some(new_status) = update.status {
         if !member_is_admin {
-            return Ok(web::Json(WrappingResponse::error("You cannot do this! Not Admin!")));
+            return Ok(web::Json(WrappingResponse::error(
+                "You cannot do this! Not Admin!",
+            )));
         }
 
         edit_model.process_status_change(new_status, &db).await?;
@@ -138,7 +157,11 @@ async fn update_edit(
     // Has Voting Or Admin Perms.
     let vote_model = if let Some(vote_amount) = update.vote.as_mut() {
         match *vote_amount {
-            0 => return Ok(web::Json(WrappingResponse::error("You cannot do this! Invalid Vote!"))),
+            0 => {
+                return Ok(web::Json(WrappingResponse::error(
+                    "You cannot do this! Invalid Vote!",
+                )))
+            }
 
             i32::MIN..=-1 => {
                 *vote_amount = -1;
@@ -150,7 +173,9 @@ async fn update_edit(
         }
 
         if !member.permissions.has_voting_perms() {
-            return Ok(web::Json(WrappingResponse::error("You cannot do this! No Permissions!")));
+            return Ok(web::Json(WrappingResponse::error(
+                "You cannot do this! No Permissions!",
+            )));
         }
 
         if let Some(mut vote_model) = EditVoteModel::find_one(*edit_id, member.id, &db).await? {
@@ -158,16 +183,11 @@ async fn update_edit(
 
             // Remove Vote.
             if model_vote_as_num == *vote_amount {
-                EditVoteModel::remove(
-                    *edit_id,
-                    member.id,
-                    &db
-                ).await?;
+                EditVoteModel::remove(*edit_id, member.id, &db).await?;
 
                 // Opposite vote_amount value
                 *vote_amount = vote_amount.neg();
             }
-
             // Double the value since we're switching ie: Total Votes = 10, Going from true -> false which means we have to go minus 2 votes.
             else {
                 vote_model.vote = *vote_amount == 1;
@@ -178,11 +198,7 @@ async fn update_edit(
 
             Some(vote_model)
         } else {
-            let vote_model = NewEditVoteModel::create(
-                *edit_id,
-                member.id,
-                *vote_amount == 1,
-            );
+            let vote_model = NewEditVoteModel::create(*edit_id, member.id, *vote_amount == 1);
 
             Some(vote_model.insert(&db).await?)
         }

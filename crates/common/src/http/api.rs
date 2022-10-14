@@ -1,26 +1,25 @@
 use std::collections::HashMap;
 
 use chrono::NaiveDate;
-use common::{TagId, BookTagId, Either, ImageId, Source, PersonId, api::QueryListResponse, ImageIdType, BookId};
-use serde::{Serialize, Deserialize};
+use common::{
+    api::QueryListResponse, BookId, BookTagId, Either, ImageId, ImageIdType, PersonId, Source,
+    TagId,
+};
+use serde::{Deserialize, Serialize};
 
 use crate::{
-    MediaItem, Progression, LibraryColl,
-    BasicLibrary, BasicDirectory, Chapter,
-    DisplayItem, DisplayMetaItem, Person,
-    SearchType, Member, Poster,
-    TagFE, BookTag, TagType,
-    MetadataItemCached,
-    item::edit::{SharedEditModel, SharedEditVoteModel, BookEdit, NewOrCachedImage, PersonEdit}, SharedConfig,
-    CollectionType, Collection, util::{serialize_naivedate_opt, deserialize_naivedate_opt}, edit::ModifyValuesBy,
+    edit::ModifyValuesBy,
+    item::edit::{BookEdit, NewOrCachedImage, PersonEdit, SharedEditModel, SharedEditVoteModel},
+    util::{deserialize_naivedate_opt, serialize_naivedate_opt},
+    BasicDirectory, BasicLibrary, BookTag, Chapter, Collection, CollectionType, DisplayItem,
+    DisplayMetaItem, LibraryColl, MediaItem, Member, MetadataItemCached, Person, Poster,
+    Progression, SearchType, SharedConfig, TagFE, TagType,
 };
-
-
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
 pub enum OrderBy {
     Asc,
-    Desc
+    Desc,
 }
 
 impl OrderBy {
@@ -40,7 +39,6 @@ impl OrderBy {
     }
 }
 
-
 // Searches
 
 // POST /search/{id}
@@ -49,16 +47,13 @@ pub struct PostUpdateSearchIdBody {
     pub update_id: Option<Option<ImageIdType>>,
 }
 
-
-
 // Collection
 pub type GetCollectionListResponse = QueryListResponse<Collection>;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetCollectionResponse {
-    pub value: Option<Collection>
+    pub value: Option<Collection>,
 }
-
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NewCollectionBody {
@@ -69,7 +64,6 @@ pub struct NewCollectionBody {
 
 pub type NewCollectionResponse = Collection;
 
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UpdateCollectionModel {
     pub name: Option<String>,
@@ -78,11 +72,9 @@ pub struct UpdateCollectionModel {
     pub added_books: Option<Vec<BookId>>,
 }
 
-
 // Edits
 // GET /edits
 pub type GetEditListResponse = QueryListResponse<SharedEditModel>;
-
 
 // GET /edit/{id}
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -97,21 +89,17 @@ pub struct PostEditResponse {
     pub vote: Option<SharedEditVoteModel>,
 }
 
-
-
 // Tags
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetTagResponse {
-    pub value: Option<TagFE>
+    pub value: Option<TagFE>,
 }
-
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetTagsResponse {
     pub items: Vec<TagFE>,
 }
-
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NewTagBody {
@@ -121,15 +109,12 @@ pub struct NewTagBody {
 
 pub type NewTagResponse = TagFE;
 
-
-
 // Book Tags
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetBookTagsResponse {
     pub items: Vec<BookTag>,
 }
-
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NewBookTagBody {
@@ -147,11 +132,7 @@ pub struct GetBookTagResponse {
     pub value: Option<BookTag>,
 }
 
-
-
-
 // Images
-
 
 #[derive(Serialize, Deserialize)]
 pub struct GetPostersQuery {
@@ -159,18 +140,15 @@ pub struct GetPostersQuery {
     pub search_metadata: bool,
 }
 
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetPostersResponse {
-    pub items: Vec<Poster>
+    pub items: Vec<Poster>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ChangePosterBody {
     pub url_or_id: Either<String, ImageId>,
 }
-
-
 
 // Members
 
@@ -179,15 +157,12 @@ pub struct GetMemberSelfResponse {
     pub member: Option<Member>,
 }
 
-
 // Libraries
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetLibrariesResponse {
-    pub items: Vec<LibraryColl>
+    pub items: Vec<LibraryColl>,
 }
-
-
 
 // Book
 
@@ -208,15 +183,11 @@ pub enum NewBookBody {
     UpdateMultiple(MassEditBooks),
 }
 
-
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UpdateBookBody {
     pub metadata: Option<DisplayMetaItem>,
     pub people: Option<Vec<Person>>,
 }
-
-
 
 #[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct LoadResourceQuery {
@@ -227,13 +198,13 @@ pub struct LoadResourceQuery {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetBookIdResponse {
     pub media: MediaItem,
-    pub progress: Option<Progression>
+    pub progress: Option<Progression>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetBookListResponse {
     pub count: usize,
-    pub items: Vec<DisplayItem>
+    pub items: Vec<DisplayItem>,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -255,16 +226,11 @@ pub enum QueryType {
     HasPerson(bool),
 }
 
-
-
 pub type GetChaptersResponse = QueryListResponse<Chapter>;
-
-
 
 // People
 
 pub type GetPeopleResponse = QueryListResponse<Person>;
-
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum PostPersonBody {
@@ -279,17 +245,14 @@ pub enum PostPersonBody {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetPeopleSearch {
-    pub query: Option<String>
+    pub query: Option<String>,
 }
-
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetPersonResponse {
     pub person: Person,
     pub other_names: Vec<String>,
 }
-
-
 
 // Options
 
@@ -301,10 +264,8 @@ pub struct GetSettingsResponse {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ModifyOptionsBody {
     pub library: Option<BasicLibrary>,
-    pub directory: Option<BasicDirectory>
+    pub directory: Option<BasicDirectory>,
 }
-
-
 
 // Metadata
 
@@ -315,15 +276,13 @@ pub struct MediaViewResponse {
     pub tags: Vec<BookTag>,
 }
 
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum PostMetadataBody {
     AutoMatchMetaIdBySource,
     AutoMatchMetaIdByFiles,
 
-    UpdateMetaBySource(Source)
+    UpdateMetaBySource(Source),
 }
-
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GetMetadataSearch {
@@ -333,15 +292,13 @@ pub struct GetMetadataSearch {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ExternalSearchResponse {
-    pub items: HashMap<String, Vec<SearchItem>>
+    pub items: HashMap<String, Vec<SearchItem>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ExternalSourceItemResponse {
     pub item: Option<MetadataBookItem>,
 }
-
-
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum SearchItem {
@@ -353,18 +310,17 @@ impl SearchItem {
     pub fn as_book(&self) -> &MetadataBookSearchItem {
         match self {
             Self::Book(v) => v,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
     pub fn as_person(&self) -> &MetadataPersonSearchItem {
         match self {
             Self::Person(v) => v,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }
-
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct MetadataPersonSearchItem {
@@ -404,9 +360,12 @@ pub struct MetadataBookItem {
     pub isbn_10: Option<String>,
     pub isbn_13: Option<String>,
 
-    #[serde(serialize_with = "serialize_naivedate_opt", deserialize_with = "deserialize_naivedate_opt")]
+    #[serde(
+        serialize_with = "serialize_naivedate_opt",
+        deserialize_with = "deserialize_naivedate_opt"
+    )]
     pub available_at: Option<NaiveDate>,
-    pub language: Option<u16>
+    pub language: Option<u16>,
 }
 
 impl From<MetadataBookItem> for BookEdit {
@@ -414,20 +373,25 @@ impl From<MetadataBookItem> for BookEdit {
         Self {
             title: value.title,
             description: value.description,
-            rating: Some(value.rating).filter(|v|*v != 0.0),
+            rating: Some(value.rating).filter(|v| *v != 0.0),
             isbn_10: value.isbn_10,
             isbn_13: value.isbn_13,
             available_at: value.available_at.map(|v| v.and_hms(0, 0, 0).timestamp()),
             language: value.language,
 
-            added_images: Some(value.thumbnails.into_iter().map(NewOrCachedImage::Url).collect::<Vec<_>>()).filter(|v| !v.is_empty()),
+            added_images: Some(
+                value
+                    .thumbnails
+                    .into_iter()
+                    .map(NewOrCachedImage::Url)
+                    .collect::<Vec<_>>(),
+            )
+            .filter(|v| !v.is_empty()),
 
-            .. Self::default()
+            ..Self::default()
         }
     }
 }
-
-
 
 // Task
 
@@ -436,10 +400,8 @@ pub struct RunTaskBody {
     #[serde(default)]
     pub run_search: bool,
     #[serde(default)]
-    pub run_metadata: bool
+    pub run_metadata: bool,
 }
-
-
 
 #[derive(Default, Deserialize)]
 pub struct SimpleListQuery {
@@ -457,16 +419,24 @@ impl SimpleListQuery {
     pub fn from_url_search_params() -> Self {
         fn create() -> Option<SimpleListQuery> {
             let search_params = web_sys::UrlSearchParams::new_with_str(
-                &web_sys::window().unwrap().location().search().ok()?
-            ).ok()?;
+                &web_sys::window().unwrap().location().search().ok()?,
+            )
+            .ok()?;
 
-            let limit = search_params.get("limit")
+            let limit = search_params
+                .get("limit")
                 .and_then(|v| v.parse::<usize>().ok())
                 .unwrap_or_else(SimpleListQuery::limit);
 
-            let offset = match search_params.get("page").and_then(|v| v.parse::<usize>().ok()) {
+            let offset = match search_params
+                .get("page")
+                .and_then(|v| v.parse::<usize>().ok())
+            {
                 Some(page) => page * limit,
-                None => search_params.get("offset").and_then(|v| v.parse::<usize>().ok()).unwrap_or_default()
+                None => search_params
+                    .get("offset")
+                    .and_then(|v| v.parse::<usize>().ok())
+                    .unwrap_or_default(),
             };
 
             Some(SimpleListQuery {

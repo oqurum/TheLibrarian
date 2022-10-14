@@ -2,15 +2,17 @@ use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 use common::Agent;
-use common_local::{MetadataSearchId, util::serialize_datetime};
+use common_local::{util::serialize_datetime, MetadataSearchId};
 use num_enum::{FromPrimitive, IntoPrimitive};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use tokio_postgres::Client;
 
-use crate::{Result, metadata::{MetadataReturned, SearchItem, AuthorMetadata}};
+use crate::{
+    metadata::{AuthorMetadata, MetadataReturned, SearchItem},
+    Result,
+};
 
-use super::{TableRow, AdvRow, row_int_to_usize};
-
+use super::{row_int_to_usize, AdvRow, TableRow};
 
 pub struct NewMetadataSearchModel {
     pub query: String,
@@ -56,9 +58,14 @@ impl TableRow for MetadataSearchModel {
     }
 }
 
-
 impl NewMetadataSearchModel {
-    pub fn new(type_of: MetadataSearchType, query: String, agent: Agent, last_found_amount: usize, data: DataType) -> Self {
+    pub fn new(
+        type_of: MetadataSearchType,
+        query: String,
+        agent: Agent,
+        last_found_amount: usize,
+        data: DataType,
+    ) -> Self {
         let now = Utc::now();
 
         Self {
@@ -113,15 +120,26 @@ impl MetadataSearchModel {
         Ok(serde_json::from_str(&self.data)?)
     }
 
-    pub async fn find_one_by_query_and_agent(type_of: MetadataSearchType, query: &str, agent: &Agent, client: &Client) -> Result<Option<Self>> {
-        client.query_opt(
-            "SELECT * FROM metadata_search WHERE type_of = $1 AND query = $2 AND agent = $3",
-            params![ u8::from(type_of) as i16, query, agent.to_string() ],
-        ).await?.map(Self::from_row).transpose()
+    pub async fn find_one_by_query_and_agent(
+        type_of: MetadataSearchType,
+        query: &str,
+        agent: &Agent,
+        client: &Client,
+    ) -> Result<Option<Self>> {
+        client
+            .query_opt(
+                "SELECT * FROM metadata_search WHERE type_of = $1 AND query = $2 AND agent = $3",
+                params![u8::from(type_of) as i16, query, agent.to_string()],
+            )
+            .await?
+            .map(Self::from_row)
+            .transpose()
     }
 
     pub async fn update(&self, client: &Client) -> Result<u64> {
-        Ok(client.execute(r#"
+        Ok(client
+            .execute(
+                r#"
             UPDATE metadata_search SET
                 query = $2,
                 agent = $3,
@@ -131,22 +149,33 @@ impl MetadataSearchModel {
                 created_at = $7,
                 updated_at = $8
             WHERE id = $1"#,
-            params![
-                self.id,
-                &self.query, self.agent.to_string(), u8::from(self.type_of) as i16, self.last_found_amount as i32, self.data,
-                self.created_at, self.updated_at
-            ]
-        ).await?)
+                params![
+                    self.id,
+                    &self.query,
+                    self.agent.to_string(),
+                    u8::from(self.type_of) as i16,
+                    self.last_found_amount as i32,
+                    self.data,
+                    self.created_at,
+                    self.updated_at
+                ],
+            )
+            .await?)
     }
 }
-
-
 
 pub struct OptMetadataSearchModel(Option<MetadataSearchModel>);
 
 impl OptMetadataSearchModel {
-    pub async fn find_one_by_query_and_agent(type_of: MetadataSearchType, query: &str, agent: &Agent, client: &Client) -> Result<Self> {
-        if let Some(model) = MetadataSearchModel::find_one_by_query_and_agent(type_of, query, agent, client).await? {
+    pub async fn find_one_by_query_and_agent(
+        type_of: MetadataSearchType,
+        query: &str,
+        agent: &Agent,
+        client: &Client,
+    ) -> Result<Self> {
+        if let Some(model) =
+            MetadataSearchModel::find_one_by_query_and_agent(type_of, query, agent, client).await?
+        {
             Ok(Self(Some(model)))
         } else {
             Ok(Self(None))
@@ -155,13 +184,22 @@ impl OptMetadataSearchModel {
 
     /// If we have an existing model and we cannot update it return the cached version.
     pub fn should_use_cached(&self) -> Result<Option<DataType>> {
-        self.0.as_ref()
+        self.0
+            .as_ref()
             .filter(|v| !v.can_be_updated())
             .map(|v| v.parse_data())
             .transpose()
     }
 
-    pub async fn update_or_insert(self, type_of: MetadataSearchType, query: String, agent: Agent, last_found_amount: usize, data: DataType, client: &Client) -> Result<()> {
+    pub async fn update_or_insert(
+        self,
+        type_of: MetadataSearchType,
+        query: String,
+        agent: Agent,
+        last_found_amount: usize,
+        data: DataType,
+        client: &Client,
+    ) -> Result<()> {
         if let Some(mut model) = self.0 {
             model.last_found_amount = last_found_amount;
             model.data = serde_json::to_string(&data)?;
@@ -176,8 +214,6 @@ impl OptMetadataSearchModel {
         Ok(())
     }
 }
-
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum DataType {
@@ -211,10 +247,6 @@ impl DataType {
     }
 }
 
-
-
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Serialize, FromPrimitive, IntoPrimitive)]
 #[repr(u8)]
 pub enum MetadataSearchType {
@@ -222,4 +254,3 @@ pub enum MetadataSearchType {
     Book,
     Person,
 }
-

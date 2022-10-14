@@ -2,14 +2,11 @@ use tokio_postgres::Client;
 
 use crate::Result;
 
-
-
-
-
 pub async fn init(client: &Client) -> Result<()> {
     // Migration
-    client.execute(
-        r#"CREATE TABLE migration (
+    client
+        .execute(
+            r#"CREATE TABLE migration (
             id          INT NOT NULL,
 
             title       TEXT NOT NULL,
@@ -18,12 +15,14 @@ pub async fn init(client: &Client) -> Result<()> {
 
             created_at  TIMESTAMPTZ NOT NULL
         );"#,
-        &[]
-    ).await?;
+            &[],
+        )
+        .await?;
 
     // Book
-    client.execute(
-        r#"CREATE TABLE book (
+    client
+        .execute(
+            r#"CREATE TABLE book (
             id               SERIAL PRIMARY KEY,
 
             title            TEXT,
@@ -47,12 +46,14 @@ pub async fn init(client: &Client) -> Result<()> {
             updated_at       TIMESTAMPTZ,
             deleted_at       TIMESTAMPTZ
         );"#,
-        &[]
-    ).await?;
+            &[],
+        )
+        .await?;
 
     // People
-    client.execute(
-        r#"CREATE TABLE person (
+    client
+        .execute(
+            r#"CREATE TABLE person (
             id            SERIAL PRIMARY KEY,
 
             source        TEXT NOT NULL,
@@ -66,24 +67,28 @@ pub async fn init(client: &Client) -> Result<()> {
             updated_at    TIMESTAMPTZ NOT NULL,
             created_at    TIMESTAMPTZ NOT NULL
         );"#,
-        &[]
-    ).await?;
+            &[],
+        )
+        .await?;
 
     // People Other names
-    client.execute(
-        r#"CREATE TABLE person_alt (
+    client
+        .execute(
+            r#"CREATE TABLE person_alt (
             person_id   INT references person(id) ON DELETE CASCADE,
 
             name        TEXT NOT NULL,
 
             UNIQUE(person_id, name)
         );"#,
-        &[]
-    ).await?;
+            &[],
+        )
+        .await?;
 
     // Book People
-    client.execute(
-        r#"CREATE TABLE book_person (
+    client
+        .execute(
+            r#"CREATE TABLE book_person (
             book_id     INT NOT NULL references book(id) ON DELETE CASCADE,
             person_id   INT NOT NULL references person(id) ON DELETE CASCADE,
 
@@ -91,12 +96,14 @@ pub async fn init(client: &Client) -> Result<()> {
 
             UNIQUE(book_id, person_id)
         );"#,
-        &[]
-    ).await?;
+            &[],
+        )
+        .await?;
 
     // Members
-    client.execute(
-        r#"CREATE TABLE member (
+    client
+        .execute(
+            r#"CREATE TABLE member (
             id             SERIAL PRIMARY KEY,
 
             name           TEXT NOT NULL,
@@ -112,12 +119,14 @@ pub async fn init(client: &Client) -> Result<()> {
 
             UNIQUE(email)
         );"#,
-        &[]
-    ).await?;
+            &[],
+        )
+        .await?;
 
     // Auths
-    client.execute(
-        r#"CREATE TABLE auth (
+    client
+        .execute(
+            r#"CREATE TABLE auth (
             oauth_token          TEXT NOT NULL,
             oauth_token_secret   TEXT NOT NULL,
 
@@ -125,12 +134,14 @@ pub async fn init(client: &Client) -> Result<()> {
 
             UNIQUE(oauth_token)
         );"#,
-        &[]
-    ).await?;
+            &[],
+        )
+        .await?;
 
     // Tags
-    client.execute(
-        r#"CREATE TABLE tag (
+    client
+        .execute(
+            r#"CREATE TABLE tag (
             id           SERIAL PRIMARY KEY,
 
             name         VARCHAR(32) NOT NULL,
@@ -143,12 +154,14 @@ pub async fn init(client: &Client) -> Result<()> {
 
             UNIQUE("name", "type_of")
         );"#,
-        &[]
-    ).await?;
+            &[],
+        )
+        .await?;
 
     // Book Tags
-    client.execute(
-        r#"CREATE TABLE book_tag (
+    client
+        .execute(
+            r#"CREATE TABLE book_tag (
             id          SERIAL PRIMARY KEY,
 
             book_id     INT NOT NULL references book(id) ON DELETE CASCADE,
@@ -160,12 +173,14 @@ pub async fn init(client: &Client) -> Result<()> {
 
             UNIQUE("book_id", "tag_id")
         );"#,
-        &[]
-    ).await?;
+            &[],
+        )
+        .await?;
 
     // Uploaded Images
-    client.execute(
-        r#"CREATE TABLE uploaded_image (
+    client
+        .execute(
+            r#"CREATE TABLE uploaded_image (
             id          SERIAL PRIMARY KEY,
 
             path        TEXT NOT NULL,
@@ -178,12 +193,14 @@ pub async fn init(client: &Client) -> Result<()> {
 
             UNIQUE(path)
         );"#,
-        &[]
-    ).await?;
+            &[],
+        )
+        .await?;
 
     // Image Link
-    client.execute(
-        r#"CREATE TABLE image_link (
+    client
+        .execute(
+            r#"CREATE TABLE image_link (
             "image_id"    INT NOT NULL references uploaded_image(id) ON DELETE CASCADE,
 
             "link_id"     INT NOT NULL,
@@ -191,13 +208,14 @@ pub async fn init(client: &Client) -> Result<()> {
 
             UNIQUE(image_id, link_id, type_of)
         );"#,
-        &[]
-    ).await?;
-
+            &[],
+        )
+        .await?;
 
     // Edit
-    client.execute(
-        r#"CREATE TABLE edit (
+    client
+        .execute(
+            r#"CREATE TABLE edit (
             id           SERIAL PRIMARY KEY,
 
             type_of      SMALLINT NOT NULL,
@@ -217,12 +235,14 @@ pub async fn init(client: &Client) -> Result<()> {
             created_at   TIMESTAMPTZ NOT NULL,
             updated_at   TIMESTAMPTZ NOT NULL
         );"#,
-        &[]
-    ).await?;
+            &[],
+        )
+        .await?;
 
     // Edit Vote
-    client.execute(
-        r#"CREATE TABLE edit_vote (
+    client
+        .execute(
+            r#"CREATE TABLE edit_vote (
             id          SERIAL PRIMARY KEY,
 
             edit_id     INT NOT NULL references edit(id) ON DELETE CASCADE,
@@ -234,12 +254,14 @@ pub async fn init(client: &Client) -> Result<()> {
 
             UNIQUE("edit_id", "member_id")
         );"#,
-        &[]
-    ).await?;
+            &[],
+        )
+        .await?;
 
     // Edit Comment
-    client.execute(
-        r#"CREATE TABLE edit_comment (
+    client
+        .execute(
+            r#"CREATE TABLE edit_comment (
             id          SERIAL PRIMARY KEY,
 
             edit_id     INT NOT NULL references edit(id) ON DELETE CASCADE,
@@ -251,13 +273,14 @@ pub async fn init(client: &Client) -> Result<()> {
             created_at  TIMESTAMPTZ NOT NULL
 
         );"#,
-        &[]
-    ).await?;
-
+            &[],
+        )
+        .await?;
 
     // Linked Servers
-    client.execute(
-        r#"CREATE TABLE server_link (
+    client
+        .execute(
+            r#"CREATE TABLE server_link (
             id                 SERIAL PRIMARY KEY,
 
             server_owner_name  VARCHAR(32),
@@ -274,13 +297,14 @@ pub async fn init(client: &Client) -> Result<()> {
 
             UNIQUE("server_id")
         );"#,
-        &[]
-    ).await?;
-
+            &[],
+        )
+        .await?;
 
     // Search Groupings
-    client.execute(
-        r#"CREATE TABLE search_group (
+    client
+        .execute(
+            r#"CREATE TABLE search_group (
             id                SERIAL PRIMARY KEY,
 
             query             TEXT NOT NULL,
@@ -294,12 +318,14 @@ pub async fn init(client: &Client) -> Result<()> {
 
             UNIQUE("query", "timeframe")
         );"#,
-        &[]
-    ).await?;
+            &[],
+        )
+        .await?;
 
     // Search Server Item
-    client.execute(
-        r#"CREATE TABLE search_item (
+    client
+        .execute(
+            r#"CREATE TABLE search_item (
             id              SERIAL PRIMARY KEY,
 
             server_link_id  INT NOT NULL references server_link(id) ON DELETE CASCADE,
@@ -312,13 +338,14 @@ pub async fn init(client: &Client) -> Result<()> {
 
             UNIQUE("query", "server_link_id")
         );"#,
-        &[]
-    ).await?;
-
+            &[],
+        )
+        .await?;
 
     // External Metadata Searches
-    client.execute(
-        r#"CREATE TABLE metadata_search (
+    client
+        .execute(
+            r#"CREATE TABLE metadata_search (
             id                  SERIAL PRIMARY KEY,
 
             query               TEXT NOT NULL,
@@ -332,12 +359,14 @@ pub async fn init(client: &Client) -> Result<()> {
 
             UNIQUE("query", "agent")
         );"#,
-        &[]
-    ).await?;
+            &[],
+        )
+        .await?;
 
     // Collection
-    client.execute(
-        r#"CREATE TABLE collection (
+    client
+        .execute(
+            r#"CREATE TABLE collection (
             id            SERIAL PRIMARY KEY,
 
             name          TEXT NOT NULL,
@@ -347,13 +376,14 @@ pub async fn init(client: &Client) -> Result<()> {
             created_at    TIMESTAMPTZ NOT NULL,
             updated_at    TIMESTAMPTZ NOT NULL
         );"#,
-        &[]
-    ).await?;
-
+            &[],
+        )
+        .await?;
 
     // Collection Item
-    client.execute(
-        r#"CREATE TABLE collection_item (
+    client
+        .execute(
+            r#"CREATE TABLE collection_item (
             collection_id  INT NOT NULL references collection(id) ON DELETE CASCADE,
             book_id        INT NOT NULL references book(id) ON DELETE CASCADE,
 
@@ -361,9 +391,9 @@ pub async fn init(client: &Client) -> Result<()> {
 
             UNIQUE("collection_id", "book_id")
         );"#,
-        &[]
-    ).await?;
-
+            &[],
+        )
+        .await?;
 
     // Affiliated Book ISBN
     // client.execute(
@@ -380,11 +410,9 @@ pub async fn init(client: &Client) -> Result<()> {
     //     &[]
     // ).await?;
 
-
     // TODO: Tables
     // Fingerprints
     // Custom Book (Fingerprint) Stylings
-
 
     client.execute(
         "INSERT INTO member VALUES (0, 'System', NULL, NULL, '0-0', NULL, '1970-01-01 00:00:00-08', '1970-01-01 00:00:00-08')",

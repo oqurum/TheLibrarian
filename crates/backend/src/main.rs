@@ -2,9 +2,7 @@
     clippy::expect_used,
     // clippy::unwrap_used,
 )]
-
 #![allow(clippy::manual_map)]
-
 
 #[macro_export]
 macro_rules! params {
@@ -16,7 +14,6 @@ macro_rules! params {
     };
 }
 
-
 use actix_web::web;
 use clap::Parser;
 
@@ -26,12 +23,12 @@ pub mod error;
 pub mod http;
 pub mod metadata;
 pub mod model;
-pub mod storage;
 mod scheduler;
+pub mod storage;
 mod util;
 
 pub use cli::CliArgs;
-pub use error::{Result, WebResult, WebError, Error, InternalError};
+pub use error::{Error, InternalError, Result, WebError, WebResult};
 pub use util::*;
 
 #[actix_web::main]
@@ -45,15 +42,16 @@ async fn main() -> Result<()> {
 
     let config = config::get_config();
 
-    { // Initiate Storage
-        *storage::STORE.write().await = storage::Storage::pick_service_from_config(&config.storage).await?;
+    {
+        // Initiate Storage
+        *storage::STORE.write().await =
+            storage::Storage::pick_service_from_config(&config.storage).await?;
     }
 
     let client = database::init(&config).await?;
     let db_data = web::Data::new(client);
 
     scheduler::start(db_data.clone());
-
 
     println!("Starting HTTP Server on port {}", cli_args.port);
 

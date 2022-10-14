@@ -1,9 +1,8 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 pub static UNIQUE_ID: AtomicUsize = AtomicUsize::new(0);
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct UniqueId(usize);
@@ -20,14 +19,12 @@ impl Default for UniqueId {
     }
 }
 
-
-
 #[derive(Debug, Serialize, Deserialize)]
 pub enum WebsocketResponse {
     Ping,
     Pong,
 
-    Notification(WebsocketNotification)
+    Notification(WebsocketNotification),
 }
 
 impl WebsocketResponse {
@@ -40,13 +37,9 @@ impl WebsocketResponse {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum WebsocketNotification {
-    TaskStart {
-        id: UniqueId,
-        type_of: TaskType
-    },
+    TaskStart { id: UniqueId, type_of: TaskType },
     TaskEnd(UniqueId),
 }
 
@@ -55,7 +48,6 @@ impl WebsocketNotification {
         Self::TaskStart { id, type_of }
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TaskType {

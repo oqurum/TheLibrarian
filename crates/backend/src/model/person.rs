@@ -1,13 +1,14 @@
-use common_local::{Person, util::{serialize_datetime, serialize_naivedate_opt}};
-use chrono::{DateTime, Utc, NaiveDate};
-use common::{BookId, PersonId, Source, ThumbnailStore, api::librarian::PublicAuthor};
+use chrono::{DateTime, NaiveDate, Utc};
+use common::{api::librarian::PublicAuthor, BookId, PersonId, Source, ThumbnailStore};
+use common_local::{
+    util::{serialize_datetime, serialize_naivedate_opt},
+    Person,
+};
 use serde::Serialize;
 
 use crate::Result;
 
-use super::{PersonAltModel, TableRow, AdvRow, row_int_to_usize, row_bigint_to_usize};
-
-
+use super::{row_bigint_to_usize, row_int_to_usize, AdvRow, PersonAltModel, TableRow};
 
 #[derive(Debug)]
 pub struct NewPersonModel {
@@ -84,7 +85,6 @@ impl NewPersonModel {
     }
 }
 
-
 impl PersonModel {
     pub fn into_public_person(self, info: Option<String>) -> Person {
         Person {
@@ -109,52 +109,69 @@ impl PersonModel {
             name: self.name,
             description: self.description,
             birth_date: self.birth_date,
-            thumb_url: self.thumb_url.as_value().map(|v| format!("{}/api/v1/image/{v}", host)),
+            thumb_url: self
+                .thumb_url
+                .as_value()
+                .map(|v| format!("{}/api/v1/image/{v}", host)),
             updated_at: self.updated_at,
             created_at: self.created_at,
         }
     }
 
-    pub async fn get_all(offset: usize, limit: usize, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
-        let values = db.query(
-            "SELECT * FROM person ORDER BY name ASC LIMIT $1 OFFSET $2",
-            params![ limit as i64, offset as i64 ]
-        ).await?;
+    pub async fn get_all(
+        offset: usize,
+        limit: usize,
+        db: &tokio_postgres::Client,
+    ) -> Result<Vec<Self>> {
+        let values = db
+            .query(
+                "SELECT * FROM person ORDER BY name ASC LIMIT $1 OFFSET $2",
+                params![limit as i64, offset as i64],
+            )
+            .await?;
 
         values.into_iter().map(Self::from_row).collect()
     }
 
-    pub async fn get_all_by_book_id(book_id: BookId, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
-        let values = db.query(
-            r#"
+    pub async fn get_all_by_book_id(
+        book_id: BookId,
+        db: &tokio_postgres::Client,
+    ) -> Result<Vec<Self>> {
+        let values = db
+            .query(
+                r#"
                 SELECT person.* FROM book_person
                 LEFT JOIN
                     person ON person.id = book_person.person_id
                 WHERE book_id = $1
             "#,
-            params![ *book_id as i32 ]
-        ).await?;
+                params![*book_id as i32],
+            )
+            .await?;
 
         values.into_iter().map(Self::from_row).collect()
     }
 
-    pub async fn get_all_by_book_id_w_info(book_id: BookId, db: &tokio_postgres::Client) -> Result<Vec<(Self, Option<String>)>> {
-        let values = db.query(
-            r#"
+    pub async fn get_all_by_book_id_w_info(
+        book_id: BookId,
+        db: &tokio_postgres::Client,
+    ) -> Result<Vec<(Self, Option<String>)>> {
+        let values = db
+            .query(
+                r#"
                 SELECT person.*, book_person.info FROM book_person
                 LEFT JOIN
                     person ON person.id = book_person.person_id
                 WHERE book_id = $1
             "#,
-            params![ *book_id as i32 ]
-        ).await?;
+                params![*book_id as i32],
+            )
+            .await?;
 
-        values.into_iter()
+        values
+            .into_iter()
             .map(|v| {
-                let mut v = AdvRow {
-                    index: 0,
-                    row: v
-                };
+                let mut v = AdvRow { index: 0, row: v };
 
                 Result::Ok((Self::create(&mut v)?, v.next_opt()?))
             })
@@ -170,13 +187,15 @@ impl PersonModel {
                 @@ websearch_to_tsquery('english', $1)
         "#;
 
-        row_bigint_to_usize(db.query_one(
-            statement,
-            params![ query ]
-        ).await?)
+        row_bigint_to_usize(db.query_one(statement, params![query]).await?)
     }
 
-    pub async fn search(query: &str, offset: usize, limit: usize, db: &tokio_postgres::Client) -> Result<Vec<Self>> {
+    pub async fn search(
+        query: &str,
+        offset: usize,
+        limit: usize,
+        db: &tokio_postgres::Client,
+    ) -> Result<Vec<Self>> {
         let statement = r#"
             SELECT *
             FROM person
@@ -187,21 +206,24 @@ impl PersonModel {
             LIMIT $2 OFFSET $3
         "#;
 
-
-        let values = db.query(
-            statement,
-            params![ query, limit as i64, offset as i64 ]
-        ).await?;
+        let values = db
+            .query(statement, params![query, limit as i64, offset as i64])
+            .await?;
 
         values.into_iter().map(Self::from_row).collect()
     }
 
     // TODO: Change result to Vec since multiple people can have the same name.
-    pub async fn find_one_by_name(value: &str, db: &tokio_postgres::Client) -> Result<Option<Self>> {
-        let person = db.query_opt(
-            "SELECT * FROM person WHERE name = $1 LIMIT 1",
-            params![ value ],
-        ).await?;
+    pub async fn find_one_by_name(
+        value: &str,
+        db: &tokio_postgres::Client,
+    ) -> Result<Option<Self>> {
+        let person = db
+            .query_opt(
+                "SELECT * FROM person WHERE name = $1 LIMIT 1",
+                params![value],
+            )
+            .await?;
 
         if let Some(person) = person {
             Ok(Some(Self::from_row(person)?))
@@ -213,17 +235,17 @@ impl PersonModel {
     }
 
     pub async fn get_by_id(id: PersonId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
-        db.query_opt(
-            r#"SELECT * FROM person WHERE id = $1"#,
-            params![ *id as i32 ],
-        ).await?.map(Self::from_row).transpose()
+        db.query_opt(r#"SELECT * FROM person WHERE id = $1"#, params![*id as i32])
+            .await?
+            .map(Self::from_row)
+            .transpose()
     }
 
     pub async fn get_by_source(value: &str, db: &tokio_postgres::Client) -> Result<Option<Self>> {
-        db.query_opt(
-            "SELECT * FROM person WHERE source = $1",
-            params![ value ],
-        ).await?.map(Self::from_row).transpose()
+        db.query_opt("SELECT * FROM person WHERE source = $1", params![value])
+            .await?
+            .map(Self::from_row)
+            .transpose()
     }
 
     pub async fn get_count(db: &tokio_postgres::Client) -> Result<usize> {
@@ -231,7 +253,8 @@ impl PersonModel {
     }
 
     pub async fn update(&self, db: &tokio_postgres::Client) -> Result<()> {
-        db.execute(r#"
+        db.execute(
+            r#"
             UPDATE person SET
                 source = $2,
                 name = $3,
@@ -243,18 +266,23 @@ impl PersonModel {
             WHERE id = $1"#,
             params![
                 *self.id as i32,
-                self.source.to_string(), &self.name, &self.description, &self.birth_date, self.thumb_url.as_value(),
-                self.updated_at, self.created_at
-            ]
-        ).await?;
+                self.source.to_string(),
+                &self.name,
+                &self.description,
+                &self.birth_date,
+                self.thumb_url.as_value(),
+                self.updated_at,
+                self.created_at
+            ],
+        )
+        .await?;
 
         Ok(())
     }
 
     pub async fn remove_by_id(id: PersonId, db: &tokio_postgres::Client) -> Result<u64> {
-        Ok(db.execute(
-            "DELETE FROM person WHERE id = $1",
-            params![ *id as i32 ]
-        ).await?)
+        Ok(db
+            .execute("DELETE FROM person WHERE id = $1", params![*id as i32])
+            .await?)
     }
 }
