@@ -147,20 +147,20 @@ pub mod rfd {
 
     #[derive(Debug, Serialize, Deserialize)]
     pub struct RfdDescriptionItem {
-            pub about: String,
-            #[serde(rename = "authorList")]
-            pub authors: Option<Vec<AuthorList>>,
+        pub about: String,
+        #[serde(rename = "authorList")]
+        pub authors: Option<Vec<AuthorList>>,
 
-            pub contributor: Option<Vec<String>>,
+        pub contributor: Option<Vec<String>>,
 
-            // title: String,
-            // publisher: String,
-            // #[serde(rename = "placeOfPublication")]
-            // publication_place: Option<String>,
-            // issued: String,
-            // extent: String,
+        // title: String,
+        // publisher: String,
+        // #[serde(rename = "placeOfPublication")]
+        // publication_place: Option<String>,
+        // issued: String,
+        // extent: String,
 
-            // edition: Option<String>,
+        // edition: Option<String>,
     }
 
     #[derive(Debug, Serialize, Deserialize)]
