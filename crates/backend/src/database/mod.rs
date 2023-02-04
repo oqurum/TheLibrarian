@@ -9,7 +9,9 @@ pub async fn init(config: &Config) -> Result<Client> {
     // Initiate Connection
     tokio::spawn(async move {
         if let Err(e) = connection.await {
-            panic!("Database Connection Error: {}", e);
+            log::error!("Database Connection Error: {}", e);
+
+            std::process::exit(1);
         }
     });
 
