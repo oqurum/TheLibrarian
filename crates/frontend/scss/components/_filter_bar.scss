@@ -1,9 +1,9 @@
 .filter-bar {
 	user-select: none;
-    min-height: 3em;
 
 	> .bar-container {
 		display: flex;
+		flex-wrap: wrap;
         height: 100%;
         padding: 0 10px;
         justify-content: space-between;
@@ -13,6 +13,7 @@
 		> .left-content {
 			display: flex;
 			flex-direction: row;
+			margin: 5px 0;
 
 			> * {
 				margin: 0 5px;
@@ -23,6 +24,7 @@
 		> .center-content {
 			display: flex;
 			flex-direction: row;
+			margin: 5px 0;
 
 			> * {
 				margin: 0 5px;
@@ -41,6 +43,7 @@
 			display: flex;
 			flex-direction: row;
 			justify-content: flex-end;
+			margin: 5px 0;
 
 			> * {
 				margin: 0 5px;

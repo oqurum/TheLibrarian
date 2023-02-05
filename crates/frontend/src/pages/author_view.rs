@@ -193,7 +193,7 @@ impl Component for AuthorView {
 
             html! {
                 <div class="outer-view-container">
-                    <div class="sidebar-container">
+                    <div class="sidebar-container display-none display-block-md">
                     {
                         if self.is_editing() {
                             html! {

@@ -1,0 +1,45 @@
+@use "sass:map";
+
+@function breakpoint-min($name, $breakpoints: $grid-breakpoints) {
+    $min: map.get($breakpoints, $name);
+    @return if($min != 0, $min, null);
+}
+
+@mixin media-breakpoint-up($name, $breakpoints: $grid-breakpoints) {
+    $min: breakpoint-min($name, $breakpoints);
+
+    @if $min {
+        @media (min-width: $min) {
+                @content;
+        }
+    } @else {
+        @content;
+    }
+}
+
+// MD 832
+
+$grid-breakpoints: (
+  sm: 576px,
+  md: 832px,
+  lg: 992px,
+  xl: 1200px,
+  xxl: 1400px
+);
+
+
+// Display Name
+.display-none {
+    display: none;
+}
+
+// Display Block
+@include media-breakpoint-up(md) {
+    .display-block-md {
+        display: block !important;
+    }
+
+    .display-none-md {
+        display: none !important;
+    }
+}

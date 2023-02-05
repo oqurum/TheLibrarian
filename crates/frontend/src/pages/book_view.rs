@@ -408,7 +408,7 @@ impl BookView {
 
             html! {
                 <div class="outer-view-container">
-                    <div class="sidebar-container">
+                    <div class="sidebar-container display-none display-block-md">
                         <div class="sidebar-item">
                             <button class="button" onclick={ctx.link().callback(|_| Msg::ToggleEdit)}>{"Stop Editing"}</button>
                         </div>
@@ -768,7 +768,7 @@ impl BookView {
 
             html! {
                 <div class="outer-view-container">
-                    <div class="sidebar-container">
+                    <div class="sidebar-container display-none display-block-md">
                         <LoginBarrier>
                             <div class="sidebar-item">
                                 <button class="button" onclick={ctx.link().callback(|_| Msg::ToggleEdit)}>{"Start Editing"}</button>

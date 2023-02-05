@@ -10,6 +10,7 @@
 
 	> .bar-container {
 		display: flex;
+		flex-wrap: wrap;
 		height: 100%;
 		padding: 0 10px;
 		justify-content: space-between;

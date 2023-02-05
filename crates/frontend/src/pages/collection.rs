@@ -74,7 +74,7 @@ impl Component for CollectionView {
         if let Some(value) = resp.and_then(|v| v.value.as_ref()) {
             html! {
                 <div class="outer-view-container">
-                    <div class="sidebar-container">
+                    <div class="sidebar-container display-none display-block-md">
                         <LoginBarrier>
                             <div class="sidebar-item">
                                 <button class="button">{ "Start Editing" }</button>
