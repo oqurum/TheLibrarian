@@ -122,6 +122,8 @@ impl Component for HomePage {
                 ctx.link().send_future(async move {
                     Msg::MediaListResults(request::get_books(query).await)
                 });
+
+                return false;
             }
 
             Msg::MediaListResults(resp) => {
@@ -139,10 +141,10 @@ impl Component for HomePage {
 
             Msg::OnScrollEvent(event) => {
                 if event.scroll_height - event.scroll_pos < 600 && self.can_req_more() {
-                    ctx.link().send_message(Msg::RequestMediaItems);
+                    return Component::update(self, ctx, Msg::RequestMediaItems);
+                } else {
+                    return false;
                 }
-
-                return false;
             }
 
             Msg::Reload => {
@@ -152,7 +154,7 @@ impl Component for HomePage {
                 self.media_popup = None;
                 self.editing_items.lock().unwrap().clear();
 
-                return self.update(ctx, Msg::RequestMediaItems);
+                return Component::update(self, ctx, Msg::RequestMediaItems);
             }
 
             Msg::Ignore => return false,
@@ -164,12 +166,16 @@ impl Component for HomePage {
     fn view(&self, ctx: &Context<Self>) -> Html {
         let content = if let Some(items) = self.media_items.as_deref() {
             html! {
-                <div class="view-container">
+                <InfiniteScroll
+                    class="view-container"
+                    r#ref={ self.library_list_ref.clone() }
+                    event={ ctx.link().callback(Msg::OnScrollEvent) }
+                >
                     // Filter Bar
                     <div class="filter-bar">
                         <div class="bar-container">
                             <div class="left-content">
-                                <button class="slim"
+                                <button type="button" class="btn btn-secondary btn-sm"
                                     onclick={ ctx.link().callback(|_| {
                                         let loc = window().location();
 
@@ -184,7 +190,7 @@ impl Component for HomePage {
                                         Msg::Reload
                                     }) }
                                 >{ "Unset Filter" }</button>
-                                <button class="slim"
+                                <button type="button" class="btn btn-secondary btn-sm"
                                     onclick={ ctx.link().callback(move |_| {
                                         let mut query = get_query().unwrap_or_default();
                                         query.search = Some(QueryType::HasPerson(false));
@@ -213,61 +219,61 @@ impl Component for HomePage {
                         </div>
                     </div>
 
-                    // Book List
-                    <InfiniteScroll
-                        class="book-list normal"
-                        ref={ self.library_list_ref.clone() }
-                        event={ ctx.link().callback(Msg::OnScrollEvent) }
-                    >
-                        {
-                            for items.iter().map(|item| {
-                                let is_editing = self.editing_items.lock().unwrap().contains(&item.id);
+                    <div class="container-xxl">
+                        // Book List
+                        <div class="row row-cols-2 row-cols-sm-4 row-cols-md-4 row-cols-lg-5 row-cols-xl-6">
+                            {
+                                for items.iter().map(|item| {
+                                    let is_editing = self.editing_items.lock().unwrap().contains(&item.id);
 
-                                html! {
-                                    <MediaItem
-                                        {is_editing}
+                                    html! {
+                                        <div class="col p-0">
+                                            <MediaItem
+                                                {is_editing}
 
-                                        item={item.clone()}
-                                        callback={ctx.link().callback(|v| v)}
-                                    />
-                                }
-                            })
-                        }
-
-                        {
-                            if let Some(DisplayOverlay::SearchForBook { input_value }) = self.media_popup.as_ref() {
-                                let input_value = if let Some(v) = input_value {
-                                    v.trim().to_string()
-                                } else {
-                                    String::new()
-                                };
-
-                                html! {
-                                    <PopupSearch
-                                        {input_value}
-                                        type_of={ SearchBy::External }
-                                        comparable=true
-                                        search_for={ SearchType::Book }
-                                        on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
-                                        on_select={ ctx.link().callback_future(|value: SearchSelectedValue| async {
-                                            request::update_one_or_more_books(NewBookBody::Value(Box::new(value.into_external()))).await;
-
-                                            Msg::Ignore
-                                        }) }
-                                    />
-                                }
-                            } else {
-                                html! {}
+                                                item={item.clone()}
+                                                callback={ctx.link().callback(|v| v)}
+                                            />
+                                        </div>
+                                    }
+                                })
                             }
-                        }
-                    </InfiniteScroll>
+
+                            {
+                                if let Some(DisplayOverlay::SearchForBook { input_value }) = self.media_popup.as_ref() {
+                                    let input_value = if let Some(v) = input_value {
+                                        v.trim().to_string()
+                                    } else {
+                                        String::new()
+                                    };
+
+                                    html! {
+                                        <PopupSearch
+                                            {input_value}
+                                            type_of={ SearchBy::External }
+                                            comparable=true
+                                            search_for={ SearchType::Book }
+                                            on_close={ ctx.link().callback(|_| Msg::ClosePopup) }
+                                            on_select={ ctx.link().callback_future(|value: SearchSelectedValue| async {
+                                                request::update_one_or_more_books(NewBookBody::Value(Box::new(value.into_external()))).await;
+
+                                                Msg::Ignore
+                                            }) }
+                                        />
+                                    }
+                                } else {
+                                    html! {}
+                                }
+                            }
+                        </div>
+                    </div>
 
                     <MassSelectBar
                         on_deselect_all={ctx.link().callback(|_| Msg::DeselectAllEditing)}
                         editing_container={self.library_list_ref.clone()}
                         editing_items={self.editing_items.clone()}
                     />
-                </div>
+                </InfiniteScroll>
             }
         } else {
             html! {
@@ -276,11 +282,16 @@ impl Component for HomePage {
         };
 
         html! {
-            <div class="outer-view-container">
-                <div class="sidebar-container display-none display-block-md">
+            <div class="outer-view-container h-100 px-0">
+                <div class="sidebar-container d-none d-md-flex flex-column flex-shrink-0 p-2 text-bg-dark">
                     <LoginBarrier>
                         <div class="sidebar-item">
-                            <button class="button" onclick={ctx.link().callback(|_| Msg::OpenPopup(DisplayOverlay::SearchForBook { input_value: None }))}>{"Add New Book"}</button>
+                            <button
+                                class="btn btn-secondary"
+                                onclick={ ctx.link().callback(|_| Msg::OpenPopup(DisplayOverlay::SearchForBook { input_value: None })) }
+                            >
+                                { "Add New Book" }
+                            </button>
                         </div>
                     </LoginBarrier>
                 </div>
@@ -316,7 +327,7 @@ impl HomePage {
             .map(|v| v.len())
             .unwrap_or_default();
 
-        count != 0 && count != self.total_media_count as usize
+        count != 0 && count != self.total_media_count
     }
 }
 
@@ -327,6 +338,9 @@ pub struct MediaItemProps {
     pub item: DisplayItem,
     pub callback: Option<Callback<Msg>>,
     pub is_editing: bool,
+    /// Basic "Should be defined size" check
+    #[prop_or_default]
+    pub is_set_size: bool,
 }
 
 impl PartialEq for MediaItemProps {
@@ -359,6 +373,7 @@ impl Component for MediaItem {
             .unwrap_or_default();
 
         let &MediaItemProps {
+            is_set_size,
             is_editing,
             ref item,
             ..
@@ -367,8 +382,8 @@ impl Component for MediaItem {
         let meta_id = item.id;
 
         html! {
-            <Link<Route> to={Route::ViewMeta { meta_id: item.id }} classes={ classes!("book-list-item") }>
-                <div class="poster">
+            <Link<Route> to={ Route::ViewMeta { meta_id: item.id } } classes={ classes!("book-list-item", (!is_set_size).then_some("w-auto")) }>
+                <div class={ classes!("poster", is_set_size.then_some("normal")) }>
                     <div class="top-left">
                     {
                         if editing_perms {
@@ -401,18 +416,18 @@ impl Component for MediaItem {
                     <img src={ item.get_thumb_url() } />
                 </div>
                 <div class="info">
-                    <div class="title" title={ item.title.clone() }>{ item.title.clone() }</div>
+                    <div class="title text-light" title={ item.title.clone() }>{ item.title.clone() }</div>
                     {
                         if let Some(author) = item.cached.author.as_ref() {
                             if let Some(author_id) = item.cached.author_id {
                                 html! {
-                                    <Link<Route> to={ Route::Person { id: author_id } } classes={ "author" }>
+                                    <Link<Route> to={ Route::Person { id: author_id } } classes={ "author text-light" }>
                                         { author.clone() }
                                     </Link<Route>>
                                 }
                             } else {
                                 html! {
-                                    <div class="author" title={ author.clone() }>{ author.clone() }</div>
+                                    <div class="author text-light" title={ author.clone() }>{ author.clone() }</div>
                                 }
                             }
                         } else {

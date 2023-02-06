@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use tokio_postgres::Client;
 
 use crate::Result;
@@ -30,6 +31,17 @@ async fn does_migration_table_exist(client: &Client) -> Result<bool> {
         .get(0))
 }
 
-        params![]
-    ).await?.get(0))
+struct MigrationModel {
+    id: i32,
+
+    duration: i32,
+
+    name: String,
+    notes: String,
+
+    created_at: DateTime<Utc>,
+}
+
+impl MigrationModel {
+    //
 }

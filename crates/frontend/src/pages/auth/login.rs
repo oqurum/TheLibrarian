@@ -3,10 +3,7 @@ use gloo_utils::window;
 use wasm_bindgen::UnwrapThrowExt;
 use web_sys::HtmlInputElement;
 use yew::{html::Scope, prelude::*};
-use yew_router::{
-    history::History,
-    prelude::{Location, RouterScopeExt},
-};
+use yew_router::prelude::RouterScopeExt;
 
 use crate::{request, Route};
 
@@ -37,10 +34,10 @@ impl Component for LoginPage {
         match msg {
             Msg::LoginPasswordResponse(resp) => {
                 if resp.is_ok() {
-                    let history = ctx.link().history().unwrap();
-
-                    if history.location().pathname() == "/login" {
-                        history.push(Route::Home);
+                    let location = ctx.link().location().unwrap();
+                    if location.path() == "/login" {
+                        let nav = ctx.link().navigator().unwrap();
+                        nav.push(&Route::Home);
                     } else {
                         window().location().reload().unwrap_throw();
                     }
@@ -51,10 +48,11 @@ impl Component for LoginPage {
 
             Msg::LoginPasswordlessResponse(resp) => {
                 if resp.is_ok() {
-                    let history = ctx.link().history().unwrap();
+                    let location = ctx.link().location().unwrap();
 
-                    if history.location().pathname() == "/login" {
-                        history.push(Route::Home);
+                    if location.path() == "/login" {
+                        let nav = ctx.link().navigator().unwrap();
+                        nav.push(&Route::Home);
                     } else {
                         window().location().reload().unwrap_throw();
                     }

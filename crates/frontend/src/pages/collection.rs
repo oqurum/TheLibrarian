@@ -73,11 +73,11 @@ impl Component for CollectionView {
 
         if let Some(value) = resp.and_then(|v| v.value.as_ref()) {
             html! {
-                <div class="outer-view-container">
-                    <div class="sidebar-container display-none display-block-md">
+                <div class="outer-view-container h-100 px-0">
+                    <div class="sidebar-container d-none d-md-flex flex-column flex-shrink-0 p-2 text-bg-dark">
                         <LoginBarrier>
                             <div class="sidebar-item">
-                                <button class="button">{ "Start Editing" }</button>
+                                <button class="btn btn-secondary">{ "Start Editing" }</button>
                             </div>
                         </LoginBarrier>
                     </div>
@@ -107,6 +107,7 @@ impl Component for CollectionView {
                                                     for resp.items.iter().map(|item| {
                                                         html! {
                                                             <MediaItem
+                                                                is_set_size=true
                                                                 is_editing=false
                                                                 item={item.clone()}
                                                             />

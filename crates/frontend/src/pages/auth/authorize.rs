@@ -142,7 +142,7 @@ fn _auth_form(props: &InnerProps) -> Html {
                 }
             </div>
 
-            <div class="label red">
+            <div class="badge bg-danger">
                 <b>{ "Only do this if you trust the user running the server!" }</b>
             </div>
 

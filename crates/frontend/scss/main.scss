@@ -10,3 +10,25 @@
 @import "pages/list_edits";
 @import "pages/list_members";
 @import "pages/list_searches";
+
+html {
+    height: 100%;
+    overflow-x: hidden;
+}
+
+
+.overflow-hidden {
+    overflow: hidden;
+}
+
+.overflow-x-hidden {
+    overflow-x: hidden;
+}
+
+.overflow-y-hidden {
+    overflow-y: hidden;
+}
+
+.w-fit-content {
+    width: fit-content;
+}

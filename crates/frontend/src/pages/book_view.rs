@@ -372,7 +372,7 @@ impl Component for BookView {
         }
     }
 
-    fn changed(&mut self, _ctx: &Context<Self>) -> bool {
+    fn changed(&mut self, _ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
         if let Some(member) = get_member_self() {
             if member.localsettings.get_page_view_default().is_editing() {
                 self.is_editing = true;
@@ -407,333 +407,365 @@ impl BookView {
             });
 
             html! {
-                <div class="outer-view-container">
-                    <div class="sidebar-container display-none display-block-md">
+                <div class="outer-view-container h-100 px-0">
+                    <div class="sidebar-container d-none d-md-flex flex-column flex-shrink-0 p-2 text-bg-dark">
                         <div class="sidebar-item">
-                            <button class="button" onclick={ctx.link().callback(|_| Msg::ToggleEdit)}>{"Stop Editing"}</button>
+                            <button class="btn btn-secondary" onclick={ctx.link().callback(|_| Msg::ToggleEdit)}>{"Stop Editing"}</button>
                         </div>
                         <div class="sidebar-item">
-                            <button class="button proceed" onclick={ctx.link().callback(|_| Msg::SaveEdits)}>
+                            <button class="btn btn-success" onclick={ctx.link().callback(|_| Msg::SaveEdits)}>
                                 {"Save"}
                             </button>
                         </div>
                     </div>
 
-                    <div class="view-container item-view-container">
-                        <div class="info-container">
-                            <div class="poster large">
-                                <LoginBarrier>
-                                    <div class="bottom-right">
-                                        <span class="material-icons" onclick={on_click_more} title="More Options">{ "more_horiz" }</span>
+                    // TODO: We use px-0 b/c view-container pads
+                    <div class="view-container item-view-container px-0">
+                        <div class="container-fluid">
+                            <div class="row">
+                                // Poster Container
+                                <div class="col col-sm-auto col-12 justify-content-center d-flex">
+                                    <div class="poster large">
+                                        <LoginBarrier>
+                                            <div class="bottom-right">
+                                                <span class="material-icons" onclick={on_click_more} title="More Options">{ "more_horiz" }</span>
+                                            </div>
+
+                                            <div class="bottom-left">
+                                                <span class="material-icons" onclick={ctx.link().callback_future(move |e: MouseEvent| {
+                                                    e.prevent_default();
+                                                    e.stop_propagation();
+
+                                                    async move {
+                                                        Msg::ShowPopup(DisplayOverlay::Edit(Box::new(request::get_media_view(book_id).await)))
+                                                    }
+                                                })} title="More Options">{ "edit" }</span>
+                                            </div>
+                                        </LoginBarrier>
+
+                                        <img src={ book_model.get_thumb_url() } />
                                     </div>
-
-                                    <div class="bottom-left">
-                                        <span class="material-icons" onclick={ctx.link().callback_future(move |e: MouseEvent| {
-                                            e.prevent_default();
-                                            e.stop_propagation();
-
-                                            async move {
-                                                Msg::ShowPopup(DisplayOverlay::Edit(Box::new(request::get_media_view(book_id).await)))
-                                            }
-                                        })} title="More Options">{ "edit" }</span>
-                                    </div>
-                                </LoginBarrier>
-
-                                <img src={ book_model.get_thumb_url() } />
-                            </div>
-
-                            <div class="metadata-container">
-                                <div class="metadata">
-                                    // Book Display Info
-                                    <h5>{ "Book Display Info" }</h5>
-
-                                    <span class="sub-title">{"Publicity"}</span>
-                                    <select
-                                        class="title"
-                                        type="text"
-                                        onchange={Self::on_change_select(ctx.link(), ChangingType::Publicity)}
-                                    >
-                                        <option selected={editing.is_public.unwrap_or(book_model.is_public)} value="true">
-                                            {"Public"}
-                                        </option>
-                                        <option selected={!editing.is_public.unwrap_or(book_model.is_public)} value="false">
-                                            {"Unlisted"}
-                                        </option>
-                                    </select>
-
-                                    <span class="sub-title">{"Title"}</span>
-                                    <input class="title" type="text"
-                                        onchange={Self::on_change_input(ctx.link(), ChangingType::Title)}
-                                        value={ editing.title.clone().or_else(|| book_model.title.clone()).unwrap_or_default() }
-                                    />
-
-                                    <span class="sub-title">{"Original Title"}</span>
-                                    <input class="title" type="text"
-                                        onchange={Self::on_change_input(ctx.link(), ChangingType::OriginalTitle)}
-                                        value={ editing.clean_title.clone().or_else(|| book_model.clean_title.clone()).unwrap_or_default() }
-                                    />
-
-                                    <span class="sub-title">{"Description"}</span>
-                                    <textarea
-                                        rows="9"
-                                        cols="30"
-                                        class="description"
-                                        onchange={Self::on_change_textarea(ctx.link(), ChangingType::Description)}
-                                        value={ editing.description.clone().or_else(|| book_model.description.clone()).unwrap_or_default() }
-                                    />
                                 </div>
 
-                                // Book Info
-                                <div class="metadata">
-                                    <h5>{ "Book Info" }</h5>
+                                <div class="col-12 col-sm">
+                                    <div class="row">
+                                        <div class="col col-12 col-lg-6 col-xl-3">
+                                            // Book Display Info
+                                            <h5>{ "Book Display Info" }</h5>
 
-                                    <span class="sub-title">{"Available At"}</span>
-                                    <input class="title" type="text"
-                                        placeholder="YYYY-MM-DD"
-                                        onchange={Self::on_change_input(ctx.link(), ChangingType::AvailableAt)}
-                                        value={ editing.available_at.map(|v| Utc.timestamp(v, 0).date_naive()).or(book_model.available_at).map(|v| v.format("%Y-%m-%d").to_string()).unwrap_or_default() }
-                                    />
-
-                                    <span class="sub-title">{"ISBN 10"}</span>
-                                    <input class="title" type="text"
-                                        onchange={Self::on_change_input(ctx.link(), ChangingType::Isbn10)}
-                                        value={ editing.isbn_10.clone().or_else(|| book_model.isbn_10.clone()).unwrap_or_default() }
-                                    />
-
-                                    <span class="sub-title">{"ISBN 13"}</span>
-                                    <input class="title" type="text"
-                                        onchange={Self::on_change_input(ctx.link(), ChangingType::Isbn13)}
-                                        value={ editing.isbn_13.clone().or_else(|| book_model.isbn_13.clone()).unwrap_or_default() }
-                                    />
-
-                                    <span class="sub-title">{"Publisher"}</span>
-                                    <input class="title" type="text" />
-
-                                    <span class="sub-title">{"Language"}</span>
-                                    <select
-                                        class="title"
-                                        type="text"
-                                        onchange={Self::on_change_select(ctx.link(), ChangingType::Language)}
-                                    >
-                                        {
-                                            for LANGUAGES.iter()
-                                                .enumerate()
-                                                .map(|(index, lang)| {
-                                                    let selected = editing.language.unwrap_or(book_model.language) == index as u16;
-
-                                                    html! {
-                                                        <option
-                                                            {selected}
-                                                            value={index.to_string()}
-                                                        >
-                                                            { upper_case_first_char(lang.to_string()) }
-                                                        </option>
-                                                    }
-                                                })
-                                        }
-                                    </select>
-                                </div>
-
-                                // Sources
-                                <div class="metadata">
-                                    <h5>{ "Sources" }</h5>
-
-                                    <span class="sub-title">{ "Good Reads URL" }</span>
-                                    <input class="title" type="text" />
-
-                                    <span class="sub-title">{ "Open Library URL" }</span>
-                                    <input class="title" type="text" />
-
-                                    <span class="sub-title">{ "Google Books URL" }</span>
-                                    <input class="title" type="text" />
-
-                                    <h5>{ "Tags" }</h5>
-
-                                    <span class="sub-title">{ "Genre" }</span>
-                                    <MultiSelectModule<TagId>
-                                        editing=true
-                                        on_event={
-                                            ctx.link().callback(|v| match v {
-                                                MultiSelectEvent::Toggle { toggle, id } => {
-                                                    Msg::MultiselectToggle(toggle, id)
-                                                }
-
-                                                MultiSelectEvent::Create(new_item) => {
-                                                    Msg::MultiselectCreate(TagType::Genre, new_item)
-                                                }
-
-                                                _ => Msg::Ignore
-                                            })
-                                        }
-                                    >
-                                        {
-                                            for self.cached_tags
-                                                .iter()
-                                                .filter(|v| v.type_of.into_u8() == TagType::Genre.into_u8())
-                                                .map(|tag| {
-                                                    let mut filtered_tags = tags.iter()
-                                                        // We only need the tag ids
-                                                        .map(|bt| bt.tag.id)
-                                                        // Filter out editing "removed tags"
-                                                        .filter(|tag_id| !editing.removed_tags.as_ref().map(|v| v.iter().any(|r| r == tag_id)).unwrap_or_default())
-                                                        // Chain into editing "added tags"
-                                                        .chain(editing.added_tags.iter().flat_map(|v| v.iter()).copied());
-
-                                                    html_nested! {
-                                                        <MultiSelectItem<TagId> name={tag.name.clone()} id={tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
-                                                    }
-                                                })
-                                        }
-                                    </MultiSelectModule<TagId>>
-
-                                    <span class="sub-title">{ "Subject" }</span>
-
-                                    <MultiSelectModule<TagId>
-                                        editing=true
-                                        on_event={
-                                            ctx.link().callback(|v| match v {
-                                                MultiSelectEvent::Toggle { toggle, id } => {
-                                                    Msg::MultiselectToggle(toggle, id)
-                                                }
-
-                                                MultiSelectEvent::Create(new_item) => {
-                                                    Msg::MultiselectCreate(TagType::Subject, new_item)
-                                                }
-
-                                                _ => Msg::Ignore
-                                            })
-                                        }
-                                    >
-                                        {
-                                            for self.cached_tags
-                                                .iter()
-                                                .filter(|v| v.type_of.into_u8() == TagType::Subject.into_u8())
-                                                .map(|tag| {
-                                                    let mut filtered_tags = tags.iter()
-                                                        // We only need the tag ids
-                                                        .map(|bt| bt.tag.id)
-                                                        // Filter out editing "removed tags"
-                                                        .filter(|tag_id| !editing.removed_tags.as_ref().map(|v| v.iter().any(|r| r == tag_id)).unwrap_or_default())
-                                                        // Chain into editing "added tags"
-                                                        .chain(editing.added_tags.iter().flat_map(|v| v.iter()).copied());
-
-                                                    html_nested! {
-                                                        <MultiSelectItem<TagId> name={tag.name.clone()} id={tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
-                                                    }
-                                                })
-                                        }
-                                    </MultiSelectModule<TagId>>
-                                </div>
-                            </div>
-                        </div>
-
-                        { // Posters
-                            if let Some(resp) = self.cached_posters.as_ref() {
-                                match resp.as_ok() {
-                                    Ok(resp) => html! {
-                                        <section>
-                                            <h2>{ "Posters" }</h2>
-                                            <div class="posters-container">
-                                                <UploadModule
-                                                    class="poster new-container"
-                                                    title="Add Poster"
-                                                    upload_url={ format!("/api/v1/posters/{}/upload", ImageIdType::new_book(ctx.props().id)) }
-                                                    on_upload={ctx.link().callback(|_| Msg::ReloadPosters)}
+                                            <div class="mb-1">
+                                                <span class="sub-title">{"Publicity"}</span>
+                                                <select
+                                                    class="form-select"
+                                                    type="text"
+                                                    onchange={Self::on_change_select(ctx.link(), ChangingType::Publicity)}
                                                 >
-                                                    <span class="material-icons">{ "add" }</span>
-                                                </UploadModule>
+                                                    <option selected={editing.is_public.unwrap_or(book_model.is_public)} value="true">
+                                                        {"Public"}
+                                                    </option>
+                                                    <option selected={!editing.is_public.unwrap_or(book_model.is_public)} value="false">
+                                                        {"Unlisted"}
+                                                    </option>
+                                                </select>
+                                            </div>
 
+                                            <div class="mb-1">
+                                                <span class="sub-title">{"Title"}</span>
+                                                <input class="form-control" type="text"
+                                                    onchange={Self::on_change_input(ctx.link(), ChangingType::Title)}
+                                                    value={ editing.title.clone().or_else(|| book_model.title.clone()).unwrap_or_default() }
+                                                />
+                                            </div>
+
+                                            <div class="mb-1">
+                                                <span class="sub-title">{"Original Title"}</span>
+                                                <input class="form-control" type="text"
+                                                    onchange={Self::on_change_input(ctx.link(), ChangingType::OriginalTitle)}
+                                                    value={ editing.clean_title.clone().or_else(|| book_model.clean_title.clone()).unwrap_or_default() }
+                                                />
+                                            </div>
+
+                                            <span class="sub-title">{"Description"}</span>
+                                            <textarea
+                                                rows="9"
+                                                cols="30"
+                                                class="form-control description"
+                                                onchange={Self::on_change_textarea(ctx.link(), ChangingType::Description)}
+                                                value={ editing.description.clone().or_else(|| book_model.description.clone()).unwrap_or_default() }
+                                            />
+                                        </div>
+
+                                        // Book Info
+                                        <div class="col col-12 col-lg-6 col-xl-3">
+                                            <h5>{ "Book Info" }</h5>
+
+                                            <div class="mb-1">
+                                                <span class="sub-title">{"Available At"}</span>
+                                                <input class="form-control" type="text"
+                                                    placeholder="YYYY-MM-DD"
+                                                    onchange={Self::on_change_input(ctx.link(), ChangingType::AvailableAt)}
+                                                    value={ editing.available_at.map(|v| Utc.timestamp(v, 0).date_naive()).or(book_model.available_at).map(|v| v.format("%Y-%m-%d").to_string()).unwrap_or_default() }
+                                                />
+                                            </div>
+
+                                            <div class="mb-1">
+                                                <span class="sub-title">{"ISBN 10"}</span>
+                                                <input class="form-control" type="text"
+                                                    onchange={Self::on_change_input(ctx.link(), ChangingType::Isbn10)}
+                                                    value={ editing.isbn_10.clone().or_else(|| book_model.isbn_10.clone()).unwrap_or_default() }
+                                                />
+                                            </div>
+
+                                            <div class="mb-1">
+                                                <span class="sub-title">{"ISBN 13"}</span>
+                                                <input class="form-control" type="text"
+                                                    onchange={Self::on_change_input(ctx.link(), ChangingType::Isbn13)}
+                                                    value={ editing.isbn_13.clone().or_else(|| book_model.isbn_13.clone()).unwrap_or_default() }
+                                                />
+                                            </div>
+
+                                            <div class="mb-1">
+                                                <span class="sub-title">{"Publisher"}</span>
+                                                <input class="form-control" type="text" />
+                                            </div>
+
+                                            <span class="sub-title">{"Language"}</span>
+                                            <select
+                                                class="form-select"
+                                                type="text"
+                                                onchange={Self::on_change_select(ctx.link(), ChangingType::Language)}
+                                            >
                                                 {
-                                                    if !self.search_poster_metadata {
-                                                        html! {
-                                                            <div
-                                                                class="poster new-container"
-                                                                title="Search Posters By Name"
-                                                                onclick={ ctx.link().callback(|_| Msg::TogglePosterMetaSearch) }
-                                                            >
-                                                                <span><b>{ "Search For" }</b></span>
-                                                            </div>
-                                                        }
-                                                    } else {
-                                                        html! {}
-                                                    }
+                                                    for LANGUAGES.iter()
+                                                        .enumerate()
+                                                        .map(|(index, lang)| {
+                                                            let selected = editing.language.unwrap_or(book_model.language) == index as u16;
+
+                                                            html! {
+                                                                <option
+                                                                    {selected}
+                                                                    value={index.to_string()}
+                                                                >
+                                                                    { upper_case_first_char(lang.to_string()) }
+                                                                </option>
+                                                            }
+                                                        })
                                                 }
+                                            </select>
+                                        </div>
 
-                                                {
-                                                    for resp.items.iter().map(move |poster| {
-                                                        let url_or_id = poster.id.map(Either::Right).unwrap_or_else(|| Either::Left(poster.path.clone()));
-                                                        let is_selected = poster.selected;
+                                        // Sources
+                                        <div class="col col-12 col-lg-8 col-xl-6">
+                                            <h5>{ "Sources" }</h5>
 
-                                                        html! {
-                                                            <div
-                                                                class={ classes!("poster", { if is_selected { "selected" } else { "" } }) }
-                                                                onclick={ ctx.link().callback_future(move |_| {
-                                                                    let url_or_id = url_or_id.clone();
+                                            <div class="mb-1 w-fit-content">
+                                                <span class="sub-title">{ "Good Reads URL" }</span>
+                                                <input class="form-control" type="text" />
+                                            </div>
 
-                                                                    async move {
-                                                                        if is_selected {
-                                                                            Msg::Ignore
-                                                                        } else {
-                                                                            Msg::UpdatePoster(book_id, url_or_id)
-                                                                        }
-                                                                    }
-                                                                }) }
-                                                            >
-                                                                <div class="top-right">
-                                                                    <span
-                                                                        class="material-icons"
-                                                                    >{ "delete" }</span>
-                                                                </div>
-                                                                <img src={poster.path.clone()} />
-                                                            </div>
+                                            <div class="mb-1 w-fit-content">
+                                                <span class="sub-title">{ "Open Library URL" }</span>
+                                                <input class="form-control" type="text" />
+                                            </div>
+
+                                            <div class="mb-1 w-fit-content">
+                                                <span class="sub-title">{ "Google Books URL" }</span>
+                                                <input class="form-control" type="text" />
+                                            </div>
+
+                                            <h5>{ "Tags" }</h5>
+
+                                            <span class="sub-title">{ "Genre" }</span>
+                                            <MultiSelectModule<TagId>
+                                                editing=true
+                                                on_event={
+                                                    ctx.link().callback(|v| match v {
+                                                        MultiSelectEvent::Toggle { toggle, id } => {
+                                                            Msg::MultiselectToggle(toggle, id)
                                                         }
+
+                                                        MultiSelectEvent::Create(new_item) => {
+                                                            Msg::MultiselectCreate(TagType::Genre, new_item)
+                                                        }
+
+                                                        _ => Msg::Ignore
                                                     })
                                                 }
-                                            </div>
-                                        </section>
-                                    },
+                                            >
+                                                {
+                                                    for self.cached_tags
+                                                        .iter()
+                                                        .filter(|v| v.type_of.into_u8() == TagType::Genre.into_u8())
+                                                        .map(|tag| {
+                                                            let mut filtered_tags = tags.iter()
+                                                                // We only need the tag ids
+                                                                .map(|bt| bt.tag.id)
+                                                                // Filter out editing "removed tags"
+                                                                .filter(|tag_id| !editing.removed_tags.as_ref().map(|v| v.iter().any(|r| r == tag_id)).unwrap_or_default())
+                                                                // Chain into editing "added tags"
+                                                                .chain(editing.added_tags.iter().flat_map(|v| v.iter()).copied());
 
-                                    Err(e) => html! {
-                                        <h2>{ e }</h2>
+                                                            html_nested! {
+                                                                <MultiSelectItem<TagId> name={tag.name.clone()} id={tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
+                                                            }
+                                                        })
+                                                }
+                                            </MultiSelectModule<TagId>>
+
+                                            <span class="sub-title">{ "Subject" }</span>
+
+                                            <MultiSelectModule<TagId>
+                                                editing=true
+                                                on_event={
+                                                    ctx.link().callback(|v| match v {
+                                                        MultiSelectEvent::Toggle { toggle, id } => {
+                                                            Msg::MultiselectToggle(toggle, id)
+                                                        }
+
+                                                        MultiSelectEvent::Create(new_item) => {
+                                                            Msg::MultiselectCreate(TagType::Subject, new_item)
+                                                        }
+
+                                                        _ => Msg::Ignore
+                                                    })
+                                                }
+                                            >
+                                                {
+                                                    for self.cached_tags
+                                                        .iter()
+                                                        .filter(|v| v.type_of.into_u8() == TagType::Subject.into_u8())
+                                                        .map(|tag| {
+                                                            let mut filtered_tags = tags.iter()
+                                                                // We only need the tag ids
+                                                                .map(|bt| bt.tag.id)
+                                                                // Filter out editing "removed tags"
+                                                                .filter(|tag_id| !editing.removed_tags.as_ref().map(|v| v.iter().any(|r| r == tag_id)).unwrap_or_default())
+                                                                // Chain into editing "added tags"
+                                                                .chain(editing.added_tags.iter().flat_map(|v| v.iter()).copied());
+
+                                                            html_nested! {
+                                                                <MultiSelectItem<TagId> name={tag.name.clone()} id={tag.id} selected={filtered_tags.any(|tag_id| tag_id == tag.id)} />
+                                                            }
+                                                        })
+                                                }
+                                            </MultiSelectModule<TagId>>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                { // Posters
+                                    if let Some(resp) = self.cached_posters.as_ref() {
+                                        match resp.as_ok() {
+                                            Ok(resp) => html! {
+                                                <section>
+                                                    <h2>{ "Posters" }</h2>
+                                                    <div class="posters-container">
+                                                        <UploadModule
+                                                            class="poster normal new-container"
+                                                            title="Add Poster"
+                                                            upload_url={ format!("/api/v1/posters/{}/upload", ImageIdType::new_book(ctx.props().id)) }
+                                                            on_upload={ctx.link().callback(|_| Msg::ReloadPosters)}
+                                                        >
+                                                            <span class="material-icons">{ "add" }</span>
+                                                        </UploadModule>
+
+                                                        {
+                                                            if !self.search_poster_metadata {
+                                                                html! {
+                                                                    <div
+                                                                        class="poster normal new-container"
+                                                                        title="Search Posters By Name"
+                                                                        onclick={ ctx.link().callback(|_| Msg::TogglePosterMetaSearch) }
+                                                                    >
+                                                                        <span><b>{ "Search For Posters" }</b></span>
+                                                                    </div>
+                                                                }
+                                                            } else {
+                                                                html! {}
+                                                            }
+                                                        }
+
+                                                        {
+                                                            for resp.items.iter().map(move |poster| {
+                                                                let url_or_id = poster.id.map(Either::Right).unwrap_or_else(|| Either::Left(poster.path.clone()));
+                                                                let is_selected = poster.selected;
+
+                                                                html! {
+                                                                    <div
+                                                                        class={ classes!("poster", "normal", { if is_selected { "selected" } else { "" } }) }
+                                                                        onclick={ ctx.link().callback_future(move |_| {
+                                                                            let url_or_id = url_or_id.clone();
+
+                                                                            async move {
+                                                                                if is_selected {
+                                                                                    Msg::Ignore
+                                                                                } else {
+                                                                                    Msg::UpdatePoster(book_id, url_or_id)
+                                                                                }
+                                                                            }
+                                                                        }) }
+                                                                    >
+                                                                        <div class="top-right">
+                                                                            <span
+                                                                                class="material-icons"
+                                                                            >{ "delete" }</span>
+                                                                        </div>
+                                                                        <img src={poster.path.clone()} />
+                                                                    </div>
+                                                                }
+                                                            })
+                                                        }
+                                                    </div>
+                                                </section>
+                                            },
+
+                                            Err(e) => html! {
+                                                <h2>{ e }</h2>
+                                            }
+                                        }
+                                    } else {
+                                        html! {}
                                     }
                                 }
-                            } else {
-                                html! {}
-                            }
-                        }
-
-                        <section>
-                            <h2>{ "Characters" }</h2>
-                            <div class="characters-container">
-                                <div class="person-container new-container" title="Add Book Character">
-                                    <span class="material-icons">{ "add" }</span>
-                                </div>
                             </div>
-                        </section>
 
-                        <section>
-                            <h2>{ "People" }</h2>
-                            <div class="authors-container">
-                                <div class="person-container new-container" title="Add Person">
-                                    <span class="material-icons" onclick={ ctx.link().callback(|_| Msg::ShowPopup(DisplayOverlay::AddAuthor)) }>{ "add" }</span>
+                            <section class="row">
+                                <h2>{ "Characters" }</h2>
+                                <div class="characters-container">
+                                    <div class="person-container new-container" title="Add Book Character">
+                                        <span class="material-icons">{ "add" }</span>
+                                    </div>
                                 </div>
+                            </section>
 
-                                {
-                                    for people.iter().cloned().map(|person| html! {
-                                        <PersonItem
-                                            edited_info={ match editing.updated_people.as_ref() {
-                                                Some(v) => v.iter().find_map(|v| if v.0 == person.id { Some(v.1.clone()) } else { None }).flatten(),
-                                                None => None
-                                            } }
-                                            {person}
-                                            display_id={ book_model.cached.author_id }
-                                            editing={ true }
-                                            scope={ ctx.link() }
-                                        />
-                                    })
-                                }
-                            </div>
-                        </section>
+                            <section class="row">
+                                <h2>{ "People" }</h2>
+                                <div class="authors-container">
+                                    <div class="person-container new-container" title="Add Person">
+                                        <span class="material-icons" onclick={ ctx.link().callback(|_| Msg::ShowPopup(DisplayOverlay::AddAuthor)) }>{ "add" }</span>
+                                    </div>
+
+                                    {
+                                        for people.iter().cloned().map(|person| html! {
+                                            <PersonItem
+                                                edited_info={ match editing.updated_people.as_ref() {
+                                                    Some(v) => v.iter().find_map(|v| if v.0 == person.id { Some(v.1.clone()) } else { None }).flatten(),
+                                                    None => None
+                                                } }
+                                                {person}
+                                                display_id={ book_model.cached.author_id }
+                                                editing={ true }
+                                                scope={ ctx.link() }
+                                            />
+                                        })
+                                    }
+                                </div>
+                            </section>
+                        </div>
+
+
+
                     </div>
 
                     { self.render_popup(book_resp, ctx) }
@@ -767,123 +799,130 @@ impl BookView {
             });
 
             html! {
-                <div class="outer-view-container">
-                    <div class="sidebar-container display-none display-block-md">
+                <div class="outer-view-container h-100 px-0">
+                    <div class="sidebar-container d-none d-md-flex flex-column flex-shrink-0 p-2 text-bg-dark">
                         <LoginBarrier>
                             <div class="sidebar-item">
-                                <button class="button" onclick={ctx.link().callback(|_| Msg::ToggleEdit)}>{"Start Editing"}</button>
+                                <button class="btn btn-secondary" onclick={ctx.link().callback(|_| Msg::ToggleEdit)}>{"Start Editing"}</button>
                             </div>
                         </LoginBarrier>
                     </div>
 
-                    <div class="view-container item-view-container">
-                        <div class="info-container">
-                            <div class="poster large">
-                                <LoginBarrier>
-                                    <div class="bottom-right">
-                                        <span class="material-icons" onclick={on_click_more} title="More Options">{ "more_horiz" }</span>
-                                    </div>
+                    // TODO: We use px-0 b/c view-container pads
+                    <div class="view-container item-view-container px-0">
+                        <div class="container-fluid">
+                            <div class="row">
+                                // Poster Container
+                                <div class="col col-sm-auto col-12 justify-content-center d-flex">
+                                    <div class="poster large">
+                                        <LoginBarrier>
+                                            <div class="bottom-right">
+                                                <span class="material-icons" onclick={on_click_more} title="More Options">{ "more_horiz" }</span>
+                                            </div>
 
-                                    <div class="bottom-left">
-                                        <span class="material-icons" onclick={ctx.link().callback_future(move |e: MouseEvent| {
-                                            e.prevent_default();
-                                            e.stop_propagation();
+                                            <div class="bottom-left">
+                                                <span class="material-icons" onclick={ctx.link().callback_future(move |e: MouseEvent| {
+                                                    e.prevent_default();
+                                                    e.stop_propagation();
 
-                                            async move {
-                                                Msg::ShowPopup(DisplayOverlay::Edit(Box::new(request::get_media_view(book_id).await)))
-                                            }
-                                        })} title="More Options">{ "edit" }</span>
-                                    </div>
-                                </LoginBarrier>
-
-                                <img src={ book_model.get_thumb_url() } />
-                            </div>
-
-                            <div class="metadata-container">
-                                <div class="metadata">
-                                    <div class="label-group">
-                                        {
-                                            if book_model.is_public {
-                                                html! {
-                                                    <div class="label green">{ "Public" }</div>
-                                                }
-                                            } else {
-                                                html! {
-                                                    <div class="label red">{ "Unlisted" }</div>
-                                                }
-                                            }
-                                        }
-                                    </div>
-
-                                    // Book Display Info
-                                    <h3 class="title">{ book_model.get_title() }</h3>
-                                    <p class="description">{ book_model.description.clone().unwrap_or_default() }</p>
-
-                                    <h4>{ "Genre" }</h4>
-                                    <div class="label-group">
-                                        {
-                                            for self.cached_tags
-                                                .iter()
-                                                .filter(|v| v.type_of.into_u8() == TagType::Genre.into_u8() && tags.iter().any(|bt| bt.tag.id == v.id))
-                                                .take(5) // TODO: Temp. Need to add max-size to div container.
-                                                .map(|tag| {
-                                                    html! {
-                                                        <div class="label">{ tag.name.clone() }</div>
+                                                    async move {
+                                                        Msg::ShowPopup(DisplayOverlay::Edit(Box::new(request::get_media_view(book_id).await)))
                                                     }
-                                                })
-                                        }
+                                                })} title="More Options">{ "edit" }</span>
+                                            </div>
+                                        </LoginBarrier>
 
-                                        { "..." }
-                                    </div>
-
-                                    <h4>{ "Subject" }</h4>
-                                    <div class="label-group">
-                                        {
-                                            for self.cached_tags
-                                                .iter()
-                                                .filter(|v| v.type_of.into_u8() == TagType::Subject.into_u8() && tags.iter().any(|bt| bt.tag.id == v.id))
-                                                .take(5) // TODO: Temp. Need to add max-size to div container.
-                                                .map(|tag| {
-                                                    html! {
-                                                        <div class="label">{ tag.name.clone() }</div>
-                                                    }
-                                                })
-                                        }
-
-                                        { "..." }
+                                        <img src={ book_model.get_thumb_url() } />
                                     </div>
                                 </div>
 
-                                // Book Info
+                                <div class="col-12 col-sm">
+                                    <div class="metadata">
+                                        <div class="label-group mb-2">
+                                            {
+                                                if book_model.is_public {
+                                                    html! {
+                                                        <div class="badge bg-success">{ "Public" }</div>
+                                                    }
+                                                } else {
+                                                    html! {
+                                                        <div class="badge bg-danger">{ "Unlisted" }</div>
+                                                    }
+                                                }
+                                            }
+                                        </div>
 
-                                // Sources
+                                        // Book Display Info
+                                        <h3 class="title">{ book_model.get_title() }</h3>
+                                        <p class="description">{ book_model.description.clone().unwrap_or_default() }</p>
+
+                                        <h4>{ "Genre" }</h4>
+                                        <div class="label-group mb-2">
+                                            {
+                                                for self.cached_tags
+                                                    .iter()
+                                                    .filter(|v| v.type_of.into_u8() == TagType::Genre.into_u8() && tags.iter().any(|bt| bt.tag.id == v.id))
+                                                    .take(5) // TODO: Temp. Need to add max-size to div container.
+                                                    .map(|tag| {
+                                                        html! {
+                                                            <div class="label">{ tag.name.clone() }</div>
+                                                        }
+                                                    })
+                                            }
+
+                                            { "..." }
+                                        </div>
+
+                                        <h4>{ "Subject" }</h4>
+                                        <div class="label-group">
+                                            {
+                                                for self.cached_tags
+                                                    .iter()
+                                                    .filter(|v| v.type_of.into_u8() == TagType::Subject.into_u8() && tags.iter().any(|bt| bt.tag.id == v.id))
+                                                    .take(5) // TODO: Temp. Need to add max-size to div container.
+                                                    .map(|tag| {
+                                                        html! {
+                                                            <div class="label">{ tag.name.clone() }</div>
+                                                        }
+                                                    })
+                                            }
+
+                                            { "..." }
+                                        </div>
+                                    </div>
+
+                                    // Book Info
+
+                                    // Sources
+                                </div>
                             </div>
+
+                            <section class="row">
+                                <h2>{ "Characters" }</h2>
+                                <div class="characters-container">
+                                    //
+                                </div>
+                            </section>
+
+                            <section class="row">
+                                <h2>{ "People" }</h2>
+                                <div class="authors-container">
+                                {
+                                    for people.iter().cloned().map(|person| {
+                                        html! {
+                                            <PersonItem
+                                                {person}
+                                                display_id={ book_model.cached.author_id }
+                                                editing={ false }
+                                                scope={ ctx.link() }
+                                            />
+                                        }
+                                    })
+                                }
+                                </div>
+                            </section>
                         </div>
 
-                        <section>
-                            <h2>{ "Characters" }</h2>
-                            <div class="characters-container">
-                                //
-                            </div>
-                        </section>
-
-                        <section>
-                            <h2>{ "People" }</h2>
-                            <div class="authors-container">
-                            {
-                                for people.iter().cloned().map(|person| {
-                                    html! {
-                                        <PersonItem
-                                            {person}
-                                            display_id={ book_model.cached.author_id }
-                                            editing={ false }
-                                            scope={ ctx.link() }
-                                        />
-                                    }
-                                })
-                            }
-                            </div>
-                        </section>
                     </div>
 
                     { self.render_popup(book_resp, ctx) }
@@ -1119,6 +1158,7 @@ fn _person_item(props: &PersonItemProps) -> Html {
                 if props.editing {
                     html! {
                         <input
+                            class="form-control form-control-sm"
                             type="text"
                             placeholder="Relation"
                             onchange={ BookView::on_change_input(&props.scope, ChangingType::PersonRelation(props.person.id)) }

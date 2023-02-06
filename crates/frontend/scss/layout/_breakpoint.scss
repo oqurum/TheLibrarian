@@ -29,17 +29,17 @@ $grid-breakpoints: (
 
 
 // Display Name
-.display-none {
-    display: none;
-}
+// .display-none {
+//     display: none;
+// }
 
-// Display Block
-@include media-breakpoint-up(md) {
-    .display-block-md {
-        display: block !important;
-    }
+// // Display Block
+// @include media-breakpoint-up(md) {
+//     .display-block-md {
+//         display: block !important;
+//     }
 
-    .display-none-md {
-        display: none !important;
-    }
-}
+//     .display-none-md {
+//         display: none !important;
+//     }
+// }

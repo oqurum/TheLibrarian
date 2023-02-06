@@ -124,91 +124,98 @@ impl PopupSearchPerson {
                 on_close={ ctx.props().on_close.clone() }
                 classes={ classes!("external-book-search-popup") }
             >
-                <h1>{"Book Search"}</h1>
-
-                <form class="row">
-                    <input id={input_id} name="book_search" placeholder="Search For Title" value={ self.input_value.clone() } />
-                    <button onclick={
-                        ctx.link().callback(move |e: MouseEvent| {
-                            e.prevent_default();
-
-                            let input = document().get_element_by_id(input_id).unwrap().unchecked_into::<HtmlInputElement>();
-
-                            Msg::SearchFor(input.value())
-                        })
-                    }>{ "Search" }</button>
-                </form>
-
-                <hr />
-
-                <div class="external-book-search-container">
-                    {
-                        match ctx.props().type_of {
-                            SearchBy::External => {
-                                if let Some(loading) = self.cached_ext_search.as_ref() {
-                                    match loading {
-                                        LoadingItem::Loaded(wrapper) => {
-                                            match wrapper.as_ok() {
-                                                Ok(search) => html! {
-                                                    <>
-                                                        <div class="book-search-items">
-                                                        {
-                                                            for search.items.values()
-                                                                .flat_map(|values| values.iter())
-                                                                .map(|item| Self::render_ext_search_container(item, ctx))
-                                                        }
-                                                        </div>
-                                                    </>
-                                                },
-
-                                                Err(e) => html! {
-                                                    <h2>{ e }</h2>
-                                                }
-                                            }
-                                        },
-
-                                        LoadingItem::Loading => html! {
-                                            <h2>{ "Loading..." }</h2>
-                                        }
-                                    }
-                                } else {
-                                    html! {}
-                                }
-                            }
-
-                            SearchBy::Local => {
-                                if let Some(loading) = self.cached_loc_search.as_ref() {
-                                    match loading {
-                                        LoadingItem::Loaded(wrapper) => {
-                                            match wrapper.as_ok() {
-                                                Ok(search) => html! {
-                                                    <>
-                                                        <div class="book-search-items">
-                                                        {
-                                                            for search.items.iter()
-                                                                .map(|item| Self::render_loc_search_container(item, ctx))
-                                                        }
-                                                        </div>
-                                                    </>
-                                                },
-
-                                                Err(e) => html! {
-                                                    <h2>{ e }</h2>
-                                                }
-                                            }
-                                        },
-
-                                        LoadingItem::Loading => html! {
-                                            <h2>{ "Loading..." }</h2>
-                                        }
-                                    }
-                                } else {
-                                    html! {}
-                                }
-                            }
-                        }
-                    }
+                <div class="modal-header">
+                    <h1 class="modal-title">{"Book Search"}</h1>
                 </div>
+
+                <div class="modal-body">
+                    <div class="container">
+                        <form class="row">
+                            <input class="form-control" id={input_id} name="book_search" placeholder="Search For Title" value={ self.input_value.clone() } />
+                            <button class="btn btn-success" onclick={
+                                ctx.link().callback(move |e: MouseEvent| {
+                                    e.prevent_default();
+
+                                    let input = document().get_element_by_id(input_id).unwrap().unchecked_into::<HtmlInputElement>();
+
+                                    Msg::SearchFor(input.value())
+                                })
+                            }>{ "Search" }</button>
+                        </form>
+
+                        <hr />
+
+                        <div class="external-book-search-container">
+                            {
+                                match ctx.props().type_of {
+                                    SearchBy::External => {
+                                        if let Some(loading) = self.cached_ext_search.as_ref() {
+                                            match loading {
+                                                LoadingItem::Loaded(wrapper) => {
+                                                    match wrapper.as_ok() {
+                                                        Ok(search) => html! {
+                                                            <>
+                                                                <div class="book-search-items">
+                                                                {
+                                                                    for search.items.values()
+                                                                        .flat_map(|values| values.iter())
+                                                                        .map(|item| Self::render_ext_search_container(item, ctx))
+                                                                }
+                                                                </div>
+                                                            </>
+                                                        },
+
+                                                        Err(e) => html! {
+                                                            <h2>{ e }</h2>
+                                                        }
+                                                    }
+                                                },
+
+                                                LoadingItem::Loading => html! {
+                                                    <h2>{ "Loading..." }</h2>
+                                                }
+                                            }
+                                        } else {
+                                            html! {}
+                                        }
+                                    }
+
+                                    SearchBy::Local => {
+                                        if let Some(loading) = self.cached_loc_search.as_ref() {
+                                            match loading {
+                                                LoadingItem::Loaded(wrapper) => {
+                                                    match wrapper.as_ok() {
+                                                        Ok(search) => html! {
+                                                            <>
+                                                                <div class="book-search-items">
+                                                                {
+                                                                    for search.items.iter()
+                                                                        .map(|item| Self::render_loc_search_container(item, ctx))
+                                                                }
+                                                                </div>
+                                                            </>
+                                                        },
+
+                                                        Err(e) => html! {
+                                                            <h2>{ e }</h2>
+                                                        }
+                                                    }
+                                                },
+
+                                                LoadingItem::Loading => html! {
+                                                    <h2>{ "Loading..." }</h2>
+                                                }
+                                            }
+                                        } else {
+                                            html! {}
+                                        }
+                                    }
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+
             </Popup>
         }
     }

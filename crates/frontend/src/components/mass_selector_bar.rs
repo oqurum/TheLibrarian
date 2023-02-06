@@ -289,7 +289,7 @@ impl Component for MassSelectBar {
         }
     }
 
-    fn changed(&mut self, ctx: &Context<Self>) -> bool {
+    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
         if let Some(container_element) = ctx.props().editing_container.cast::<HtmlElement>() {
             let cl = container_element.class_list();
 

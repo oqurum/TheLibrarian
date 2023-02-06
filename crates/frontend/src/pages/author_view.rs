@@ -192,17 +192,17 @@ impl Component for AuthorView {
             let editing = &self.editing_item;
 
             html! {
-                <div class="outer-view-container">
-                    <div class="sidebar-container display-none display-block-md">
+                <div class="outer-view-container h-100 px-0">
+                    <div class="sidebar-container d-none d-md-flex flex-column flex-shrink-0 p-2 text-bg-dark">
                     {
                         if self.is_editing() {
                             html! {
                                 <>
                                     <div class="sidebar-item">
-                                        <button class="button" onclick={ctx.link().callback(|_| Msg::ToggleEdit)}>{ "Stop Editing" }</button>
+                                        <button class="btn btn-secondary" onclick={ctx.link().callback(|_| Msg::ToggleEdit)}>{ "Stop Editing" }</button>
                                     </div>
                                     <div class="sidebar-item">
-                                        <button class="button proceed" onclick={ctx.link().callback(|_| Msg::SaveEdits)}>
+                                        <button class="btn btn-success" onclick={ctx.link().callback(|_| Msg::SaveEdits)}>
                                             { "Save" }
                                         </button>
                                     </div>
@@ -212,7 +212,7 @@ impl Component for AuthorView {
                             html! {
                                 <LoginBarrier>
                                     <div class="sidebar-item">
-                                        <button class="button" onclick={ctx.link().callback(|_| Msg::ToggleEdit)}>{ "Start Editing" }</button>
+                                        <button class="btn btn-secondary" onclick={ctx.link().callback(|_| Msg::ToggleEdit)}>{ "Start Editing" }</button>
                                     </div>
                                 </LoginBarrier>
                             }
@@ -220,213 +220,222 @@ impl Component for AuthorView {
                     }
                     </div>
 
-                    <div class="view-container item-view-container">
-                        <div class="info-container">
-                            <div class="poster large">
-                                <img src={ person.get_thumb_url() } />
-                            </div>
-
-                            <div class="metadata-container">
-                                <div class="metadata">
-                                    { // Book Display Info
-                                        if self.is_editing() {
-                                            html! {
-                                                <>
-                                                    <h5>{ "Book Display Info" }</h5>
-
-                                                    <span class="sub-title">{ "Name" }</span>
-                                                    <input class="title" type="text"
-                                                        onchange={ Self::on_change_input(ctx.link(), ChangingType::Name) }
-                                                        value={ editing.name.clone().unwrap_or_else(|| person.name.clone()) }
-                                                    />
-
-                                                    <span class="sub-title">{ "Description" }</span>
-                                                    <textarea
-                                                        rows="9"
-                                                        cols="30"
-                                                        class="description"
-                                                        onchange={ Self::on_change_textarea(ctx.link(), ChangingType::Description) }
-                                                        value={ editing.description.clone().or_else(|| person.description.clone()).unwrap_or_default() }
-                                                    />
-                                                </>
-                                            }
-                                        } else {
-                                            html! {
-                                                <>
-                                                    <h3 class="title">{ person.name.clone() }</h3>
-                                                    <p class="description">{ person.description.clone().unwrap_or_default() }</p>
-                                                </>
-                                            }
-                                        }
-                                    }
+                    // TODO: We use px-0 b/c view-container pads
+                    <div class="view-container item-view-container px-0">
+                        <div class="container-fluid">
+                            <div class="row">
+                                // Poster
+                                <div class="col col-sm-auto col-12">
+                                    <div class="poster large">
+                                        <img src={ person.get_thumb_url() } />
+                                    </div>
                                 </div>
 
-                                { // Book Info
-                                    if self.is_editing() {
-                                        html! {
-                                            <div class="metadata">
-                                                <h5>{ "Book Info" }</h5>
+                                <div class="col-12 col-sm">
+                                    <div class="metadata-container">
+                                        <div class="metadata">
+                                            { // Book Display Info
+                                                if self.is_editing() {
+                                                    html! {
+                                                        <>
+                                                            <h5>{ "Author Display Info" }</h5>
 
-                                                <span class="sub-title">{ "Birth Date" }</span>
-                                                <input class="title" type="text"
-                                                    placeholder="YYYY-MM-DD"
-                                                    onfocusout={ ctx.link().callback(move |e: FocusEvent| {
-                                                        Msg::UpdateEditing(ChangingType::BirthDate, e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap().value())
-                                                    }) }
-                                                    value={ editing.birth_date.clone().or_else(|| person.birth_date.map(|v| v.to_string())).unwrap_or_default() }
-                                                />
-                                            </div>
-                                        }
-                                    } else {
-                                        html! {}
-                                    }
-                                }
-
-                                { // Sources
-                                    if self.is_editing() {
-                                        html! {
-                                            <div class="metadata">
-                                                <h5>{ "Sources" }</h5>
-
-                                                <span class="sub-title">{ "Good Reads URL" }</span>
-                                                <input class="title" type="text" />
-
-                                                <span class="sub-title">{ "Open Library URL" }</span>
-                                                <input class="title" type="text" />
-
-                                                <span class="sub-title">{ "Google Books URL" }</span>
-                                                <input class="title" type="text" />
-
-                                                <h5>{ "Tags" }</h5>
-                                            </div>
-                                        }
-                                    } else {
-                                        html! {}
-                                    }
-                                }
-                            </div>
-                        </div>
-
-                        {
-                            if self.is_editing() {
-                                html! {}
-                            } else {
-                                html! {
-                                    <>
-                                        <h4>{ "Other Names" }</h4>
-                                        <div class="label-group">
-                                        {
-                                            for other_names.iter()
-                                                .map(|name| html! {
-                                                    <div class="label">{ name.clone() }</div>
-                                                })
-                                        }
-                                        </div>
-                                    </>
-                                }
-                            }
-                        }
-
-                        { // Posters
-                            if self.is_editing() {
-                                if let Some(resp) = self.cached_posters.as_ref() {
-                                    let person_id = person.id;
-
-                                    match resp.as_ok() {
-                                        Ok(resp) => html! {
-                                            <section>
-                                                <h2>{ "Posters" }</h2>
-                                                <div class="posters-container">
-                                                    <UploadModule
-                                                        class="poster new-container"
-                                                        title="Add Poster"
-                                                        upload_url={ format!("/api/v1/posters/{}/upload", ImageIdType::new_person(ctx.props().id)) }
-                                                        on_upload={ctx.link().callback(|_| Msg::UpdatedPoster)}
-                                                    >
-                                                        <span class="material-icons">{ "add" }</span>
-                                                    </UploadModule>
-
-                                                    {
-                                                        for resp.items.iter().map(move |poster| {
-                                                            let url_or_id = poster.id.map(Either::Right).unwrap_or_else(|| Either::Left(poster.path.clone()));
-                                                            let is_selected = poster.selected;
-
-                                                            html! {
-                                                                <div
-                                                                    class={ classes!("poster", { if is_selected { "selected" } else { "" } }) }
-                                                                    onclick={ctx.link().callback_future(move |_| {
-                                                                        let url_or_id = url_or_id.clone();
-
-                                                                        async move {
-                                                                            if is_selected {
-                                                                                Msg::Ignore
-                                                                            } else {
-                                                                                request::change_poster_for_meta(ImageIdType::new_person(person_id), url_or_id).await;
-
-                                                                                Msg::UpdatedPoster
-                                                                            }
-                                                                        }
-                                                                    })}
-                                                                >
-                                                                    <div class="top-right">
-                                                                        <span
-                                                                            class="material-icons"
-                                                                        >{ "delete" }</span>
-                                                                    </div>
-                                                                    <img src={poster.path.clone()} />
-                                                                </div>
-                                                            }
-                                                        })
-                                                    }
-                                                </div>
-                                            </section>
-                                        },
-
-                                        Err(e) => html! {
-                                            <h2>{ e }</h2>
-                                        }
-                                    }
-
-                                } else {
-                                    html! {}
-                                }
-                            } else {
-                                html! {}
-                            }
-                        }
-
-                        <section>
-                            <h2>{ "Books" }</h2>
-                            <div class="books-container">
-                                <div class="book-list normal horizontal">
-                                    // <div class="book-list-item new-container" title="Add Book">
-                                    //     <span class="material-icons">{ "add" }</span>
-                                    // </div>
-                                    {
-                                        if let Some(resp) = self.cached_books.as_ref() {
-                                            match resp.as_ok() {
-                                                Ok(resp) => html! {{
-                                                    for resp.items.iter().map(|item| {
-                                                        html! {
-                                                            <MediaItem
-                                                                is_editing=false
-                                                                item={item.clone()}
+                                                            <span class="sub-title">{ "Name" }</span>
+                                                            <input class="form-control mb-1" type="text"
+                                                                onchange={ Self::on_change_input(ctx.link(), ChangingType::Name) }
+                                                                value={ editing.name.clone().unwrap_or_else(|| person.name.clone()) }
                                                             />
-                                                        }
-                                                    })
-                                                }},
+
+                                                            <span class="sub-title">{ "Description" }</span>
+                                                            <textarea
+                                                                rows="9"
+                                                                cols="30"
+                                                                class="form-control description"
+                                                                onchange={ Self::on_change_textarea(ctx.link(), ChangingType::Description) }
+                                                                value={ editing.description.clone().or_else(|| person.description.clone()).unwrap_or_default() }
+                                                            />
+                                                        </>
+                                                    }
+                                                } else {
+                                                    html! {
+                                                        <>
+                                                            <h3 class="title">{ person.name.clone() }</h3>
+                                                            <p class="description">{ person.description.clone().unwrap_or_default() }</p>
+                                                        </>
+                                                    }
+                                                }
+                                            }
+                                        </div>
+
+                                        { // Book Info
+                                            if self.is_editing() {
+                                                html! {
+                                                    <div class="metadata">
+                                                        <h5>{ "Author Info" }</h5>
+
+                                                        <span class="sub-title">{ "Birth Date" }</span>
+                                                        <input class="form-control" type="text"
+                                                            placeholder="YYYY-MM-DD"
+                                                            onfocusout={ ctx.link().callback(move |e: FocusEvent| {
+                                                                Msg::UpdateEditing(ChangingType::BirthDate, e.target().unwrap().dyn_into::<HtmlInputElement>().unwrap().value())
+                                                            }) }
+                                                            value={ editing.birth_date.clone().or_else(|| person.birth_date.map(|v| v.to_string())).unwrap_or_default() }
+                                                        />
+                                                    </div>
+                                                }
+                                            } else {
+                                                html! {}
+                                            }
+                                        }
+
+                                        { // Sources
+                                            if self.is_editing() {
+                                                html! {
+                                                    <div class="metadata">
+                                                        <h5>{ "Sources" }</h5>
+
+                                                        <span class="sub-title">{ "Good Reads URL" }</span>
+                                                        <input class="form-control mb-1" type="text" />
+
+                                                        <span class="sub-title">{ "Open Library URL" }</span>
+                                                        <input class="form-control mb-1" type="text" />
+
+                                                        <span class="sub-title">{ "Google Books URL" }</span>
+                                                        <input class="form-control" type="text" />
+
+                                                        // <h5>{ "Tags" }</h5>
+                                                    </div>
+                                                }
+                                            } else {
+                                                html! {}
+                                            }
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                {
+                                    if self.is_editing() {
+                                        html! {}
+                                    } else {
+                                        html! {
+                                            <>
+                                                <h4>{ "Other Names" }</h4>
+                                                <div class="label-group">
+                                                {
+                                                    for other_names.iter()
+                                                        .map(|name| html! {
+                                                            <div class="badge badge-secondary">{ name.clone() }</div>
+                                                        })
+                                                }
+                                                </div>
+                                            </>
+                                        }
+                                    }
+                                }
+
+                                { // Posters
+                                    if self.is_editing() {
+                                        if let Some(resp) = self.cached_posters.as_ref() {
+                                            let person_id = person.id;
+
+                                            match resp.as_ok() {
+                                                Ok(resp) => html! {
+                                                    <section>
+                                                        <h2>{ "Posters" }</h2>
+                                                        <div class="posters-container">
+                                                            <UploadModule
+                                                                class="poster new-container"
+                                                                title="Add Poster"
+                                                                upload_url={ format!("/api/v1/posters/{}/upload", ImageIdType::new_person(ctx.props().id)) }
+                                                                on_upload={ctx.link().callback(|_| Msg::UpdatedPoster)}
+                                                            >
+                                                                <span class="material-icons">{ "add" }</span>
+                                                            </UploadModule>
+
+                                                            {
+                                                                for resp.items.iter().map(move |poster| {
+                                                                    let url_or_id = poster.id.map(Either::Right).unwrap_or_else(|| Either::Left(poster.path.clone()));
+                                                                    let is_selected = poster.selected;
+
+                                                                    html! {
+                                                                        <div
+                                                                            class={ classes!("poster", { if is_selected { "selected" } else { "" } }) }
+                                                                            onclick={ctx.link().callback_future(move |_| {
+                                                                                let url_or_id = url_or_id.clone();
+
+                                                                                async move {
+                                                                                    if is_selected {
+                                                                                        Msg::Ignore
+                                                                                    } else {
+                                                                                        request::change_poster_for_meta(ImageIdType::new_person(person_id), url_or_id).await;
+
+                                                                                        Msg::UpdatedPoster
+                                                                                    }
+                                                                                }
+                                                                            })}
+                                                                        >
+                                                                            <div class="top-right">
+                                                                                <span
+                                                                                    class="material-icons"
+                                                                                >{ "delete" }</span>
+                                                                            </div>
+                                                                            <img src={poster.path.clone()} />
+                                                                        </div>
+                                                                    }
+                                                                })
+                                                            }
+                                                        </div>
+                                                    </section>
+                                                },
 
                                                 Err(e) => html! {
                                                     <h2>{ e }</h2>
                                                 }
                                             }
+
                                         } else {
                                             html! {}
                                         }
+                                    } else {
+                                        html! {}
                                     }
-                                </div>
+                                }
+
+                                <section>
+                                    <h2>{ "Books" }</h2>
+                                    <div class="books-container">
+                                        <div class="book-list normal horizontal">
+                                            // <div class="book-list-item new-container" title="Add Book">
+                                            //     <span class="material-icons">{ "add" }</span>
+                                            // </div>
+                                            {
+                                                if let Some(resp) = self.cached_books.as_ref() {
+                                                    match resp.as_ok() {
+                                                        Ok(resp) => html! {{
+                                                            for resp.items.iter().map(|item| {
+                                                                html! {
+                                                                    <MediaItem
+                                                                        is_editing=false
+                                                                        item={item.clone()}
+                                                                    />
+                                                                }
+                                                            })
+                                                        }},
+
+                                                        Err(e) => html! {
+                                                            <h2>{ e }</h2>
+                                                        }
+                                                    }
+                                                } else {
+                                                    html! {}
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+                                </section>
                             </div>
-                        </section>
+                        </div>
                     </div>
                 </div>
             }
@@ -437,7 +446,7 @@ impl Component for AuthorView {
         }
     }
 
-    fn changed(&mut self, _ctx: &Context<Self>) -> bool {
+    fn changed(&mut self, _ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
         if let Some(member) = get_member_self() {
             if member.localsettings.get_page_view_default().is_editing() {
                 self.is_editing = true;

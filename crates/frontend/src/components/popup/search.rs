@@ -222,124 +222,132 @@ impl PopupSearch {
                 on_close={ ctx.props().on_close.clone() }
                 classes={ classes!("external-book-search-popup") }
             >
-                <h1>{"Book Search"}</h1>
+                <div class="modal-header">
+                    <h1 class="modal-title">{ "Book Search" }</h1>
+                </div>
 
-                <form class="row">
-                    <input id={input_id} name="book_search" placeholder="Search For Title" value={ self.input_value.clone() } />
-                    <button onclick={
-                        ctx.link().callback(move |e: MouseEvent| {
-                            e.prevent_default();
+                <div class="modal-body">
+                    <div class="container">
+                        <form class="row">
+                            <input class="form-control" id={input_id} name="book_search" placeholder="Search For Title" value={ self.input_value.clone() } />
+                            <button class="btn btn-success" onclick={
+                                ctx.link().callback(move |e: MouseEvent| {
+                                    e.prevent_default();
 
-                            let input = document().get_element_by_id(input_id).unwrap().unchecked_into::<HtmlInputElement>();
+                                    let input = document().get_element_by_id(input_id).unwrap().unchecked_into::<HtmlInputElement>();
 
-                            Msg::SearchFor(input.value())
-                        })
-                    }>{ "Search" }</button>
-                </form>
+                                    Msg::SearchFor(input.value())
+                                })
+                            }>{ "Search" }</button>
+                        </form>
+                    </div>
 
-                <hr />
+                    <hr />
 
-                <div class="external-book-search-container">
+                    <div class="external-book-search-container">
+                        {
+                            match ctx.props().type_of {
+                                SearchBy::External => {
+                                    if let Some(loading) = self.cached_ext_search.as_ref() {
+                                        match loading {
+                                            LoadingItem::Loaded(wrapper) => {
+                                                match wrapper.as_ok() {
+                                                    Ok(search) => html! {
+                                                        <>
+                                                            <div class="tab-bar">
+                                                            {
+                                                                for search.items.iter()
+                                                                    .map(|(name, values)| {
+                                                                        let name2 = name.clone();
+
+                                                                        html! {
+                                                                            <div class="tab-bar-item" onclick={ ctx.link().callback(move |_| Msg::OnChangeTab(name2.clone())) }>
+                                                                                { upper_case_first_char(name.clone()) } { format!(" ({})", values.len()) }
+                                                                            </div>
+                                                                        }
+                                                                    })
+                                                            }
+                                                            </div>
+
+                                                            <div class="book-search-items">
+                                                            {
+                                                                for search.items.get(&self.selected_tab)
+                                                                    .iter()
+                                                                    .flat_map(|values| values.iter())
+                                                                    .map(|item| Self::render_ext_search_container(&self.selected_tab, item, ctx))
+                                                            }
+                                                            </div>
+                                                        </>
+                                                    },
+
+                                                    Err(e) => html! {
+                                                        <h2>{ e }</h2>
+                                                    }
+                                                }
+                                            },
+
+                                            LoadingItem::Loading => html! {
+                                                <h2>{ "Loading..." }</h2>
+                                            }
+                                        }
+                                    } else {
+                                        html! {}
+                                    }
+                                }
+
+                                SearchBy::Local => {
+                                    if let Some(loading) = self.cached_loc_search.as_ref() {
+                                        match loading {
+                                            LoadingItem::Loaded(wrapper) => {
+                                                match wrapper.as_ok() {
+                                                    Ok(search) => html! {
+                                                        <>
+                                                            <div class="book-search-items">
+                                                            {
+                                                                for search.items.iter()
+                                                                    .map(|item| Self::render_loc_search_container(item, ctx))
+                                                            }
+                                                            </div>
+                                                        </>
+                                                    },
+
+                                                    Err(e) => html! {
+                                                        <h2>{ e }</h2>
+                                                    }
+                                                }
+                                            },
+
+                                            LoadingItem::Loading => html! {
+                                                <h2>{ "Loading..." }</h2>
+                                            }
+                                        }
+                                    } else {
+                                        html! {}
+                                    }
+                                }
+                            }
+                        }
+                    </div>
+
                     {
-                        match ctx.props().type_of {
-                            SearchBy::External => {
-                                if let Some(loading) = self.cached_ext_search.as_ref() {
-                                    match loading {
-                                        LoadingItem::Loaded(wrapper) => {
-                                            match wrapper.as_ok() {
-                                                Ok(search) => html! {
-                                                    <>
-                                                        <div class="tab-bar">
-                                                        {
-                                                            for search.items.iter()
-                                                                .map(|(name, values)| {
-                                                                    let name2 = name.clone();
+                        if self.left_edit.is_some() {
+                            html! {
+                                <>
+                                    <hr />
 
-                                                                    html! {
-                                                                        <div class="tab-bar-item" onclick={ ctx.link().callback(move |_| Msg::OnChangeTab(name2.clone())) }>
-                                                                            { upper_case_first_char(name.clone()) } { format!(" ({})", values.len()) }
-                                                                        </div>
-                                                                    }
-                                                                })
-                                                        }
-                                                        </div>
+                                    <div>
+                                        <button class="btn btn-success" onclick={ ctx.link().callback(|_| Msg::OnSubmitSingle) }>{ "Insert (Single)" }</button>
+                                        <button class="btn btn-success" disabled={ true }>{ "Insert (Compared)" }</button>
 
-                                                        <div class="book-search-items">
-                                                        {
-                                                            for search.items.get(&self.selected_tab)
-                                                                .iter()
-                                                                .flat_map(|values| values.iter())
-                                                                .map(|item| Self::render_ext_search_container(&self.selected_tab, item, ctx))
-                                                        }
-                                                        </div>
-                                                    </>
-                                                },
-
-                                                Err(e) => html! {
-                                                    <h2>{ e }</h2>
-                                                }
-                                            }
-                                        },
-
-                                        LoadingItem::Loading => html! {
-                                            <h2>{ "Loading..." }</h2>
-                                        }
-                                    }
-                                } else {
-                                    html! {}
-                                }
+                                        <span class="yellow">{ "Select another to be able to compare and insert" }</span>
+                                    </div>
+                                </>
                             }
-
-                            SearchBy::Local => {
-                                if let Some(loading) = self.cached_loc_search.as_ref() {
-                                    match loading {
-                                        LoadingItem::Loaded(wrapper) => {
-                                            match wrapper.as_ok() {
-                                                Ok(search) => html! {
-                                                    <>
-                                                        <div class="book-search-items">
-                                                        {
-                                                            for search.items.iter()
-                                                                .map(|item| Self::render_loc_search_container(item, ctx))
-                                                        }
-                                                        </div>
-                                                    </>
-                                                },
-
-                                                Err(e) => html! {
-                                                    <h2>{ e }</h2>
-                                                }
-                                            }
-                                        },
-
-                                        LoadingItem::Loading => html! {
-                                            <h2>{ "Loading..." }</h2>
-                                        }
-                                    }
-                                } else {
-                                    html! {}
-                                }
-                            }
+                        } else {
+                            html! {}
                         }
                     }
                 </div>
-
-                <hr />
-
-                {
-                    if self.left_edit.is_some() {
-                        html! {
-                            <div>
-                                <button onclick={ ctx.link().callback(|_| Msg::OnSubmitSingle) }>{ "Insert (Single)" }</button>
-                                <button disabled={ true }>{ "Insert (Compared)" }</button>
-
-                                <span class="yellow">{ "Select another to be able to compare and insert" }</span>
-                            </div>
-                        }
-                    } else {
-                        html! {}
-                    }
-                }
             </Popup>
         }
     }
@@ -370,7 +378,9 @@ impl PopupSearch {
                 class="book-search-item"
                 onclick={ ctx.link().callback(move |_| Msg::OnSelectItem(SearchSelectedValue::Source(source.clone()))) }
             >
-                <img src={ item.thumbnail_url.to_string() } />
+                <div class="poster normal">
+                    <img src={ item.thumbnail_url.to_string() } />
+                </div>
                 <div class="book-info">
                     <h4 class="book-name">{ item.name.clone() }</h4>
                     <h5>{ site }</h5>
@@ -392,7 +402,9 @@ impl PopupSearch {
                 class="book-search-item"
                 onclick={ ctx.link().callback(move |_| Msg::OnSelectItem(SearchSelectedValue::BookId(book_id))) }
             >
-                <img src={ item.get_thumb_url() } />
+                <div class="poster normal">
+                    <img src={ item.get_thumb_url() } />
+                </div>
                 <div class="book-info">
                     <h4 class="book-name">{ item.title.clone() }</h4>
                     <span class="book-author">{ item.cached.author.clone().unwrap_or_default() }</span>

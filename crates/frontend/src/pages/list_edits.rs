@@ -122,7 +122,7 @@ impl Component for EditListPage {
 
             html! {
                 <div class="view-container edit-list-view-container">
-                    <div class="list-items">
+                    <div class="container">
                         { for resp.items.iter().map(|item| self.render_item(item, ctx.link())) }
                     </div>
                 </div>
@@ -140,208 +140,210 @@ impl EditListPage {
         let id = item.id;
 
         let status_color = match item.status {
-            EditStatus::Accepted | EditStatus::ForceAccepted => "green",
-            EditStatus::Pending => "yellow",
+            EditStatus::Accepted | EditStatus::ForceAccepted => "text-bg-success",
+            EditStatus::Pending => "text-bg-warning",
             EditStatus::Rejected
             | EditStatus::Failed
             | EditStatus::Cancelled
-            | EditStatus::ForceRejected => "red",
+            | EditStatus::ForceRejected => "text-bg-danger",
         };
 
         let my_vote = self.get_my_vote(item);
 
         html! {
-            <div class="editing-item-card">
-                <div class="header">
-                    // Left
-                    <div class="aligned-left">
-                        <h5>{ item.operation.get_name() } { " " } { item.type_of.get_name() }</h5>
-                        <div>
-                            <b>{ "Member: " }</b>
-                            {
-                                if let Some(member) = item.member.as_ref() {
-                                    html! {
-                                        <span>{ member.name.clone() }</span>
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-9 editing-item-card">
+                    <div class="header">
+                        // Left
+                        <div class="aligned-left">
+                            <h5>{ item.operation.get_name() } { " " } { item.type_of.get_name() }</h5>
+                            <div>
+                                <b>{ "Member: " }</b>
+                                {
+                                    if let Some(member) = item.member.as_ref() {
+                                        html! {
+                                            <span>{ member.name.clone() }</span>
+                                        }
+                                    } else {
+                                        html! {}
                                     }
-                                } else {
-                                    html! {}
                                 }
-                            }
-                        </div>
-                        <div>
-                            <b>{ "Created: " }</b>
-                            <span>{ item.created_at.format("%b %e, %Y %T %p").to_string() }</span>
-                        </div>
-                    </div>
-
-                    // Right
-                    <div class="aligned-right">
-                        <div>
-                            <b>{ "Status: " }</b>
-                            <span class={classes!("label", status_color)}>{ item.status.get_name() }</span>
+                            </div>
+                            <div>
+                                <b>{ "Created: " }</b>
+                                <span>{ item.created_at.format("%b %e, %Y %T %p").to_string() }</span>
+                            </div>
                         </div>
 
-                        {
-                            // Closed
-                            if let Some(ended_at) = item.ended_at {
-                                html! {
-                                    <div title={ ended_at.format("%b %e, %Y %T %p").to_string() }>
-                                        <b>{ "Closed" }</b>
-                                    </div>
+                        // Right
+                        <div class="aligned-right">
+                            <div>
+                                <b>{ "Status: " }</b>
+                                <span class={classes!("badge", status_color)}>{ item.status.get_name() }</span>
+                            </div>
+
+                            {
+                                // Closed
+                                if let Some(ended_at) = item.ended_at {
+                                    html! {
+                                        <div title={ ended_at.format("%b %e, %Y %T %p").to_string() }>
+                                            <b>{ "Closed" }</b>
+                                        </div>
+                                    }
                                 }
-                            }
 
-                            // Closes X time
-                            else if let Some(expires_at) = item.expires_at {
-                                html! {
-                                    <div title={ expires_at.format("%b %e, %Y %T %p").to_string() }>
-                                        <b>{ "Closes: " }</b>
+                                // Closes X time
+                                else if let Some(expires_at) = item.expires_at {
+                                    html! {
+                                        <div title={ expires_at.format("%b %e, %Y %T %p").to_string() }>
+                                            <b>{ "Closes: " }</b>
 
-                                        {
-                                            match expires_at.signed_duration_since(Utc::now()) {
-                                                v if v.num_days() != 0 => {
-                                                    html! {
-                                                        <span>{ v.num_days() } { " days" }</span>
+                                            {
+                                                match expires_at.signed_duration_since(Utc::now()) {
+                                                    v if v.num_days() != 0 => {
+                                                        html! {
+                                                            <span>{ v.num_days() } { " days" }</span>
+                                                        }
                                                     }
-                                                }
 
-                                                v => {
-                                                    html! {
-                                                        <span>{ v.num_hours() } { " hours" }</span>
+                                                    v => {
+                                                        html! {
+                                                            <span>{ v.num_hours() } { " hours" }</span>
+                                                        }
                                                     }
                                                 }
                                             }
-                                        }
-                                    </div>
+                                        </div>
+                                    }
+                                }
+
+                                // Closes Never
+                                else {
+                                    html! {
+                                        <div>
+                                            <b>{ "Closes: " }</b>
+                                            <span>{ "Never" }</span>
+                                        </div>
+                                    }
                                 }
                             }
 
-                            // Closes Never
-                            else {
-                                html! {
-                                    <div>
-                                        <b>{ "Closes: " }</b>
-                                        <span>{ "Never" }</span>
-                                    </div>
-                                }
-                            }
-                        }
-
-                        <div>
-                            <b>{ "Vote Count: " }</b>
-                            <span>{ item.vote_count }</span>
+                            <div>
+                                <b>{ "Vote Count: " }</b>
+                                <span>{ item.vote_count }</span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <hr class="transparent" />
+                    <hr class="transparent" />
 
-                <div class="body">
-                    {
-                        match &item.data {
-                            EditData::Book(v) => Self::generate_book_rows(item.status, item.operation, v, scope),
-                            EditData::Person(v) => Self::generate_person_rows(item.status, item.operation, v, scope),
-                            _ => todo!(),
+                    <div class="body">
+                        {
+                            match &item.data {
+                                EditData::Book(v) => Self::generate_book_rows(item.status, item.operation, v, scope),
+                                EditData::Person(v) => Self::generate_person_rows(item.status, item.operation, v, scope),
+                                _ => todo!(),
+                            }
                         }
-                    }
-                </div>
+                    </div>
 
-                <hr class="transparent" />
+                    <hr class="transparent" />
 
-                <div class="footer">
-                    <LoginBarrier>
-                        <div class="aligned-left">
+                    <div class="footer">
+                        <LoginBarrier>
+                            <div class="aligned-left">
+                                {
+                                    // Upvote / Downvote
+                                    if item.status.is_pending() {
+                                        html! {
+                                            <>
+                                            {
+                                                if let Some(is_selected) = my_vote.map(|v| !v).or(Some(false)) {
+                                                    html! {
+                                                        <button
+                                                            class="slim red"
+                                                            disabled={!is_selected && my_vote.is_some()}
+                                                            title="Downvote"
+                                                            onclick={scope.callback_future(move |_| async move {
+                                                                let resp = request::update_edit_item(id, &UpdateEditModel {
+                                                                    vote: Some(-1),
+                                                                    .. UpdateEditModel::default()
+                                                                }).await;
+
+                                                                Msg::EditItemUpdate(Box::new(resp))
+                                                            })}
+                                                        ><span class="material-icons">{ "keyboard_arrow_down" }</span></button>
+                                                    }
+                                                } else {
+                                                    html! {}
+                                                }
+                                            }
+
+                                            {
+                                                if let Some(is_selected) = my_vote.or(Some(false)) {
+                                                    html! {
+                                                        <button
+                                                            class="slim green"
+                                                            disabled={!is_selected && my_vote.is_some()}
+                                                            title="Upvote"
+                                                            onclick={scope.callback_future(move |_| async move {
+                                                                let resp = request::update_edit_item(id, &UpdateEditModel {
+                                                                    vote: Some(1),
+                                                                    .. UpdateEditModel::default()
+                                                                }).await;
+
+                                                                Msg::EditItemUpdate(Box::new(resp))
+                                                            })}
+                                                        ><span class="material-icons">{ "keyboard_arrow_up" }</span></button>
+                                                    }
+                                                } else {
+                                                    html! {}
+                                                }
+                                            }
+                                            </>
+                                        }
+                                    } else {
+                                        html! {}
+                                    }
+                                }
+                            </div>
+                            <div class="aligned-right">
                             {
-                                // Upvote / Downvote
                                 if item.status.is_pending() {
                                     html! {
                                         <>
-                                        {
-                                            if let Some(is_selected) = my_vote.map(|v| !v).or(Some(false)) {
-                                                html! {
-                                                    <button
-                                                        class="slim red"
-                                                        disabled={!is_selected && my_vote.is_some()}
-                                                        title="Downvote"
-                                                        onclick={scope.callback_future(move |_| async move {
-                                                            let resp = request::update_edit_item(id, &UpdateEditModel {
-                                                                vote: Some(-1),
-                                                                .. UpdateEditModel::default()
-                                                            }).await;
+                                            <button
+                                                class="slim red"
+                                                onclick={scope.callback_future(move |_| async move {
+                                                    let resp = request::update_edit_item(id, &UpdateEditModel {
+                                                        status: Some(EditStatus::ForceRejected),
+                                                        .. UpdateEditModel::default()
+                                                    }).await;
 
-                                                            Msg::EditItemUpdate(Box::new(resp))
-                                                        })}
-                                                    ><span class="material-icons">{ "keyboard_arrow_down" }</span></button>
-                                                }
-                                            } else {
-                                                html! {}
-                                            }
-                                        }
+                                                    Msg::EditItemUpdate(Box::new(resp))
+                                                })}
+                                            >{ "Force Reject" }</button>
 
-                                        {
-                                            if let Some(is_selected) = my_vote.or(Some(false)) {
-                                                html! {
-                                                    <button
-                                                        class="slim green"
-                                                        disabled={!is_selected && my_vote.is_some()}
-                                                        title="Upvote"
-                                                        onclick={scope.callback_future(move |_| async move {
-                                                            let resp = request::update_edit_item(id, &UpdateEditModel {
-                                                                vote: Some(1),
-                                                                .. UpdateEditModel::default()
-                                                            }).await;
+                                            <button
+                                                class="slim green"
+                                                onclick={scope.callback_future(move |_| async move {
+                                                    let resp = request::update_edit_item(id, &UpdateEditModel {
+                                                        status: Some(EditStatus::ForceAccepted),
+                                                        .. UpdateEditModel::default()
+                                                    }).await;
 
-                                                            Msg::EditItemUpdate(Box::new(resp))
-                                                        })}
-                                                    ><span class="material-icons">{ "keyboard_arrow_up" }</span></button>
-                                                }
-                                            } else {
-                                                html! {}
-                                            }
-                                        }
+                                                    Msg::EditItemUpdate(Box::new(resp))
+                                                })}
+                                            >{ "Force Accept" }</button>
                                         </>
                                     }
                                 } else {
                                     html! {}
                                 }
                             }
-                        </div>
-                        <div class="aligned-right">
-                        {
-                            if item.status.is_pending() {
-                                html! {
-                                    <>
-                                        <button
-                                            class="slim red"
-                                            onclick={scope.callback_future(move |_| async move {
-                                                let resp = request::update_edit_item(id, &UpdateEditModel {
-                                                    status: Some(EditStatus::ForceRejected),
-                                                    .. UpdateEditModel::default()
-                                                }).await;
-
-                                                Msg::EditItemUpdate(Box::new(resp))
-                                            })}
-                                        >{ "Force Reject" }</button>
-
-                                        <button
-                                            class="slim green"
-                                            onclick={scope.callback_future(move |_| async move {
-                                                let resp = request::update_edit_item(id, &UpdateEditModel {
-                                                    status: Some(EditStatus::ForceAccepted),
-                                                    .. UpdateEditModel::default()
-                                                }).await;
-
-                                                Msg::EditItemUpdate(Box::new(resp))
-                                            })}
-                                        >{ "Force Accept" }</button>
-                                    </>
-                                }
-                            } else {
-                                html! {}
-                            }
-                        }
-                        </div>
-                    </LoginBarrier>
+                            </div>
+                        </LoginBarrier>
+                    </div>
                 </div>
             </div>
         }
@@ -443,11 +445,11 @@ impl EditListPage {
                             {
                                 if let Some(val) = old_value.clone() {
                                     html! {
-                                        <div class="row-grow"><div class="label red">{ val }</div></div>
+                                        <div class="row-grow"><div class="badge text-bg-danger text-wrap">{ val }</div></div>
                                     }
                                 } else {
                                     html! {
-                                        <div class="row-grow"><div class="label red">{ "(Empty)" }</div></div>
+                                        <div class="row-grow"><div class="badge text-bg-danger text-wrap">{ "(Empty)" }</div></div>
                                     }
                                 }
                             }
@@ -457,7 +459,7 @@ impl EditListPage {
                                 if status.is_accepted() && is_updated {
                                     html! {
                                         <div class="row-grow">
-                                            <div class="label green" title={ "Updated Model with value." }>
+                                            <div class="badge text-bg-success text-wrap" title={ "Updated Model with value." }>
                                                 { new_value.clone() }
                                             </div>
                                         </div>
@@ -465,7 +467,7 @@ impl EditListPage {
                                 } else if current.is_some() && current != old_value.as_ref() {
                                     html! {
                                         <div class="row-grow">
-                                            <div class="label yellow" title={ "Current Model has a different value than wanted. It'll not be used if approved." }>
+                                            <div class="badge text-bg-warning text-wrap" title={ "Current Model has a different value than wanted. It'll not be used if approved." }>
                                                 { new_value.clone() }
                                             </div>
                                         </div>
@@ -473,7 +475,7 @@ impl EditListPage {
                                 } else {
                                     html! {
                                         <div class="row-grow">
-                                            <div class="label green">{ new_value.clone() }</div>
+                                            <div class="badge text-bg-success text-wrap">{ new_value.clone() }</div>
                                         </div>
                                     }
                                 }
@@ -552,14 +554,14 @@ impl EditListPage {
                                         }
 
                                         // Old Value
-                                        <div class="row-grow"><div class="label red">{ map(old_val) }</div></div>
+                                        <div class="row-grow"><div class="badge text-bg-danger text-wrap">{ map(old_val) }</div></div>
 
                                         // New Value
                                         {
                                             if status.is_accepted() && is_updated {
                                                 html! {
                                                     <div class="row-grow">
-                                                        <div class="label green" title={ "Updated Model with value." }>
+                                                        <div class="badge text-bg-success text-wrap" title={ "Updated Model with value." }>
                                                             { map(new_val) }
                                                         </div>
                                                     </div>
@@ -567,7 +569,7 @@ impl EditListPage {
                                             } else if current.is_some() && current != old_value.as_ref() {
                                                 html! {
                                                     <div class="row-grow">
-                                                        <div class="label yellow" title={ "Current Model has a different value than wanted. It'll not be used if approved." }>
+                                                        <div class="badge text-bg-warning text-wrap" title={ "Current Model has a different value than wanted. It'll not be used if approved." }>
                                                             { map(new_val) }
                                                         </div>
                                                     </div>
@@ -575,7 +577,7 @@ impl EditListPage {
                                             } else {
                                                 html! {
                                                     <div class="row-grow">
-                                                        <div class="label green">{ map(new_val) }</div>
+                                                        <div class="badge text-bg-success text-wrap">{ map(new_val) }</div>
                                                     </div>
                                                 }
                                             }
@@ -589,7 +591,7 @@ impl EditListPage {
                                 <div class="row-title"><span>{ title }</span></div>
 
                                 // Old Value
-                                <div class="row-grow"><div class="label red">{ "(Empty)" }</div></div>
+                                <div class="row-grow"><div class="badge text-bg-danger text-wrap">{ "(Empty)" }</div></div>
 
                                 // New Value
                                 {
@@ -597,7 +599,7 @@ impl EditListPage {
                                         if status.is_accepted() && is_updated {
                                             html! {
                                                 <div class="row-grow">
-                                                    <div class="label green" title={ "Updated Model with value." }>
+                                                    <div class="badge text-bg-success text-wrap" title={ "Updated Model with value." }>
                                                         { map(new_val) }
                                                     </div>
                                                 </div>
@@ -605,7 +607,7 @@ impl EditListPage {
                                         } else if current.is_some() && current != old_value.as_ref() {
                                             html! {
                                                 <div class="row-grow">
-                                                    <div class="label yellow" title={ "Current Model has a different value than wanted. It'll not be used if approved." }>
+                                                    <div class="badge text-bg-warning text-wrap" title={ "Current Model has a different value than wanted. It'll not be used if approved." }>
                                                         { map(new_val) }
                                                     </div>
                                                 </div>
@@ -613,7 +615,7 @@ impl EditListPage {
                                         } else {
                                             html! {
                                                 <div class="row-grow">
-                                                    <div class="label green">{ map(new_val) }</div>
+                                                    <div class="badge text-bg-success text-wrap">{ map(new_val) }</div>
                                                 </div>
                                             }
                                         }

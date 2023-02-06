@@ -166,11 +166,11 @@ impl Component for ListCollectionsPage {
         if let Some(items) = items {
             html! {
                 <>
-                    <div class="outer-view-container">
-                        <div class="sidebar-container display-none display-block-md">
+                    <div class="outer-view-container h-100 px-0">
+                        <div class="sidebar-container d-none d-md-flex flex-column flex-shrink-0 p-2 text-bg-dark">
                             <LoginBarrier>
                                 <div class="sidebar-item">
-                                    <button class="button" onclick={ ctx.link().callback(|_| Msg::CreateNewCollection) }>
+                                    <button class="btn btn-secondary" onclick={ ctx.link().callback(|_| Msg::CreateNewCollection) }>
                                         { "New Collection" }
                                     </button>
                                 </div>
@@ -221,7 +221,7 @@ impl Component for ListCollectionsPage {
 impl ListCollectionsPage {
     fn render_item(&self, item: &Collection) -> Html {
         html! {
-            <Link<Route> to={Route::Collection { path: format!("{}-{}", item.id, clean_title(&item.name)) }} classes={ classes!("collection-list-item") }>
+            <Link<Route> to={ Route::Collection { path: format!("{}-{}", item.id, clean_title(&item.name)) } } classes="collection-list-item link-light">
                 <h4>{ item.name.clone() }</h4>
                 <p>{ item.description.clone().unwrap_or_default() }</p>
             </Link<Route>>
@@ -278,43 +278,48 @@ fn create_collection_popup(props: &CreateCollectionPopupProps) -> Html {
             type_of={ PopupType::FullOverlay }
             on_close={ props.scope.callback(|_| Msg::ClosePopup) }
         >
-            <form class="form-container shrink-width-to-content">
-                <label for="new-collection-name">{ "Collection Name" }</label>
-                <input id="new-collection-name" ref={ input_ref.clone() } name="new_collection_name" placeholder="Collection Name" />
+            <div class="modal-header">
+                <h1 class="modal-title">{ "Create Collection" }</h1>
+            </div>
+            <div class="modal-body">
+                <form class="form-container shrink-width-to-content">
+                    <label for="new-collection-name">{ "Collection Name" }</label>
+                    <input class="form-control" id="new-collection-name" ref={ input_ref.clone() } name="new_collection_name" placeholder="Collection Name" />
 
-                <label for="new-collection-desc">{ "Collection Description" }</label>
-                <textarea id="new-collection-desc" ref={ textarea_ref.clone() } name="new_collection_desc"></textarea>
+                    <label for="new-collection-desc">{ "Collection Description" }</label>
+                    <textarea class="form-control" id="new-collection-desc" ref={ textarea_ref.clone() } name="new_collection_desc"></textarea>
 
-                <label for="new-collection-type">{ "Collection Type" }</label>
-                <select id="new-collection-type" ref={ select_ref.clone() }>
-                    <option selected=true>{ "List" }</option>
-                    <option>{ "Series" }</option>
-                </select>
+                    <label for="new-collection-type">{ "Collection Type" }</label>
+                    <select class="form-select" id="new-collection-type" ref={ select_ref.clone() }>
+                        <option selected=true>{ "List" }</option>
+                        <option>{ "Series" }</option>
+                    </select>
 
-                <button onclick={
-                    props.scope.callback_future(move |e: MouseEvent| {
-                        let input_ref = input_ref.clone();
-                        let textarea_ref = textarea_ref.clone();
-                        let select_ref = select_ref.clone();
+                    <button class="btn btn-success" onclick={
+                        props.scope.callback_future(move |e: MouseEvent| {
+                            let input_ref = input_ref.clone();
+                            let textarea_ref = textarea_ref.clone();
+                            let select_ref = select_ref.clone();
 
-                        async move {
-                            e.prevent_default();
+                            async move {
+                                e.prevent_default();
 
-                            let resp = request::create_collection(NewCollectionBody {
-                                name: input_ref.cast::<HtmlInputElement>().unwrap_throw().value(),
-                                description: Some(textarea_ref.cast::<HtmlTextAreaElement>().unwrap_throw().value()).map(|v| v.trim().to_string()).filter(|v| !v.is_empty()),
-                                type_of: (select_ref.cast::<HtmlSelectElement>().unwrap_throw().selected_index() as u8).into(),
-                            }).await;
+                                let resp = request::create_collection(NewCollectionBody {
+                                    name: input_ref.cast::<HtmlInputElement>().unwrap_throw().value(),
+                                    description: Some(textarea_ref.cast::<HtmlTextAreaElement>().unwrap_throw().value()).map(|v| v.trim().to_string()).filter(|v| !v.is_empty()),
+                                    type_of: (select_ref.cast::<HtmlSelectElement>().unwrap_throw().selected_index() as u8).into(),
+                                }).await;
 
-                            Msg::CreateResult(resp)
-                        }
-                    })
-                }>{ "Create" }</button>
+                                Msg::CreateResult(resp)
+                            }
+                        })
+                    }>{ "Create" }</button>
 
-                <PopupClose>
-                    <button class="red">{ "Close" }</button>
-                </PopupClose>
-            </form>
+                    <PopupClose>
+                        <button class="btn btn-danger">{ "Close" }</button>
+                    </PopupClose>
+                </form>
+            </div>
         </Popup>
     }
 }

@@ -84,26 +84,30 @@ impl Component for Model {
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
             <BrowserRouter>
-                <NavbarModule />
-                {
-                    if self.has_loaded_member {
-                        html! {
-                            <Switch<Route> render={Switch::render(switch)} />
-                        }
-                    } else if let Some(err) = self.error.as_ref() {
-                        html! {
-                            <div>
-                                <h1>{ err.description.clone() }</h1>
-                            </div>
-                        }
-                    } else {
-                        html! {
-                            <div>
-                                <h1>{ "Loading..." }</h1>
-                            </div>
+                <div class="row">
+                    <NavbarModule />
+                </div>
+                <div class="row overflow-y-hidden flex-grow-1">
+                    {
+                        if self.has_loaded_member {
+                            html! {
+                                <Switch<Route> render={switch} />
+                            }
+                        } else if let Some(err) = self.error.as_ref() {
+                            html! {
+                                <div>
+                                    <h1>{ err.description.clone() }</h1>
+                                </div>
+                            }
+                        } else {
+                            html! {
+                                <div>
+                                    <h1>{ "Loading..." }</h1>
+                                </div>
+                            }
                         }
                     }
-                }
+                </div>
             </BrowserRouter>
         }
     }
@@ -149,10 +153,10 @@ pub enum Route {
     Home,
 }
 
-fn switch(route: &Route) -> Html {
+fn switch(route: Route) -> Html {
     log::info!("{:?}", route);
 
-    match route.clone() {
+    match route {
         Route::Authorize => {
             html! { <pages::AuthorizePage /> }
         }
@@ -223,5 +227,5 @@ fn switch(route: &Route) -> Html {
 fn main() {
     wasm_logger::init(wasm_logger::Config::default());
 
-    yew::start_app::<Model>();
+    yew::Renderer::<Model>::new().render();
 }

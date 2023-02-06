@@ -91,8 +91,8 @@ impl Component for PopupEditMetadata {
                 on_close={ ctx.props().on_close.clone() }
                 classes={ classes!("popup-book-edit") }
             >
-                <div class="header">
-                    <h2>{"Edit"}</h2>
+                <div class="modal-header">
+                    <h2 class="modal-title">{"Edit"}</h2>
                 </div>
 
                 <div class="tab-bar">
@@ -103,9 +103,9 @@ impl Component for PopupEditMetadata {
 
                 { self.render_tab_contents(ctx) }
 
-                <div class="footer">
-                    <button class="button">{ "Cancel" }</button>
-                    <button class="button">{ "Save" }</button>
+                <div class="modal-footer">
+                    <button class="btn btn-danger">{ "Cancel" }</button>
+                    <button class="btn btn-success">{ "Save" }</button>
                 </div>
             </Popup>
         }
@@ -138,15 +138,15 @@ impl PopupEditMetadata {
         let resp = &props.media_resp;
 
         html! {
-            <div class="content">
+            <div class="modal-body">
                 <label for="input-title">{ "Title" }</label>
-                <input type="text" id="input-title" value={ resp.metadata.title.clone().unwrap_or_default() } />
+                <input class="form-control" type="text" id="input-title" value={ resp.metadata.title.clone().unwrap_or_default() } />
 
                 <label for="input-orig-title">{ "Original Title" }</label>
-                <input type="text" id="input-orig-title" value={ resp.metadata.clean_title.clone().unwrap_or_default() } />
+                <input class="form-control" type="text" id="input-orig-title" value={ resp.metadata.clean_title.clone().unwrap_or_default() } />
 
                 <label for="input-descr">{ "Description" }</label>
-                <textarea type="text" id="input-descr" rows="5" value={ resp.metadata.description.clone().unwrap_or_default() } />
+                <textarea class="form-control" type="text" id="input-descr" rows="5" value={ resp.metadata.description.clone().unwrap_or_default() } />
             </div>
         }
     }
@@ -156,7 +156,7 @@ impl PopupEditMetadata {
             let resp = crate::continue_or_html_err!(resp);
 
             html! {
-                <div class="content edit-posters">
+                <div class="modal-body edit-posters">
                     <div class="drop-container">
                         <h4>{ "Drop File To Upload" }</h4>
                     </div>
@@ -169,7 +169,7 @@ impl PopupEditMetadata {
 
                                 html_nested! {
                                     <div
-                                        class={ classes!("poster", { if is_selected { "selected" } else { "" } }) }
+                                        class={ classes!("poster", "normal", is_selected.then_some("selected")) }
                                         onclick={ctx.link().callback_future(move |_| {
                                             let url_or_id = url_or_id.clone();
 
@@ -194,7 +194,7 @@ impl PopupEditMetadata {
             }
         } else {
             html! {
-                <div class="content edit-posters">
+                <div class="modal-body edit-posters">
                     <h3>{ "Loading Posters..." }</h3>
                 </div>
             }
@@ -203,8 +203,7 @@ impl PopupEditMetadata {
 
     fn render_tab_info(&self, _props: &<Self as Component>::Properties) -> Html {
         html! {
-            <div class="content">
-            </div>
+            <div class="modal-body"></div>
         }
     }
 }

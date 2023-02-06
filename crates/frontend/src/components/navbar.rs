@@ -93,42 +93,71 @@ impl Component for NavbarModule {
         let input_id = "book-search-input";
 
         html! {
-            <div class="navbar-module">
-                <div class="left-content">
-                {
-                    for self.left_items.iter().map(|item| Self::render_item(item.0, item.1.clone(), &item.2))
-                }
+            <nav class="navbar navbar-dark navbar-expand-sm text-bg-dark">
+                <div class="container-fluid">
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+
+                    // Collapsed Search
+                    <div class="d-sm-none" style="max-width: 16em;">
+                        <form class="search-bar row">
+                            <div class="input-group">
+                                <input id={input_id} class="form-control" placeholder="Search" />
+                                <button for={input_id} class="btn btn-sm btn-secondary" onclick={
+                                    ctx.link().callback(move |e: MouseEvent| {
+                                        e.prevent_default();
+
+                                        let input = document().get_element_by_id(input_id).unwrap().unchecked_into::<HtmlInputElement>();
+
+                                        Msg::SearchFor(input.value())
+                                    })
+                                }>{ "Search" }</button>
+                            </div>
+                        </form>
+
+                        { self.render_dropdown_results() }
+                    </div>
+
+                    // Collapsed List
+                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                        <ul class="navbar-nav me-auto mb-2">
+                            { for self.left_items.iter().map(|item| Self::render_item(item.0, item.1.clone(), &item.2)) }
+                        </ul>
+
+                        <div class="center-content me-auto d-none d-sm-block">
+                            <form class="search-bar row">
+                                <div class="input-group">
+                                    <input id={input_id} class="form-control" placeholder="Search" />
+                                    <button for={input_id} class="btn btn-sm btn-secondary" onclick={
+                                        ctx.link().callback(move |e: MouseEvent| {
+                                            e.prevent_default();
+
+                                            let input = document().get_element_by_id(input_id).unwrap().unchecked_into::<HtmlInputElement>();
+
+                                            Msg::SearchFor(input.value())
+                                        })
+                                    }>{ "Search" }</button>
+                                </div>
+                            </form>
+
+                            { self.render_dropdown_results() }
+                        </div>
+
+                        <ul class="navbar-nav mb-2">
+                            { for self.right_items.iter().map(|item| Self::render_item(item.0, item.1.clone(), &item.2)) }
+
+                            {
+                                if !is_signed_in() {
+                                    Self::render_item(false, Route::Login, &DisplayType::Icon("login", "Login/Register"))
+                                } else {
+                                    html! {}
+                                }
+                            }
+                        </ul>
+                    </div>
                 </div>
-                <div class="center-content">
-                    <form class="search-bar row">
-                        <input id={input_id} placeholder="Search" class="alternate" />
-                        <button for={input_id} class="alternate" onclick={
-                            ctx.link().callback(move |e: MouseEvent| {
-                                e.prevent_default();
-
-                                let input = document().get_element_by_id(input_id).unwrap().unchecked_into::<HtmlInputElement>();
-
-                                Msg::SearchFor(input.value())
-                            })
-                        }>{ "Search" }</button>
-                    </form>
-
-                    { self.render_dropdown_results() }
-                </div>
-                <div class="right-content">
-                {
-                    for self.right_items.iter().map(|item| Self::render_item(item.0, item.1.clone(), &item.2))
-                }
-
-                {
-                    if !is_signed_in() {
-                        Self::render_item(false, Route::Login, &DisplayType::Icon("login", "Login/Register"))
-                    } else {
-                        html! {}
-                    }
-                }
-                </div>
-            </div>
+            </nav>
         }
     }
 
@@ -173,9 +202,12 @@ impl NavbarModule {
             //     <Link<Route> to={route}>{ v }</Link<Route>>
             // },
             DisplayType::Icon(icon, title) => html! {
-                <Link<Route> to={route}>
-                    <span class="material-icons" title={ *title }>{ icon }</span>
-                </Link<Route>>
+                <li class="nav-item">
+                    <Link<Route> to={ route }>
+                        <span class="nav-link text-light material-icons" title={ *title }>{ icon }</span>
+                        <span class="d-inline d-sm-none link-light ms-2">{ *title }</span>
+                    </Link<Route>>
+                </li>
             },
         }
     }

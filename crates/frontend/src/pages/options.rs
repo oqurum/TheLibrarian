@@ -56,9 +56,10 @@ impl Component for OptionsPage {
                     <div class="view-container">
                         <h2>{ "Settings" }</h2>
 
-                        <div class="form-container shrink-width-to-content">
+                        <div class="mb-2 shrink-width-to-content">
                             <label for="new-users-select">{ "Allow new user registration" }</label>
                             <select
+                                class="form-select"
                                 id="new-users-select"
                                 onchange={
                                     ctx.link().callback_future(|e: Event| {
@@ -79,18 +80,14 @@ impl Component for OptionsPage {
                                 <option selected={ resp.config.auth.new_users } value="true">{ "Allowed" }</option>
                                 <option selected={ !resp.config.auth.new_users } value="false">{ "Denied" }</option>
                             </select>
-
-                            <br />
-
-                            <a class="button" href="/auth/logout">{ "Logout" }</a>
                         </div>
-
 
                         <h3>{ "My Settings" }</h3>
 
-                        <div class="form-container shrink-width-to-content">
+                        <div class="mb-2 shrink-width-to-content">
                             <label for="page-view-type">{ "Default Page View Type" }</label>
                             <select
+                                class="form-select"
                                 id="page-view-type"
                                 onchange={
                                     ctx.link().callback_future(|e: Event| {
@@ -113,6 +110,12 @@ impl Component for OptionsPage {
                                 <option selected={ member.localsettings.page_view.map(|v| v.is_viewing()).unwrap_or(true) }>{ "Viewing" }</option>
                                 <option selected={ member.localsettings.page_view.map(|v| v.is_editing()).unwrap_or(false) }>{ "Editing" }</option>
                             </select>
+                        </div>
+
+                        <br />
+
+                        <div>
+                            <a class="btn btn-danger" href="/auth/logout">{ "Logout" }</a>
                         </div>
 
 

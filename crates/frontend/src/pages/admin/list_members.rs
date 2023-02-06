@@ -67,7 +67,7 @@ impl ListMembersPage {
         html! {
             <div class="member-item-card">
                 <div class="title-container">
-                    <span class="label index">{ item.id }</span>
+                    <span class="badge badge-secondary index">{ item.id }</span>
                     <h4 class="name">{ item.name.as_str() }</h4>
                 </div>
 
@@ -79,7 +79,7 @@ impl ListMembersPage {
                     {
                         if item.id == get_member_self().unwrap().id {
                             html! {
-                                <span class="label green">{ "This is YOU!" }</span>
+                                <span class="badge bg-success">{ "This is YOU!" }</span>
                             }
                         } else {
                             html! {

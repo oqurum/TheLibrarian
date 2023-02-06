@@ -206,8 +206,6 @@ impl Component for AuthorListPage {
                                         html! {
                                             <Popup type_of={ PopupType::AtPoint(mouse_pos.0, mouse_pos.1) } on_close={ctx.link().callback(|_| Msg::ClosePopup)}>
                                                 <div class="menu-list">
-                                                    <PopupClose class="menu-item">{ "Start Reading" }</PopupClose>
-
                                                     <LoginBarrier>
                                                         <PopupClose class="menu-item" onclick={
                                                             Self::on_click_prevdef(ctx.link(), Msg::PosterItem(PosterItem::UpdatePerson(person_id)))
@@ -221,9 +219,9 @@ impl Component for AuthorListPage {
                                                         <PopupClose class="menu-item">{ "Delete" }</PopupClose>
                                                     </LoginBarrier>
 
-                                                    <PopupClose class="menu-item" onclick={
-                                                        Self::on_click_prevdef_stopprop(ctx.link(), Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::Info { person_id })))
-                                                    }>{ "Show Info" }</PopupClose>
+                                                    // <PopupClose class="menu-item" onclick={
+                                                    //     Self::on_click_prevdef_stopprop(ctx.link(), Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::Info { person_id })))
+                                                    // }>{ "Show Info" }</PopupClose>
                                                 </div>
                                             </Popup>
                                         }
@@ -248,7 +246,7 @@ impl Component for AuthorListPage {
 
                                                 <form>
                                                     <input id={input_id} name="person_search" placeholder="Search For Person" value={ input_value } />
-                                                    <button onclick={
+                                                    <button class="btn btn-secondary" onclick={
                                                         ctx.link().callback_future(move |e: MouseEvent| async move {
                                                             e.prevent_default();
 
@@ -336,7 +334,7 @@ impl Component for AuthorListPage {
 
                                                 <form>
                                                     <input id={input_id} name="person_search" placeholder="Search For Person" value={ input_value } />
-                                                    <button onclick={
+                                                    <button class="btn btn-secondary" onclick={
                                                         ctx.link().callback_future(move |e: MouseEvent| async move {
                                                             e.prevent_default();
 
@@ -428,11 +426,11 @@ impl Component for AuthorListPage {
         };
 
         html! {
-            <div class="outer-view-container">
-                <div class="sidebar-container display-none display-block-md">
+            <div class="outer-view-container h-100 px-0">
+                <div class="sidebar-container d-none d-md-flex flex-column flex-shrink-0 p-2 text-bg-dark">
                     <LoginBarrier>
                         <div class="sidebar-item">
-                            <button class="button" onclick={ ctx.link().callback(|_| Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::AddNewPerson))) }>{ "Add Author" }</button>
+                            <button class="btn btn-secondary" onclick={ ctx.link().callback(|_| Msg::PosterItem(PosterItem::ShowPopup(DisplayOverlay::AddNewPerson))) }>{ "Add Author" }</button>
                         </div>
                     </LoginBarrier>
                 </div>
@@ -488,12 +486,14 @@ impl AuthorListPage {
         html! {
             <Link<Route> to={Route::Person { id: item.id }} classes={ classes!("person-container") }>
                 <div class="photo">
-                    <div class="bottom-right">
-                        <span class="material-icons" onclick={on_click_more} title="More Options">{ "more_horiz" }</span>
-                    </div>
+                    <LoginBarrier>
+                        <div class="bottom-right">
+                            <span class="material-icons text-light" onclick={on_click_more} title="More Options">{ "more_horiz" }</span>
+                        </div>
+                    </LoginBarrier>
                     <img src={ item.get_thumb_url() } />
                 </div>
-                <span class="title">{ item.name.clone() }</span>
+                <span class="title text-light">{ item.name.clone() }</span>
             </Link<Route>>
         }
     }
@@ -518,7 +518,7 @@ impl AuthorListPage {
             .map(|v| v.len())
             .unwrap_or_default();
 
-        count != 0 && count != self.total_media_count as usize
+        count != 0 && count != self.total_media_count
     }
 }
 
