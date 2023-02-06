@@ -13,14 +13,14 @@ use crate::{is_signed_in, request, util, Route};
 pub enum Msg {
     Close,
     SearchFor(String),
-    SearchResults(WrappingResponse<GetBookListResponse>),
+    SearchResults(String, WrappingResponse<GetBookListResponse>),
 }
 
 pub struct NavbarModule {
     left_items: Vec<(bool, Route, DisplayType)>,
     right_items: Vec<(bool, Route, DisplayType)>,
 
-    search_results: Option<WrappingResponse<GetBookListResponse>>,
+    search_results: Option<(String, WrappingResponse<GetBookListResponse>)>,
     #[allow(clippy::type_complexity)]
     closure: Arc<Mutex<Option<Closure<dyn FnMut(MouseEvent)>>>>,
 }
@@ -73,17 +73,20 @@ impl Component for NavbarModule {
                 self.search_results = None;
 
                 ctx.link().send_future(async move {
+                    let query = BookListQuery {
+                        search: Some(api::QueryType::Query(value)),
+                        limit: Some(20),
+                        ..Default::default()
+                    };
+
                     Msg::SearchResults(
-                        request::get_books(BookListQuery {
-                            search: Some(api::QueryType::Query(value)),
-                            ..Default::default()
-                        })
-                        .await,
+                        serde_qs::to_string(&query).unwrap(),
+                        request::get_books(query).await,
                     )
                 });
             }
 
-            Msg::SearchResults(res) => self.search_results = Some(res),
+            Msg::SearchResults(query, res) => self.search_results = Some((query, res)),
         }
 
         true
@@ -214,11 +217,31 @@ impl NavbarModule {
     }
 
     fn render_dropdown_results(&self) -> Html {
-        if let Some(resp) = self.search_results.as_ref() {
+        if let Some((search_query, resp)) = self.search_results.as_ref() {
             let resp = crate::continue_or_html_err!(resp);
 
             html! {
                 <div class="search-dropdown">
+                    {
+                        if resp.items.is_empty() {
+                            html! {
+                                <div class="search-item justify-content-center" style="height: 4em;">
+                                    <h3>{ "Nothing" }</h3>
+                                </div>
+                            }
+                        } else {
+                            html! {
+                                <a
+                                    class="search-item link-light justify-content-center"
+                                    style="height: 4em;"
+                                    href={ format!("/?{search_query}") }
+                                >
+                                    <h3>{ "View All" }</h3>
+                                </a>
+                            }
+                        }
+                    }
+
                     {
                         for resp.items.iter().map(|item| {
                             html_nested! {
