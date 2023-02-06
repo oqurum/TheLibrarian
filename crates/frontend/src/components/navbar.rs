@@ -91,6 +91,7 @@ impl Component for NavbarModule {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         let input_id = "book-search-input";
+        let input2_id = "book-search-input2";
 
         html! {
             <nav class="navbar navbar-dark navbar-expand-sm text-bg-dark">
@@ -103,12 +104,12 @@ impl Component for NavbarModule {
                     <div class="d-sm-none" style="max-width: 16em;">
                         <form class="search-bar row">
                             <div class="input-group">
-                                <input id={input_id} class="form-control" placeholder="Search" />
-                                <button for={input_id} class="btn btn-sm btn-secondary" onclick={
+                                <input id={input2_id} class="form-control" placeholder="Search" />
+                                <button for={input2_id} class="btn btn-sm btn-secondary" onclick={
                                     ctx.link().callback(move |e: MouseEvent| {
                                         e.prevent_default();
 
-                                        let input = document().get_element_by_id(input_id).unwrap().unchecked_into::<HtmlInputElement>();
+                                        let input = document().get_element_by_id(input2_id).unwrap().unchecked_into::<HtmlInputElement>();
 
                                         Msg::SearchFor(input.value())
                                     })
@@ -121,11 +122,11 @@ impl Component for NavbarModule {
 
                     // Collapsed List
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                        <ul class="navbar-nav me-auto mb-2">
+                        <ul class="navbar-nav me-5 mb-2">
                             { for self.left_items.iter().map(|item| Self::render_item(item.0, item.1.clone(), &item.2)) }
                         </ul>
 
-                        <div class="center-content me-auto d-none d-sm-block">
+                        <div class="center-content ms-1 me-auto d-none d-sm-block">
                             <form class="search-bar row">
                                 <div class="input-group">
                                     <input id={input_id} class="form-control" placeholder="Search" />
@@ -221,7 +222,7 @@ impl NavbarModule {
                     {
                         for resp.items.iter().map(|item| {
                             html_nested! {
-                                <Link<Route> to={Route::ViewMeta { meta_id: item.id }} classes={ classes!("search-item") }>
+                                <Link<Route> to={Route::ViewMeta { meta_id: item.id }} classes="search-item link-light">
                                     <div class="poster max-vertical">
                                         <img src={ item.get_thumb_url() } />
                                     </div>
