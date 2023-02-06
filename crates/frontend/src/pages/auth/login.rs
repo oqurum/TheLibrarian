@@ -70,8 +70,8 @@ impl Component for LoginPage {
             <div class="login-container">
                 <div class="center-normal">
                     <div class="center-container">
-                        <PasswordlessLogin cb={ ctx.link().clone() } />
                         <PasswordLogin cb={ ctx.link().clone() } />
+                        <PasswordlessLogin cb={ ctx.link().clone() } />
                     </div>
                 </div>
             </div>
@@ -102,7 +102,9 @@ fn passwordless(props: &InnerProps) -> Html {
     };
 
     let submit_passless = {
-        props.cb.callback_future(move |_| {
+        props.cb.callback_future(move |e: SubmitEvent| {
+            e.prevent_default();
+
             let email = passless_email.clone();
 
             async move {
@@ -116,12 +118,12 @@ fn passwordless(props: &InnerProps) -> Html {
     html! {
         <>
             <h2>{ "Passwordless Login" }</h2>
-            <div class="form-container">
+            <form class="mb-2" onsubmit={ submit_passless }>
                 <label for="emailpassless">{ "Email Address" }</label>
-                <input type="email" name="email" id="emailpassless" onchange={ on_change_passless_email } />
+                <input class="form-control" type="email" name="email" id="emailpassless" onchange={ on_change_passless_email } />
 
-                <input type="submit" value="Log in" class="button" onclick={ submit_passless } />
-            </div>
+                <input class="btn btn-primary" type="submit" value="Log in" />
+            </form>
         </>
     }
 }
@@ -146,7 +148,9 @@ fn password(props: &InnerProps) -> Html {
     };
 
     let submit_pass = {
-        props.cb.callback_future(move |_| {
+        props.cb.callback_future(move |e: SubmitEvent| {
+            e.prevent_default();
+
             let email = pass_email.clone();
             let pass = pass_pass.clone();
 
@@ -161,15 +165,15 @@ fn password(props: &InnerProps) -> Html {
     html! {
         <>
             <h2>{ "Password Login" }</h2>
-            <div class="form-container">
+            <form class="mb-2" onsubmit={ submit_pass }>
                 <label for="email">{ "Email Address" }</label>
-                <input type="email" name="email" id="email" onchange={ on_change_pass_email } />
+                <input class="form-control" type="email" name="email" id="email" onchange={ on_change_pass_email } />
 
                 <label for="password">{ "Password" }</label>
-                <input type="password" name="password" id="password" onchange={ on_change_pass_pass } />
+                <input class="form-control" type="password" name="password" id="password" onchange={ on_change_pass_pass } />
 
-                <input type="submit" value="Log in" class="button" onclick={ submit_pass } />
-            </div>
+                <input class="btn btn-primary" type="submit" value="Log in" />
+            </form>
         </>
     }
 }
