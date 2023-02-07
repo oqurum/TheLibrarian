@@ -13,7 +13,7 @@ use crate::http::{JsonResponse, MemberCookie};
 use crate::metadata::MetadataReturned;
 use crate::model::{
     BookModel, BookPersonModel, BookTagWithTagModel, ImageLinkModel, NewEditModel, PersonModel,
-    UploadedImageModel, BookIsbnModel,
+    UploadedImageModel, BookIsbnModel, NewEditVoteModel,
 };
 use crate::storage::get_storage;
 use crate::{metadata, Error, InternalError, WebResult};
@@ -395,7 +395,9 @@ pub async fn update_book_id(
                 NewEditModel::from_book_modify(member.id, current_book, updated_book, &db).await?;
 
             if !model.data.is_empty() {
-                model.insert(&db).await?;
+                let model = model.insert(&db).await?;
+
+                NewEditVoteModel::create(model.id, member.id, true).insert(&db).await?;
             }
         }
     }
