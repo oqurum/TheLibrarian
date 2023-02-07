@@ -291,9 +291,12 @@ mod book_edit {
         }
 
         pub fn insert_added_isbn(&mut self, value: String) {
-            self.added_isbns
-                .get_or_insert_with(Default::default)
-                .push(value);
+            let items = self.added_isbns
+                .get_or_insert_with(Default::default);
+
+            if !items.iter().any(|v| v == &value) {
+                items.push(value);
+            }
         }
 
         pub fn insert_removed_isbn(&mut self, value: String) {

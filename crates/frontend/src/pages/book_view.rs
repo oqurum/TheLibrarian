@@ -277,8 +277,14 @@ impl Component for BookView {
                     }
 
                     ChangingType::IsbnAdding => {
+                        // Trim Input
                         if let Some(isbn) = value.as_deref().map(|v| v.trim()).filter(|v| !v.is_empty()) {
-                            if isbn.len() == 10 || isbn.len() == 13 {
+                            // Check from book isbns first.
+                            if let Some(isbns) = self.media.as_ref().unwrap().as_ok().unwrap().metadata.isbns.as_ref() {
+                                if !isbns.iter().any(|v| v.as_str() == isbn) && (isbn.len() == 10 || isbn.len() == 13) {
+                                    updating.insert_added_isbn(isbn.to_string());
+                                }
+                            } else if isbn.len() == 10 || isbn.len() == 13 {
                                 updating.insert_added_isbn(isbn.to_string());
                             }
                         }
