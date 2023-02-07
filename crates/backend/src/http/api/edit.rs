@@ -163,11 +163,11 @@ async fn update_edit(
                 )))
             }
 
-            i32::MIN..=-1 => {
+            i16::MIN..=-1 => {
                 *vote_amount = -1;
             }
 
-            1..=i32::MAX => {
+            1..=i16::MAX => {
                 *vote_amount = 1;
             }
         }

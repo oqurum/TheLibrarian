@@ -72,7 +72,7 @@ pub struct UpdateEditModel {
 
     pub is_applied: Option<bool>,
 
-    pub vote: Option<i32>,
+    pub vote: Option<i16>,
 
     #[serde(
         serialize_with = "serialize_datetime_opt_opt",
