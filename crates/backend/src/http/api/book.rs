@@ -391,10 +391,12 @@ pub async fn update_book_id(
     if let Some((updated_book, current_book)) = Some(body).zip(current_book) {
         // Make sure we have something we're updating.
         if !updated_book.is_empty() {
-            let model =
+            let mut model =
                 NewEditModel::from_book_modify(member.id, current_book, updated_book, &db).await?;
 
             if !model.data.is_empty() {
+                model.vote_count += 1;
+
                 let model = model.insert(&db).await?;
 
                 NewEditVoteModel::create(model.id, member.id, true).insert(&db).await?;
