@@ -283,7 +283,7 @@ impl EditListPage {
                                                 if let Some(is_selected) = my_vote.or(Some(false)) {
                                                     html! {
                                                         <button
-                                                            class="btn btn-sm btn-success"
+                                                            class="btn btn-sm btn-success ms-2"
                                                             disabled={!is_selected && my_vote.is_some()}
                                                             title="Upvote"
                                                             onclick={scope.callback_future(move |_| async move {
@@ -325,7 +325,7 @@ impl EditListPage {
                                             >{ "Force Reject" }</button>
 
                                             <button
-                                                class="btn btn-sm btn-success"
+                                                class="btn btn-sm btn-success ms-2"
                                                 onclick={scope.callback_future(move |_| async move {
                                                     let resp = request::update_edit_item(id, &UpdateEditModel {
                                                         status: Some(EditStatus::ForceAccepted),
@@ -595,33 +595,35 @@ impl EditListPage {
                                 <div class="row-grow"><div class="badge text-bg-danger text-wrap">{ "(Empty)" }</div></div>
 
                                 // New Value
-                                {
-                                    for new_value.iter().map(|new_val| {
-                                        if status.is_accepted() && is_updated {
-                                            html! {
-                                                <div class="row-grow">
-                                                    <div class="badge text-bg-success text-wrap" title={ "Updated Model with value." }>
+                                <div class="row-grow d-flex flex-column">
+                                    {
+                                        for new_value.iter().map(|new_val| {
+                                            if status.is_accepted() && is_updated {
+                                                html! {
+                                                    <div
+                                                        class="badge text-bg-success text-wrap w-fit-content mb-1"
+                                                        title={ "Updated Model with value." }
+                                                    >
                                                         { map(new_val) }
                                                     </div>
-                                                </div>
-                                            }
-                                        } else if current.is_some() && current != old_value.as_ref() {
-                                            html! {
-                                                <div class="row-grow">
-                                                    <div class="badge text-bg-warning text-wrap" title={ "Current Model has a different value than wanted. It'll not be used if approved." }>
+                                                }
+                                            } else if current.is_some() && current != old_value.as_ref() {
+                                                html! {
+                                                    <div
+                                                        class="badge text-bg-warning text-wrap w-fit-content mb-1"
+                                                        title={ "Current Model has a different value than wanted. It'll not be used if approved." }
+                                                    >
                                                         { map(new_val) }
                                                     </div>
-                                                </div>
+                                                }
+                                            } else {
+                                                html! {
+                                                    <div class="badge text-bg-success text-wrap w-fit-content mb-1">{ map(new_val) }</div>
+                                                }
                                             }
-                                        } else {
-                                            html! {
-                                                <div class="row-grow">
-                                                    <div class="badge text-bg-success text-wrap">{ map(new_val) }</div>
-                                                </div>
-                                            }
-                                        }
-                                    })
-                                }
+                                        })
+                                    }
+                                </div>
                             </div>
                         }
                     }
