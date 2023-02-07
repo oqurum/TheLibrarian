@@ -50,6 +50,13 @@ pub async fn init(client: &Client) -> Result<()> {
         )
         .await?;
 
+    // TODO: Index.
+    // Book ISBN
+    client.execute(r#"CREATE TABLE book_isbn (
+        isbn	TEXT NOT NULL UNIQUE,
+        book_id INT NOT NULL references book(id) ON DELETE CASCADE
+    );"#, &[]).await?;
+
     // People
     client
         .execute(

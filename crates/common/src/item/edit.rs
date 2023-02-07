@@ -171,11 +171,6 @@ mod book_edit {
         pub rating: Option<f64>,
 
         #[serde(skip_serializing_if = "Option::is_none")]
-        pub isbn_10: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        pub isbn_13: Option<String>,
-
-        #[serde(skip_serializing_if = "Option::is_none")]
         pub is_public: Option<bool>,
 
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -206,6 +201,11 @@ mod book_edit {
         pub added_images: Option<Vec<NewOrCachedImage>>,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub removed_images: Option<Vec<ImageId>>,
+
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub added_isbns: Option<Vec<String>>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub removed_isbns: Option<Vec<String>>,
     }
 
     #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -221,17 +221,18 @@ mod book_edit {
         pub rating: bool,
 
         #[serde(default, skip_serializing_if = "is_false")]
-        pub isbn_10: bool,
-        #[serde(default, skip_serializing_if = "is_false")]
-        pub isbn_13: bool,
-
-        #[serde(default, skip_serializing_if = "is_false")]
         pub is_public: bool,
 
         #[serde(default, skip_serializing_if = "is_false")]
         pub available_at: bool,
         #[serde(default, skip_serializing_if = "is_false")]
         pub language: bool,
+
+        #[serde(default, skip_serializing_if = "is_false")]
+        pub added_isbns: bool,
+
+        #[serde(default, skip_serializing_if = "is_false")]
+        pub removed_isbns: bool,
 
         #[serde(default, skip_serializing_if = "is_false")]
         pub updated_people: bool,
@@ -255,8 +256,6 @@ mod book_edit {
                 && !self.clean_title
                 && !self.description
                 && !self.rating
-                && !self.isbn_10
-                && !self.isbn_13
                 && !self.is_public
                 && !self.available_at
                 && !self.language
@@ -264,6 +263,8 @@ mod book_edit {
                 && !self.display_person_id
                 && !self.added_people
                 && !self.removed_people
+                && !self.added_isbns
+                && !self.removed_isbns
         }
     }
 
@@ -273,13 +274,13 @@ mod book_edit {
                 && self.clean_title.is_none()
                 && self.description.is_none()
                 && self.rating.is_none()
-                && self.isbn_10.is_none()
-                && self.isbn_13.is_none()
                 && self.is_public.is_none()
                 && self.available_at.is_none()
                 && self.language.is_none()
                 && self.publisher.is_none()
                 && self.display_person_id.is_none()
+                && self.added_isbns.is_none()
+                && self.removed_isbns.is_none()
                 && self.updated_people.is_none()
                 && self.added_people.is_none()
                 && self.removed_people.is_none()
@@ -287,6 +288,18 @@ mod book_edit {
                 && self.removed_tags.is_none()
                 && self.added_images.is_none()
                 && self.removed_images.is_none()
+        }
+
+        pub fn insert_added_isbn(&mut self, value: String) {
+            self.added_isbns
+                .get_or_insert_with(Default::default)
+                .push(value);
+        }
+
+        pub fn insert_removed_isbn(&mut self, value: String) {
+            self.removed_isbns
+                .get_or_insert_with(Default::default)
+                .push(value);
         }
 
         pub fn insert_added_person(&mut self, id: PersonId) {
@@ -411,14 +424,6 @@ mod book_edit {
                         .remove("rating")
                         .map(serde_json::from_value)
                         .transpose()?,
-                    isbn_10: map
-                        .remove("isbn_10")
-                        .map(serde_json::from_value)
-                        .transpose()?,
-                    isbn_13: map
-                        .remove("isbn_13")
-                        .map(serde_json::from_value)
-                        .transpose()?,
                     is_public: map
                         .remove("is_public")
                         .map(serde_json::from_value)
@@ -460,12 +465,21 @@ mod book_edit {
                         .remove("removed_tags")
                         .map(serde_json::from_value)
                         .transpose()?,
-                    added_images: map
+                        added_images: map
                         .remove("added_images")
                         .map(serde_json::from_value)
                         .transpose()?,
                     removed_images: map
                         .remove("removed_images")
+                        .map(serde_json::from_value)
+                        .transpose()?,
+
+                    added_isbns: map
+                        .remove("added_isbns")
+                        .map(serde_json::from_value)
+                        .transpose()?,
+                    removed_isbns: map
+                        .remove("removed_isbns")
                         .map(serde_json::from_value)
                         .transpose()?,
                 })
@@ -488,14 +502,6 @@ mod book_edit {
                     .transpose()?;
                 self.rating
                     .map(|v| Ok(map.insert("rating", morph_map_value(v)?)))
-                    .transpose()?;
-                self.isbn_10
-                    .clone()
-                    .map(|v| Ok(map.insert("isbn_10", morph_map_value(v)?)))
-                    .transpose()?;
-                self.isbn_13
-                    .clone()
-                    .map(|v| Ok(map.insert("isbn_13", morph_map_value(v)?)))
                     .transpose()?;
                 self.is_public
                     .map(|v| Ok(map.insert("is_public", morph_map_value(v)?)))

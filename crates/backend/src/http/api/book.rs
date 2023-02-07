@@ -13,7 +13,7 @@ use crate::http::{JsonResponse, MemberCookie};
 use crate::metadata::MetadataReturned;
 use crate::model::{
     BookModel, BookPersonModel, BookTagWithTagModel, ImageLinkModel, NewEditModel, PersonModel,
-    UploadedImageModel,
+    UploadedImageModel, BookIsbnModel,
 };
 use crate::storage::get_storage;
 use crate::{metadata, Error, InternalError, WebResult};
@@ -262,8 +262,6 @@ pub async fn add_new_book(
                 rating: book.rating.unwrap_or_default(),
                 thumb_path: ThumbnailStore::None,
                 cached: MetadataItemCached::default().publisher_optional(book.publisher),
-                isbn_10: book.isbn_10,
-                isbn_13: book.isbn_13,
                 is_public: book.is_public.unwrap_or_default(),
                 available_at: book.available_at.map(|v| Utc.timestamp(v, 0).date_naive()),
                 language: book.language.unwrap_or_default(),
@@ -357,8 +355,12 @@ pub async fn get_book_info(
     let people = PersonModel::get_all_by_book_id_w_info(book.id, &db).await?;
     let tags = BookTagWithTagModel::get_by_book_id(book.id, &db).await?;
 
+    let mut metadata = DisplayMetaItem::from(book);
+
+    metadata.isbns = Some(BookIsbnModel::get_all(metadata.id, &db).await?.into_iter().map(|v| v.isbn).collect());
+
     Ok(web::Json(WrappingResponse::okay(api::MediaViewResponse {
-        metadata: book.into(),
+        metadata,
         people: people
             .into_iter()
             .map(|(model, info)| model.into_public_person(info))

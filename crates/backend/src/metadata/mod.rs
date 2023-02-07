@@ -416,8 +416,6 @@ impl From<BookMetadata> for BookModel {
                 .find_map(|v| v.as_local_value().cloned())
                 .unwrap_or(ThumbnailStore::None),
             cached: val.cached,
-            isbn_10: val.isbn_10,
-            isbn_13: val.isbn_13,
             is_public: false,
             edition_count: 0,
             created_at: Utc::now(),

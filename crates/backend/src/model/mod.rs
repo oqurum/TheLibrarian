@@ -1,7 +1,9 @@
 use tokio_postgres::{types::FromSql, Row};
+use crate::Result;
 
 mod auth;
 mod book;
+mod book_isbn;
 mod book_person;
 mod book_tag;
 mod collection;
@@ -17,9 +19,9 @@ mod search_servers;
 mod server_link;
 mod tag;
 
-use crate::Result;
 pub use auth::*;
 pub use book::*;
+pub use book_isbn::*;
 pub use book_person::*;
 pub use book_tag::*;
 pub use collection::*;

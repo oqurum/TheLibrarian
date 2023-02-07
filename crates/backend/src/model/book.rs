@@ -14,7 +14,9 @@ use tokio_postgres::types::ToSql;
 
 use crate::Result;
 
-use super::{row_bigint_to_usize, row_int_to_usize, AdvRow, TableRow};
+use super::{row_bigint_to_usize, row_int_to_usize, AdvRow, TableRow, BookIsbnModel};
+
+const FIELDS: &str = "id, title, clean_title, description, rating, thumb_url, cached, is_public, edition_count, available_at, language, created_at, updated_at, deleted_at";
 
 #[derive(Debug, Clone, Serialize)]
 pub struct BookModel {
@@ -29,9 +31,6 @@ pub struct BookModel {
 
     // TODO: Make table for all tags. Include publisher in it. Remove country.
     pub cached: MetadataItemCached,
-
-    pub isbn_10: Option<String>,
-    pub isbn_13: Option<String>,
 
     pub is_public: bool,
     pub edition_count: usize,
@@ -59,10 +58,8 @@ impl TableRow for BookModel {
             thumb_path: ThumbnailStore::from(row.next_opt::<String>()?),
             cached: row
                 .next_opt::<String>()?
-                .map(|v| MetadataItemCached::from_string(&v))
+                .map(MetadataItemCached::from_string)
                 .unwrap_or_default(),
-            isbn_10: row.next()?,
-            isbn_13: row.next()?,
             is_public: row.next()?,
             edition_count: row.next::<i64>()? as usize,
             available_at: row.next_opt()?,
@@ -84,9 +81,8 @@ impl From<BookModel> for DisplayMetaItem {
             description: val.description,
             rating: val.rating,
             thumb_path: val.thumb_path,
+            isbns: None,
             cached: val.cached,
-            isbn_10: val.isbn_10,
-            isbn_13: val.isbn_13,
             is_public: val.is_public,
             edition_count: val.edition_count,
             available_at: val.available_at,
@@ -108,8 +104,6 @@ impl From<DisplayMetaItem> for BookModel {
             rating: val.rating,
             thumb_path: val.thumb_path,
             cached: val.cached,
-            isbn_10: val.isbn_10,
-            isbn_13: val.isbn_13,
             is_public: val.is_public,
             edition_count: val.edition_count,
             available_at: val.available_at,
@@ -122,9 +116,16 @@ impl From<DisplayMetaItem> for BookModel {
 }
 
 impl BookModel {
-    pub fn into_public_book(self, host: &str, author_ids: Vec<usize>) -> PublicBook {
-        PublicBook {
+    pub async fn into_public_book(self, host: &str, author_ids: Vec<usize>, with_isbn: bool, db: &tokio_postgres::Client) -> Result<PublicBook> {
+        let isbns = if with_isbn {
+            Some(BookIsbnModel::get_all(self.id, db).await?.into_iter().map(|v| v.isbn).collect())
+        } else {
+            None
+        };
+
+        Ok(PublicBook {
             author_ids,
+            isbns,
 
             id: *self.id,
             title: self.title,
@@ -134,11 +135,9 @@ impl BookModel {
             thumb_url: self
                 .thumb_path
                 .as_value()
-                .map(|v| format!("{}/api/v1/image/{v}", host)),
+                .map(|v| format!("{host}/api/v1/image/{v}")),
             display_author_id: self.cached.author_id.map(|v| *v),
             publisher: self.cached.publisher,
-            isbn_10: self.isbn_10,
-            isbn_13: self.isbn_13,
             is_public: self.is_public,
             edition_count: self.edition_count,
             available_at: self.available_at,
@@ -146,11 +145,19 @@ impl BookModel {
             created_at: self.created_at,
             updated_at: self.updated_at,
             deleted_at: self.deleted_at,
-        }
+        })
     }
 
-    pub fn into_partial_book(self, host: &str) -> PartialBook {
-        PartialBook {
+    pub async fn into_partial_book(self, host: &str, with_isbn: bool, db: &tokio_postgres::Client) -> Result<PartialBook> {
+        let isbns = if with_isbn {
+            Some(BookIsbnModel::get_all(self.id, db).await?.into_iter().map(|v| v.isbn).collect())
+        } else {
+            None
+        };
+
+        Ok(PartialBook {
+            isbns,
+
             id: *self.id,
             title: self.title,
             description: self.description,
@@ -158,13 +165,11 @@ impl BookModel {
             thumb_url: self
                 .thumb_path
                 .as_value()
-                .map(|v| format!("{}/api/v1/image/{v}", host)),
-            isbn_10: self.isbn_10,
-            isbn_13: self.isbn_13,
+                .map(|v| format!("{host}/api/v1/image/{v}")),
             is_public: self.is_public,
             available_at: self.available_at,
             language: self.language,
-        }
+        })
     }
 
     pub async fn get_book_count(db: &tokio_postgres::Client) -> Result<usize> {
@@ -188,15 +193,13 @@ impl BookModel {
                 INSERT INTO book (
                     title, clean_title, description, rating, thumb_url,
                     cached, is_public, edition_count,
-                    isbn_10, isbn_13,
                     available_at, language,
                     created_at, updated_at, deleted_at
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id"#,
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id"#,
                 params![
                     &self.title, &self.clean_title, &self.description, self.rating, self.thumb_path.as_value(),
                     &self.cached.as_string_optional(), self.is_public, self.edition_count as i64,
-                    &self.isbn_10, &self.isbn_13,
                     &self.available_at, get_language_name(self.language),
                     self.created_at, self.updated_at, self.deleted_at,
                 ]
@@ -216,9 +219,8 @@ impl BookModel {
             UPDATE book SET
                 title = $2, clean_title = $3, description = $4, rating = $5, thumb_url = $6,
                 cached = $7, is_public = $8,
-                isbn_10 = $9, isbn_13 = $10,
-                available_at = $11, language = $12,
-                updated_at = $13, deleted_at = $14
+                available_at = $9, language = $10,
+                updated_at = $11, deleted_at = $12
             WHERE id = $1"#,
             params![
                 *self.id as i32,
@@ -229,8 +231,6 @@ impl BookModel {
                 self.thumb_path.as_value(),
                 &self.cached.as_string_optional(),
                 self.is_public,
-                &self.isbn_10,
-                &self.isbn_13,
                 &self.available_at,
                 get_language_name(self.language),
                 &self.updated_at,
@@ -243,7 +243,7 @@ impl BookModel {
     }
 
     pub async fn get_by_id(id: BookId, db: &tokio_postgres::Client) -> Result<Option<Self>> {
-        db.query_opt("SELECT * FROM book WHERE id = $1", params![*id as i32])
+        db.query_opt(&format!("SELECT {FIELDS} FROM book WHERE id = $1"), params![*id as i32])
             .await?
             .map(Self::from_row)
             .transpose()
@@ -274,10 +274,7 @@ impl BookModel {
         db: &tokio_postgres::Client,
     ) -> Result<Vec<Self>> {
         let inner_query = if let Some(pid) = person_id {
-            format!(
-                "WHERE id IN (SELECT book_id FROM book_person WHERE person_id = {})",
-                pid
-            )
+            format!("WHERE id IN (SELECT book_id FROM book_person WHERE person_id = {pid})")
         } else {
             String::new()
         };
@@ -285,7 +282,7 @@ impl BookModel {
         let values = db
             .query(
                 &format!(
-                    "SELECT * FROM book {} ORDER BY id {} LIMIT $1 OFFSET $2",
+                    "SELECT {FIELDS} FROM book {} ORDER BY id {} LIMIT $1 OFFSET $2",
                     inner_query,
                     order.into_string()
                 ),
@@ -386,7 +383,8 @@ impl BookModel {
             Box::new(offset as i64) as Box<dyn ToSql + Sync>,
         ];
 
-        let mut sql = Self::gen_search_query(qt, only_public, &mut parameters);
+        let mut sql = Self::gen_search_query(qt, only_public, &mut parameters)
+            .replace("SELECT *", &format!("SELECT {FIELDS}"));
 
         let _ = write!(
             &mut sql,
@@ -409,7 +407,7 @@ impl BookModel {
         let mut parameters = Vec::new();
 
         let sql = Self::gen_search_query(qt, only_public, &mut parameters)
-            .replace("SELECT *", "SELECT COUNT(*)");
+            .replace("SELECT *", "SELECT COUNT(id)");
 
         row_bigint_to_usize(
             db.query_one(&sql, &super::boxed_to_dyn_vec(&parameters))

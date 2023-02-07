@@ -267,13 +267,25 @@ impl Component for BookView {
                             date.get_seconds() as i64
                         })
                     }
+
                     ChangingType::Language => {
                         updating.language = value.and_then(|v| v.parse().ok())
                     }
-                    ChangingType::Isbn10 => updating.isbn_10 = value,
-                    ChangingType::Isbn13 => updating.isbn_13 = value,
+
                     ChangingType::Publicity => {
                         updating.is_public = value.and_then(|v| v.parse().ok())
+                    }
+
+                    ChangingType::IsbnAdding => {
+                        if let Some(isbn) = value.as_deref().map(|v| v.trim()).filter(|v| !v.is_empty()) {
+                            if isbn.len() == 10 || isbn.len() == 13 {
+                                updating.insert_added_isbn(isbn.to_string());
+                            }
+                        }
+                    }
+
+                    ChangingType::IsbnRemoving(isbn) => {
+                        updating.insert_removed_isbn(isbn);
                     }
 
                     ChangingType::PersonRelation(id) => {
@@ -508,21 +520,51 @@ impl BookView {
                                                 />
                                             </div>
 
-                                            <div class="mb-1">
-                                                <span class="sub-title">{"ISBN 10"}</span>
-                                                <input class="form-control" type="text"
-                                                    onchange={Self::on_change_input(ctx.link(), ChangingType::Isbn10)}
-                                                    value={ editing.isbn_10.clone().or_else(|| book_model.isbn_10.clone()).unwrap_or_default() }
-                                                />
-                                            </div>
-
-                                            <div class="mb-1">
-                                                <span class="sub-title">{"ISBN 13"}</span>
-                                                <input class="form-control" type="text"
-                                                    onchange={Self::on_change_input(ctx.link(), ChangingType::Isbn13)}
-                                                    value={ editing.isbn_13.clone().or_else(|| book_model.isbn_13.clone()).unwrap_or_default() }
-                                                />
-                                            </div>
+                                            {
+                                                if let Some(isbn_list) = book_model.isbns.clone() {
+                                                    html! {
+                                                        <div class="mb-1">
+                                                            <span class="sub-title">{ "ISBN List" }</span>
+                                                            <div class="card">
+                                                                <ul class="list-group list-group-flush" style="overflow-y: auto; max-height: 9em;">
+                                                                    {
+                                                                        for isbn_list.into_iter()
+                                                                            // Filter out editing "removed tags"
+                                                                            .filter(|isbn| !editing.removed_isbns.as_ref().map(|v| v.iter().any(|r| r == isbn)).unwrap_or_default())
+                                                                            // Chain into editing "added tags"
+                                                                            .chain(editing.added_isbns.clone().unwrap_or_default())
+                                                                            .map(|isbn| {
+                                                                                html! {
+                                                                                    <li class="list-group-item d-flex px-0 py-1">
+                                                                                        <div
+                                                                                            class="c-pointer"
+                                                                                            onclick={ Self::on_click(ctx.link(), ChangingType::IsbnRemoving(isbn.clone())) }
+                                                                                        >
+                                                                                            <span class="text-danger material-icons" title="Remove">
+                                                                                                { "delete" }
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <div>{ isbn.as_str() }</div>
+                                                                                    </li>
+                                                                                }
+                                                                            })
+                                                                    }
+                                                                </ul>
+                                                                <div class="card-footer p-1">
+                                                                    <input
+                                                                        class="form-control form-control-sm"
+                                                                        type="text"
+                                                                        placeholder="Add ISBN 10 / ISBN 13"
+                                                                        onchange={ Self::on_change_input(ctx.link(), ChangingType::IsbnAdding) }
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                } else {
+                                                    html! {}
+                                                }
+                                            }
 
                                             <div class="mb-1">
                                                 <span class="sub-title">{"Publisher"}</span>
@@ -1050,10 +1092,19 @@ impl BookView {
         }
     }
 
+    fn on_click(scope: &Scope<Self>, updating: ChangingType) -> Callback<MouseEvent> {
+        scope.callback(move |_: MouseEvent| {
+            Msg::UpdateEditing(
+                updating.clone(),
+                String::new(),
+            )
+        })
+    }
+
     fn on_change_select(scope: &Scope<Self>, updating: ChangingType) -> Callback<Event> {
         scope.callback(move |e: Event| {
             Msg::UpdateEditing(
-                updating,
+                updating.clone(),
                 e.target()
                     .unwrap()
                     .dyn_into::<HtmlSelectElement>()
@@ -1066,7 +1117,7 @@ impl BookView {
     fn on_change_input(scope: &Scope<Self>, updating: ChangingType) -> Callback<Event> {
         scope.callback(move |e: Event| {
             Msg::UpdateEditing(
-                updating,
+                updating.clone(),
                 e.target()
                     .unwrap()
                     .dyn_into::<HtmlInputElement>()
@@ -1079,7 +1130,7 @@ impl BookView {
     fn on_change_textarea(scope: &Scope<Self>, updating: ChangingType) -> Callback<Event> {
         scope.callback(move |e: Event| {
             Msg::UpdateEditing(
-                updating,
+                updating.clone(),
                 e.target()
                     .unwrap()
                     .dyn_into::<HtmlTextAreaElement>()
@@ -1182,7 +1233,7 @@ pub struct CachedTag {
     name: String,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum ChangingType {
     Title,
     OriginalTitle,
@@ -1191,9 +1242,10 @@ pub enum ChangingType {
     // ThumbPath,
     AvailableAt,
     Language,
-    Isbn10,
-    Isbn13,
     Publicity,
+
+    IsbnAdding,
+    IsbnRemoving(String),
 
     PersonDisplayed(PersonId),
     PersonRelation(PersonId),

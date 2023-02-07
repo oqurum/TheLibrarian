@@ -394,12 +394,13 @@ impl EditListPage {
                 { Self::display_row("Clean Title", &new_data.clean_title, &old_data.clean_title, current.and_then(|v| v.clean_title.as_ref()), updated.clean_title, status, operation) }
                 { Self::display_row("Description", &new_data.description, &old_data.description, current.and_then(|v| v.description.as_ref()), updated.description, status, operation) }
                 { Self::display_row("Rating", &new_data.rating, &old_data.rating, current.map(|v| &v.rating), updated.rating, status, operation) }
-                { Self::display_row("ISBN 10", &new_data.isbn_10, &old_data.isbn_10, current.and_then(|v| v.isbn_10.as_ref()), updated.isbn_10, status, operation) }
-                { Self::display_row("ISBN 13", &new_data.isbn_13, &old_data.isbn_13, current.and_then(|v| v.isbn_13.as_ref()), updated.isbn_13, status, operation) }
                 { Self::display_row("Is Public", &new_data.is_public, &old_data.is_public, current.map(|v| &v.is_public), updated.is_public, status, operation) }
                 { Self::display_row("Available At", &new_data.available_at, &old_data.available_at, current.and_then(|v| v.available_at.map(|v| v.and_hms(0, 0, 0).timestamp())).as_ref(), updated.available_at, status, operation) }
                 { Self::display_row("Language", &new_data.language, &old_data.language, current.map(|v| &v.language), updated.language, status, operation) }
                 { Self::display_row("Display Person", &new_data.display_person_id, &old_data.display_person_id, current.and_then(|v| v.cached.author_id.as_ref()), updated.display_person_id, status, operation) }
+
+                { Self::display_row_array("Added ISBNs", &new_data.added_isbns, &old_data.added_isbns, None, updated.added_isbns, status, operation) }
+                { Self::display_row_array("Removed ISBNs", &new_data.removed_isbns, &old_data.removed_isbns, None, updated.removed_isbns, status, operation) }
 
                 { Self::display_row_array_map(
                     "Updated People", &new_data.updated_people, &old_data.updated_people, None, updated.updated_people, status, operation,

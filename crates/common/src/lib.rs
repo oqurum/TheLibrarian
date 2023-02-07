@@ -320,8 +320,7 @@ pub struct DisplayMetaItem {
     // TODO: Make table for all tags. Include publisher in it. Remove country.
     pub cached: MetadataItemCached,
 
-    pub isbn_10: Option<String>,
-    pub isbn_13: Option<String>,
+    pub isbns: Option<Vec<String>>,
 
     pub is_public: bool,
     pub edition_count: usize,
@@ -377,9 +376,8 @@ impl Default for DisplayMetaItem {
             description: Default::default(),
             rating: Default::default(),
             thumb_path: ThumbnailStore::None,
+            isbns: None,
             cached: Default::default(),
-            isbn_10: Default::default(),
-            isbn_13: Default::default(),
             created_at: Utc::now(),
             updated_at: Utc::now(),
             deleted_at: Default::default(),
@@ -397,8 +395,6 @@ impl From<DisplayMetaItem> for BookEdit {
             title: value.title,
             description: value.description,
             rating: Some(value.rating),
-            isbn_10: value.isbn_10,
-            isbn_13: value.isbn_13,
             available_at: value.available_at.map(|v| v.and_hms(0, 0, 0).timestamp()),
             language: Some(value.language),
 

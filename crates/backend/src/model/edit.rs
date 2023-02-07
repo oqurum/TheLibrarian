@@ -15,7 +15,7 @@ use crate::{edit_translate, Result};
 
 use super::{
     row_bigint_to_usize, row_int_to_usize, AdvRow, BookModel, BookPersonModel, BookTagModel,
-    ImageLinkModel, MemberModel, PersonAltModel, PersonModel, TableRow, TagModel,
+    ImageLinkModel, MemberModel, PersonAltModel, PersonModel, TableRow, TagModel, BookIsbnModel,
 };
 
 #[derive(Debug)]
@@ -482,8 +482,6 @@ pub async fn new_edit_data_from_book(
         edit_translate::cmp_opt_string(current.description, updated.description);
     let (rating_old, rating) =
         edit_translate::cmp_opt_partial_eq(Some(current.rating), updated.rating);
-    let (isbn_10_old, isbn_10) = edit_translate::cmp_opt_string(current.isbn_10, updated.isbn_10);
-    let (isbn_13_old, isbn_13) = edit_translate::cmp_opt_string(current.isbn_13, updated.isbn_13);
     let (is_public_old, is_public) =
         edit_translate::cmp_opt_bool(Some(current.is_public), updated.is_public);
     let (available_at_old, available_at) = edit_translate::cmp_opt_partial_eq(
@@ -501,18 +499,21 @@ pub async fn new_edit_data_from_book(
     let (removed_people_old, removed_people) =
         edit_translate::cmp_opt_partial_eq(current_people, updated.removed_people);
 
+
+    // TODO: Validate added ISBNs (correct length)
+
     let new = BookEdit {
         title,
         clean_title,
         description,
         rating,
-        isbn_10,
-        isbn_13,
         is_public,
         available_at,
         language,
         display_person_id,
         publisher: None, // TODO
+        added_isbns: updated.added_isbns,
+        removed_isbns: updated.removed_isbns,
         updated_people,
         added_people: updated.added_people,
         removed_people,
@@ -527,13 +528,13 @@ pub async fn new_edit_data_from_book(
         clean_title: clean_title_old,
         description: description_old,
         rating: rating_old,
-        isbn_10: isbn_10_old,
-        isbn_13: isbn_13_old,
         is_public: is_public_old,
         available_at: available_at_old,
         language: language_old,
         display_person_id: display_person_id_old,
         publisher: None,
+        added_isbns: None,
+        removed_isbns: None,
         updated_people: updated_people_old,
         added_people: None,
         removed_people: removed_people_old,
@@ -632,18 +633,6 @@ pub async fn accept_register_book_data_overwrites(
         &mut book_model.description,
         old.description,
         new.description,
-    );
-    cmp_opt_old_and_new_return(
-        &mut book_edits.isbn_10,
-        &mut book_model.isbn_10,
-        old.isbn_10,
-        new.isbn_10,
-    );
-    cmp_opt_old_and_new_return(
-        &mut book_edits.isbn_13,
-        &mut book_model.isbn_13,
-        old.isbn_13,
-        new.isbn_13,
     );
     cmp_opt_old_and_new_return(
         &mut book_edits.available_at,
@@ -764,6 +753,21 @@ pub async fn accept_register_book_data_overwrites(
             BookPersonModel::new(book_model.id, person_id, None)
                 .remove(db)
                 .await?;
+        }
+    }
+
+    // ISBNs
+    if let Some(values) = new.added_isbns {
+        for isbn in values {
+            if let Err(e) = (BookIsbnModel { book_id: book_model.id, isbn }.insert(db).await) {
+                eprintln!("{e}");
+            }
+        }
+    }
+
+    if let Some(values) = new.removed_isbns {
+        for isbn in values {
+            BookIsbnModel::remove_isbn(&isbn, db).await?;
         }
     }
 

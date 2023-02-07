@@ -30,6 +30,7 @@ pub async fn public_search_book(
         limit,
         view_private,
         server_id,
+        with_isbn,
     } = query.into_inner();
 
     let sever_link_model = match ServerLinkModel::get_by_server_id(&server_id, &db).await? {
@@ -54,7 +55,7 @@ pub async fn public_search_book(
                 .collect();
 
             Ok(web::Json(WrappingResponse::okay(
-                PublicSearchType::BookItem(Some(model.into_public_book(&host, author_ids))),
+                PublicSearchType::BookItem(Some(model.into_public_book(&host, author_ids, with_isbn, &db).await?)),
             )))
         } else {
             Ok(web::Json(WrappingResponse::okay(
@@ -106,10 +107,15 @@ pub async fn public_search_book(
                 offset,
                 limit,
                 total,
-                items: items
-                    .into_iter()
-                    .map(|v| v.into_partial_book(&host))
-                    .collect(),
+                items: {
+                    let mut partial = Vec::new();
+
+                    for v in items {
+                        partial.push(v.into_partial_book(&host, with_isbn, &db).await?);
+                    }
+
+                    partial
+                },
             }),
         )))
     }
