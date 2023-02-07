@@ -11,7 +11,7 @@ pub use edit_comment::*;
 pub use edit_vote::*;
 use tokio_postgres::Client;
 
-use crate::{edit_translate, Result};
+use crate::{edit_translate, Result, InternalError};
 
 use super::{
     row_bigint_to_usize, row_int_to_usize, AdvRow, BookModel, BookPersonModel, BookTagModel,
@@ -500,7 +500,24 @@ pub async fn new_edit_data_from_book(
         edit_translate::cmp_opt_partial_eq(current_people, updated.removed_people);
 
 
-    // TODO: Validate added ISBNs (correct length)
+    let isbn_models = BookIsbnModel::get_all(current.id, db).await?;
+    if let Some(list) = updated.removed_isbns.as_ref() {
+        for removed in list {
+            if !isbn_models.iter().any(|v| &v.isbn == removed) {
+                return Err(InternalError::ItemMissing.into());
+            }
+        }
+    }
+
+    if let Some(list) = updated.added_isbns.as_ref() {
+        for isbn in list {
+            // TODO: Better Validation. Impl. into global_common isbn.rs
+            if isbn.len() != 10 && isbn.len() != 13 {
+                return Err(InternalError::InvalidIsbn.into());
+            }
+        }
+    }
+
 
     let new = BookEdit {
         title,

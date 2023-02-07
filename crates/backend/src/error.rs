@@ -144,6 +144,9 @@ pub enum InternalError {
     #[error("Unable to convert PathBuf to String")]
     ConvertPathBufToString,
 
+    #[error("Invalid ISBN")]
+    InvalidIsbn,
+
     // Backblaze
     #[error("Backblaze B2 Authorization Error.")]
     B2Authorization,
