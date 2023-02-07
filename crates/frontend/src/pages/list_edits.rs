@@ -261,7 +261,7 @@ impl EditListPage {
                                                 if let Some(is_selected) = my_vote.map(|v| !v).or(Some(false)) {
                                                     html! {
                                                         <button
-                                                            class="slim red"
+                                                            class="btn btn-sm btn-danger"
                                                             disabled={!is_selected && my_vote.is_some()}
                                                             title="Downvote"
                                                             onclick={scope.callback_future(move |_| async move {
@@ -283,7 +283,7 @@ impl EditListPage {
                                                 if let Some(is_selected) = my_vote.or(Some(false)) {
                                                     html! {
                                                         <button
-                                                            class="slim green"
+                                                            class="btn btn-sm btn-success"
                                                             disabled={!is_selected && my_vote.is_some()}
                                                             title="Upvote"
                                                             onclick={scope.callback_future(move |_| async move {
@@ -313,7 +313,7 @@ impl EditListPage {
                                     html! {
                                         <>
                                             <button
-                                                class="slim red"
+                                                class="btn btn-sm btn-danger"
                                                 onclick={scope.callback_future(move |_| async move {
                                                     let resp = request::update_edit_item(id, &UpdateEditModel {
                                                         status: Some(EditStatus::ForceRejected),
@@ -325,7 +325,7 @@ impl EditListPage {
                                             >{ "Force Reject" }</button>
 
                                             <button
-                                                class="slim green"
+                                                class="btn btn-sm btn-success"
                                                 onclick={scope.callback_future(move |_| async move {
                                                     let resp = request::update_edit_item(id, &UpdateEditModel {
                                                         status: Some(EditStatus::ForceAccepted),
