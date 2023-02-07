@@ -33,9 +33,6 @@ pub async fn init(client: &Client) -> Result<()> {
 
             cached           TEXT,
 
-            isbn_10          CHAR(10) UNIQUE,
-            isbn_13          CHAR(13) UNIQUE,
-
             is_public        BOOL NOT NULL,
             edition_count    BIGINT NOT NULL,
 
