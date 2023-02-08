@@ -12,7 +12,7 @@ const MIGRATIONS: [(i32, &str, &str, &str); 1] = [
 ];
 
 
-pub async fn start_initiation(db: &Client) -> Result<()> {
+pub async fn start_initiation(db: &mut Client) -> Result<()> {
     if does_migration_table_exist(db).await? {
         let items = MigrationModel::get_all(db).await?;
         let last_index = items.into_iter().fold(0, |idx, b| idx.max(b.id));
@@ -21,9 +21,11 @@ pub async fn start_initiation(db: &Client) -> Result<()> {
             if id > last_index {
                 let now = Instant::now();
 
-                // TODO: Transaction
+                let trx = db.transaction().await?;
 
-                db.batch_execute(sql).await?;
+                trx.batch_execute(sql).await?;
+
+                trx.commit().await?;
 
                 MigrationModel {
                     id,

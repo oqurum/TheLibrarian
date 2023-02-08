@@ -4,7 +4,7 @@ use tokio_postgres::{connect, Client, NoTls};
 mod migrations;
 
 pub async fn init(config: &Config) -> Result<Client> {
-    let (client, connection) = connect(&config.database.url, NoTls).await?;
+    let (mut client, connection) = connect(&config.database.url, NoTls).await?;
 
     // Initiate Connection
     tokio::spawn(async move {
@@ -15,7 +15,7 @@ pub async fn init(config: &Config) -> Result<Client> {
         }
     });
 
-    migrations::start_initiation(&client).await?;
+    migrations::start_initiation(&mut client).await?;
 
     Ok(client)
 }
