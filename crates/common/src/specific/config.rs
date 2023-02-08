@@ -24,7 +24,7 @@ impl Default for AuthConfig {
     fn default() -> Self {
         Self {
             new_users: false,
-            auth_key: Alphanumeric.sample_string(&mut rand::thread_rng(), 48),
+            auth_key: Alphanumeric.sample_string(&mut rand::thread_rng(), 64),
         }
     }
 }

@@ -1,4 +1,9 @@
-use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
+use std::time::Duration;
+
+use actix_identity::{Identity, IdentityMiddleware};
+use actix_session::SessionMiddleware;
+use actix_session::storage::CookieSessionStore;
+use actix_web::cookie::Key;
 use actix_web::http::header;
 use actix_web::middleware::Logger;
 use actix_web::HttpResponse;
@@ -22,7 +27,7 @@ async fn default_handler() -> impl actix_web::Responder {
 }
 
 async fn logout(ident: Identity) -> HttpResponse {
-    ident.forget();
+    ident.logout();
 
     HttpResponse::TemporaryRedirect()
         .insert_header((header::LOCATION, "/logout"))
@@ -37,13 +42,18 @@ pub async fn register_http_service(
         App::new()
             .app_data(db_data.clone())
             .wrap(Logger::default())
-            .wrap(IdentityService::new(
-                CookieIdentityPolicy::new(get_config().auth.auth_key.as_bytes())
-                    .name("librarian-auth")
-                    .secure(false)
-                    .max_age_secs(60 * 60 * 24 * 365)
-                    .same_site(SameSite::Strict),
-            ))
+            .wrap(
+                IdentityMiddleware::builder()
+                    .login_deadline(Some(Duration::from_secs(60 * 60 * 24 * 365)))
+                    .build(),
+            )
+            .wrap(
+                SessionMiddleware::builder(CookieSessionStore::default(), Key::from(get_config().auth.auth_key.as_bytes()))
+                    .cookie_name(String::from("librarian-auth"))
+                    .cookie_secure(false)
+                    .cookie_same_site(SameSite::Strict)
+                    .build(),
+            )
             .service(search::public_search_book)
             .service(search::public_search_author)
             // API

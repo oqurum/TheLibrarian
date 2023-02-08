@@ -4,7 +4,7 @@
 
 use actix_identity::Identity;
 use actix_web::{http::header, HttpResponse};
-use actix_web::{web, HttpRequest};
+use actix_web::{web, HttpRequest, HttpMessage};
 use common::api::{ApiErrorResponse, WrappingResponse};
 use common_local::{ConfigEmail, Permissions};
 
@@ -32,10 +32,10 @@ pub struct PostPasswordlessCallback {
 pub async fn post_passwordless_oauth(
     req: HttpRequest,
     query: web::Json<PostPasswordlessCallback>,
-    identity: Identity,
+    identity: Option<Identity>,
     db: web::Data<tokio_postgres::Client>,
 ) -> WebResult<JsonResponse<String>> {
-    if identity.identity().is_some() {
+    if identity.is_some() {
         return Err(ApiErrorResponse::new("Already logged in").into());
     }
 
@@ -103,11 +103,12 @@ pub struct QueryCallback {
 }
 
 pub async fn get_passwordless_oauth_callback(
+    request: HttpRequest,
     query: web::Query<QueryCallback>,
-    identity: Identity,
+    identity: Option<Identity>,
     db: web::Data<tokio_postgres::Client>,
 ) -> WebResult<HttpResponse> {
-    if identity.identity().is_some() {
+    if identity.is_some() {
         return Ok(HttpResponse::Found()
             .append_header((header::LOCATION, "/"))
             .finish());
@@ -134,7 +135,7 @@ pub async fn get_passwordless_oauth_callback(
             new_member.insert(&db).await?
         };
 
-        super::remember_member_auth(member.id, &identity)?;
+        super::remember_member_auth(&request.extensions(), member.id)?;
     }
 
     Ok(HttpResponse::Found()

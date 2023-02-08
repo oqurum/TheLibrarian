@@ -6,7 +6,7 @@ pub struct CliArgs {
     #[clap(short, long, value_parser, default_value_t = 8085)]
     pub port: usize,
 
-    #[clap(short, long, value_parser, default_value_t = default_host())]
+    #[clap(long, value_parser, default_value_t = default_host())]
     pub host: String,
 }
 

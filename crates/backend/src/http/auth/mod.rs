@@ -8,7 +8,7 @@ use std::{
 use actix_identity::Identity;
 use actix_web::{
     body::MessageBody,
-    dev::{Payload, Service, ServiceRequest, ServiceResponse, Transform},
+    dev::{Payload, Service, ServiceRequest, ServiceResponse, Transform, Extensions},
     FromRequest, HttpRequest,
 };
 use chrono::Utc;
@@ -30,17 +30,17 @@ pub struct CookieAuth {
 }
 
 pub fn get_auth_value(identity: &Identity) -> Option<CookieAuth> {
-    let ident = identity.identity()?;
+    let ident = identity.id().ok()?;
     serde_json::from_str(&ident).ok()
 }
 
-pub fn remember_member_auth(member_id: MemberId, identity: &Identity) -> Result<()> {
+pub fn remember_member_auth(ext: &Extensions, member_id: MemberId) -> Result<()> {
     let value = serde_json::to_string(&CookieAuth {
         member_id,
         stored_since: Utc::now().timestamp_millis(),
     })?;
 
-    identity.remember(value);
+    Identity::login(ext, value).expect("Ident Login Error");
 
     Ok(())
 }
