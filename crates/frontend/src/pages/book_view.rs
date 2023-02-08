@@ -264,7 +264,8 @@ impl Component for BookView {
                     ChangingType::AvailableAt => {
                         updating.available_at = value.map(|v| {
                             let date = Date::new(&JsValue::from_str(&v));
-                            date.get_seconds() as i64
+                            // Remove Milliseconds
+                            (date.get_time() as u64 / 1000) as i64
                         })
                     }
 
