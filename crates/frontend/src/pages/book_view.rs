@@ -444,21 +444,23 @@ impl BookView {
                             <div class="row">
                                 // Poster Container
                                 <div class="col col-sm-auto col-12 justify-content-center d-flex">
-                                    <div class="poster large">
+                                    <div class="poster large position-relative">
                                         <LoginBarrier>
-                                            <div class="bottom-right">
-                                                <span class="material-icons" onclick={on_click_more} title="More Options">{ "more_horiz" }</span>
-                                            </div>
+                                            <div class="overlay bg-dark bg-gradient bg-opacity-50 position-absolute w-100 h-100">
+                                                <div class="bottom-right">
+                                                    <span class="material-icons" onclick={on_click_more} title="More Options">{ "more_horiz" }</span>
+                                                </div>
 
-                                            <div class="bottom-left">
-                                                <span class="material-icons" onclick={ctx.link().callback_future(move |e: MouseEvent| {
-                                                    e.prevent_default();
-                                                    e.stop_propagation();
+                                                <div class="bottom-left">
+                                                    <span class="material-icons" onclick={ctx.link().callback_future(move |e: MouseEvent| {
+                                                        e.prevent_default();
+                                                        e.stop_propagation();
 
-                                                    async move {
-                                                        Msg::ShowPopup(DisplayOverlay::Edit(Box::new(request::get_media_view(book_id).await)))
-                                                    }
-                                                })} title="More Options">{ "edit" }</span>
+                                                        async move {
+                                                            Msg::ShowPopup(DisplayOverlay::Edit(Box::new(request::get_media_view(book_id).await)))
+                                                        }
+                                                    })} title="More Options">{ "edit" }</span>
+                                                </div>
                                             </div>
                                         </LoginBarrier>
 
@@ -999,14 +1001,14 @@ impl BookView {
                 &DisplayOverlay::More { mouse_pos, .. } => {
                     html! {
                         <Popup type_of={ PopupType::AtPoint(mouse_pos.0, mouse_pos.1) } on_close={ctx.link().callback(|_| Msg::ClosePopup)}>
-                            <div class="menu-list">
+                            <div class="dropdown-menu dropdown-menu-dark show">
                                 // <div class="menu-item" yew-close-popup="" onclick={
                                 //     Self::on_click_prevdef(ctx.link(), Msg::UpdateBook(book_id))
                                 // }>{ "Refresh Metadata" }</div>
-                                <div class="menu-item" yew-close-popup="" onclick={
+                                <div class="dropdown-item" yew-close-popup="" onclick={
                                     Self::on_click_prevdef_stopprop(ctx.link(), Msg::ShowPopup(DisplayOverlay::SearchForBook { input_value: None }))
                                 }>{ "Search New Metadata" }</div>
-                                <div class="menu-item" yew-close-popup="" onclick={ ctx.link().callback_future(move |_| async move {
+                                <div class="dropdown-item" yew-close-popup="" onclick={ ctx.link().callback_future(move |_| async move {
                                     Msg::OnDelete(request::delete_book(book_id).await)
                                 }) }>{ "Delete" }</div>
                             </div>
