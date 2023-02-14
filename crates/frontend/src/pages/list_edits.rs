@@ -151,7 +151,7 @@ impl EditListPage {
         let my_vote = self.get_my_vote(item);
 
         html! {
-            <div class="row justify-content-center">
+            <div class="row justify-content-center" key={ id.to_string() }>
                 <div class="col-12 col-lg-9 editing-item-card">
                     <div class="header">
                         // Left

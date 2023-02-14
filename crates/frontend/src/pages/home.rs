@@ -227,7 +227,7 @@ impl Component for HomePage {
                                     let is_editing = self.editing_items.lock().unwrap().contains(&item.id);
 
                                     html! {
-                                        <div class="col p-0">
+                                        <div class="col p-0" key={ item.id.to_string() }>
                                             <MediaItem
                                                 {is_editing}
 
